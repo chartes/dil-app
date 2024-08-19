@@ -2,8 +2,8 @@
 
 ## Planification et mise en place du dépôt
 
-- [ ] refaire fonctionner elec
-- [X] Dépôt GitHub initialisé.
+- [X] refaire fonctionner elec (donner un `sudo service apache2 restart`)
+- [X] Dépôt GitHub initialisé
 - [ ] Documentation de la structure actuelle de la base de données (mapping des champs)
 - [ ] Analyse des fonctionnalités actuelles de l'application à répercuter
 - [X] Mise en place arborescence de l'application
