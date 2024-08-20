@@ -13,9 +13,9 @@
 
 **page statique** 
 
-- texte de présentation (provenance ?)
-- bandeau de navigation (5 items)
-- logos : ENC et Labex CAP (aucun lien)
+- texte de présentation en HTML 
+- bandeau de navigation : accès aux pages suivantes
+- logos : ENC et Labex CAP (aucun lien fonctionnel)
 
 
 ## [imprimeurs/recherche/](http://elec.enc.sorbonne.fr/imprimeurs/recherche/) : Page de recherche
@@ -23,23 +23,23 @@
 **page dynamique**
 
 - formulaire de recherche : rechercher des imprimeurs avec champs de recherche : 
-  - Nom (mapping : )
-  - Ville-Département (mapping : )
-  - Adresses professionnelles (mapping : )
-  - Informations personnelles (mapping : )
-  - Informations professionnelles (mapping : )
-  - Date de début d'activité (mapping : )
-  - Date de fin d'activité (mapping : )
-  - En activité à une date donnée (mapping : )
+  - Nom 
+  - Ville-Département
+  - Adresses professionnelles
+  - Informations personnelles
+  - Informations professionnelles
+  - Date de début d'activité
+  - Date de fin d'activité
+  - En activité à une date donnée
 + boutton de recherche et de réinitialisation du formulaire
 
 - recherche par ordre alphabétique (lettres de l'alphabet)
 
 - résultats de recherche : liste des imprimeurs dans un tableau avec les colonnes suivantes :
-  - Nom (mapping : ) => fonction de tri 
-  - Prénom(s) (mapping : )
-  - Date de début d'activité : ISO fr, null opt (mapping : )
-  - Date de fin d'activité : ISO fr, null opt  (mapping : )
+  - Nom  => fonction de tri 
+  - Prénom 
+  - Date de début d'activité : ISO fr, null opt 
+  - Date de fin d'activité : ISO fr, null opt
 
 - pagination (50 résultats par page)
 
@@ -53,6 +53,7 @@
   - Date (début ou fin ?) : obligatoire (mapping : )
   - Ville (département ?) : obligatoire (mapping : )
   - adresses professionnelles : optionnel (mapping : ) ex. 1 adresse (1843 ?)
+  - adresse personnelle : optionnel (mapping : ) ex. 1 adresse (1843 ?)
   - informations personnelles : optionnel (mapping : )  rich text
   - informations professionnelles : optionnel (mapping : ) rich text
   - image : optionnel (mapping : )

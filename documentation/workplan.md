@@ -4,7 +4,7 @@
 
 - [X] refaire fonctionner elec (donner un `sudo service apache2 restart`)
 - [X] Dépôt GitHub initialisé
-- [ ] Documentation de la structure actuelle de la base de données (mapping des champs) dans [doc-mapping-database-analysis.md](doc-mapping-database-analysis.md)
+- [ ] Documentation de la structure actuelle de la base de données (mapping des champs) dans [doc-mapping-database-analysis.csv](doc-mapping-database-analysis.csv)
 - [X] Analyse des fonctionnalités actuelles de l'application à répercuter dans [doc-pages-features-analysis.md](doc-pages-features-analysis.md)
 - [X] Mise en place arborescence de l'application
 - [ ] Esquisse du modèle SQLAlchemy
@@ -23,6 +23,11 @@
 
 - [ ] Analyse des images associées aux enregistrements (nombre, nommage, formats, status)
 - [ ] Analyse des liens externes (Gallica, etc.)
+
+## Récupération des données
+
+- [ ] Récupération des données dans les tables de la base MySQL (CSV)
+- [ ] Analyse et préparation des données dans Dataiku
 
 ##  modélisation API REST
 

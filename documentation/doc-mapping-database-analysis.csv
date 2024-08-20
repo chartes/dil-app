@@ -1,0 +1,5 @@
+Name;Tables;Fields;Pages;Titles_field_page;Type_database;Opt;Comment
+Nom imprimeur;node,field_data_field_nom;title,field_nom_value;/imprimeurs/recherche, ;Nom,;str;False;Présence d’une dénomination « , veuve » ou « dit »
+Prénoms imprimeur;field_data_field_pr_nom;field_pr_nom_value;/imprimeurs/recherche, ;Prénom,;str (comma sep);False;Présence * devant certains prénoms Jean, *François Bernard
+Date de début d’activité imprimeur;field_data_field_date_de_d_but_du_brevet,;field_date_de_d_but_du_brevet_value,;/imprimeurs/recherche, ;Date de début d’activité,;date (ISO, fr);True;
+Date de fin d’activité imprimeur;field_data_field_date_de_fin_du_brevet,;field_date_de_fin_du_brevet_value,;/imprimeurs/recherche, ;Date de fin d’activité,;date (ISO, fr);True;
