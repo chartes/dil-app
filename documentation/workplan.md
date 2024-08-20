@@ -7,28 +7,27 @@
 - [ ] Documentation de la structure actuelle de la base de données (mapping des champs) dans [doc-mapping-database-analysis.csv](doc-mapping-database-analysis.csv)
 - [X] Analyse des fonctionnalités actuelles de l'application à répercuter dans [doc-pages-features-analysis.md](doc-pages-features-analysis.md)
 - [X] Mise en place arborescence de l'application
-- [ ] Esquisse du modèle SQLAlchemy
-
-
+      
 ## Modélisation de la base de données avec SQLAlchemy
 
-- [ ] Création du modèle SQLAlchemy (traduction des tables MySQL en classes SQLAlchemy, relations, contraintes)
+- [ ] Esquisse du modèle SQLAlchemy (traduction des tables MySQL en classes SQLAlchemy, relations, contraintes) proposé deux versions (simple et élaboré) avec les schémas dans [schemas/](schemas) et dans `models/`
+
+## Récupération des données
+
+- [ ] Récupération des données dans les tables de la base MySQL (CSV)
+- [ ] Analyse et préparation des données dans Dataiku
+- [ ] Backup des données préparées
 
 ## Conception schéma applicatif
 
-- [ ] Modélisation de l'architecture de l'application (base de données, administration, routes Flask, templates HTML, API REST, technologies utilisées, relations entre les composants, framework CSS etc.) inclure (schémas) dans [doc-architecture-proposal.md](doc-architecture-proposal.md)
+- [ ] Modélisation de l'architecture de l'application (base de données, administration, routes Flask, templates HTML, API REST, technologies utilisées, relations entre les composants, framework CSS ou VUEJs etc.) inclure (schémas) dans [doc-architecture-proposal.md](doc-architecture-proposal.md)
 - [ ] Modélisation de certaines pages HTML inclure liens schémas dans [doc-architecture-proposal.md](doc-architecture-proposal.md)
 
 ## Réflexions sur les images et les liens externes
 
 - [ ] Analyse des images associées aux enregistrements (nombre, nommage, formats, status)
 - [ ] Analyse des liens externes (Gallica, etc.)
-
-## Récupération des données
-
-- [ ] Récupération des données dans les tables de la base MySQL (CSV)
-- [ ] Analyse et préparation des données dans Dataiku
-
+      
 ##  modélisation API REST
 
 - [ ] Pré-documentation des endpoints de l'API REST dans [doc-routes-api-REST-proposal.md](doc-routes-api-REST-proposal.md)
