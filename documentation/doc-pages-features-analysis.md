@@ -48,15 +48,15 @@
 **page dynamique**
 
 - cartes des imprimeurs par ordre alphabétique (50 max.) avec pagination sur la lettre
-  - Nom : obligatoire (mapping : )
-  - Prénom(s) : obligatoire (mapping : )
-  - Date (début ou fin ?) : obligatoire (mapping : )
-  - Ville (département ?) : obligatoire (mapping : )
-  - adresses professionnelles : optionnel (mapping : ) ex. 1 adresse (1843 ?)
-  - adresse personnelle : optionnel (mapping : ) ex. 1 adresse (1843 ?)
-  - informations personnelles : optionnel (mapping : )  rich text
-  - informations professionnelles : optionnel (mapping : ) rich text
-  - image : optionnel (mapping : )
+  - Nom : obligatoire
+  - Prénom(s) : obligatoire 
+  - Date (début de l'activité) : opt.
+  - Ville (parfois avec département entre parenthèses) : obligatoire
+  - adresses professionnelles :  opt.
+  - adresse personnelle : opt.
+  - informations personnelles :  opt. rich text
+  - informations professionnelles : opt. rich text
+  - image titre / illustration : opt.
 
 ## [imprimeurs/node/21538](http://elec.enc.sorbonne.fr/imprimeurs/node/21538) : Fiche d'un imprimeur
 
@@ -65,19 +65,19 @@
 - image titre : optionnel (mapping : )
 
 - fiche d'un imprimeur
-  - Titre : Nom Prénom(s) 
-  - Nom : obligatoire (mapping : )
-  - Prénom(s) : obligatoire (mapping : )
-  - Date début activité : obligatoire, ISO fr. (mapping : )
-  - Date fin activité : obligatoire, ISO fr. (mapping : )
-  - adresses professionnelles : optionnel (mapping : ) ex. 1 adresse (1843 ?)
-  - Ville - département : obligatoire (mapping : )
-  - Prédécesseur(s) : optionnel (mapping : )
-  - Successeur(s) : optionnel (mapping : )
-  - Parrain(s) : optionnel (mapping : )
-  - informations personnelles : optionnel (mapping : ) rich text
-  - informations professionnelles : optionnel (mapping : ) rich text
-  - Bibliographie Sources : optionnel (mapping : )
+  - Titre : concaténation Nom Prénom(s) 
+  - Nom : obligatoire 
+  - Prénom(s) : obligatoire
+  - Date début activité : opt., ISO fr.
+  - Date fin activité : opt., ISO fr. 
+  - adresses professionnelles : opt. ex. 
+  - Ville - département : obligatoire 
+  - Prédécesseur(s) : opt.
+  - Successeur(s) : opt.
+  - Parrain(s) : opt.
+  - informations personnelles : opt. rich text
+  - informations professionnelles : opt. rich text
+  - Bibliographie Sources : opt.
   - Iconographie : optionnel (mapping : ) liste de références icono sur catalogue.bnf attention ne correspond pas forcemment au caroussel 
 
 - caroussel d'images (optionnel) mapping : ?
