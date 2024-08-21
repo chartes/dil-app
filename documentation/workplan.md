@@ -4,8 +4,8 @@
 
 - [X] refaire fonctionner elec (donner un `sudo service apache2 restart`)
 - [X] Dépôt GitHub initialisé
-- [ ] Documentation de la structure actuelle de la base de données (mapping des champs) dans [doc-mapping-database-analysis.csv](doc-mapping-database-analysis.ods)
-- [ ] Analyse des champs complémentaires à potentiellement ajouter dans [doc-mapping-database-analysis.csv](doc-mapping-database-analysis.ods)
+- [ ] Documentation de la structure actuelle de la base de données (mapping des champs) dans [doc-mapping-database-analysis.ods](doc-mapping-database-analysis.ods)
+- [ ] Analyse des champs complémentaires à potentiellement ajouter dans [doc-mapping-database-analysis.ods](doc-mapping-database-analysis.ods)
 - [X] Analyse des fonctionnalités actuelles de l'application à répercuter dans [doc-pages-features-analysis.md](doc-pages-features-analysis.md)
 - [X] Mise en place arborescence de l'application
       
