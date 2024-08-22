@@ -1,4 +1,4 @@
-# Pages
+# DIL-ELEC-analysis : État des lieux et analyse des pages actuelles et des fonctionnalités associées
 
 ## Sommaire
 
@@ -8,6 +8,8 @@
 - [imprimeurs/node/21538](#imprimeurs/node/21538) : Page de fiche d'un imprimeur - exemple (dynamique)
 - [imprimeurs/node/24767](#imprimeurs/node/24767) : Page mode d'emploi (statique)
 - [imprimeurs/node/24769](#imprimeurs/node/24769) : Page crédits / contact (statique)
+- [imprimeurs/404](http://elec.enc.sorbonne.fr/imprimeurs/404) : Page d'erreur
+
 
 ## [imprimeurs/](http://elec.enc.sorbonne.fr/imprimeurs/) : Page d'accueil / de présentation
 
@@ -78,9 +80,10 @@
   - informations personnelles : opt. rich text
   - informations professionnelles : opt. rich text
   - Bibliographie Sources : opt.
-  - Iconographie : optionnel (mapping : ) liste de références icono sur catalogue.bnf attention ne correspond pas forcemment au caroussel 
+  - Remarques : opt. rich text 
+  - Iconographie : opt. liste de références icono disponibles; attention ne correspond pas forcemment au caroussel 
 
-- caroussel d'images (optionnel) mapping : ?
+- caroussel d'images : opt. (images disponibles en local)
 
 ## [imprimeurs/node/24767](http://elec.enc.sorbonne.fr/imprimeurs/node/24767) : Page mode d'emploi 
 
@@ -93,3 +96,5 @@
 **page statique**
 
 - textes avec niveau de titres html
+
+## [imprimeurs/404](http://elec.enc.sorbonne.fr/imprimeurs/404) : Page d'erreur
