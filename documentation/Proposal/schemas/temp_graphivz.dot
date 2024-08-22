@@ -1,0 +1,18 @@
+digraph "dilapp_1.0" {
+
+splines  = ortho;
+fontname = "Courier New";
+
+graph [rankdir=RR ranksep=1 label="DIL-app DB graph (version 1.0)\n\n " labelloc=t];
+node [colorscheme = ylgnbu4];
+edge [colorscheme = dark28, dir = both];
+
+images                    [shape = record, label = "{ image |  printer_id : integer\l  title : varchar(255)\l  is_illustration : boolean\l  reference_url_source : varchar(255)\l  local_uri_path : varchar(255)\l| id : integer\l }"];
+printer_has_relation_type [shape = record, label = "{ printer_has_relation_type |  printer_id : integer\l  related_printer_id : integer\l  relation_type : varchar(12)\l| id : integer\l }"];
+printers                  [shape = record, label = "{ printer |  lastname : varchar(255)\l  firstname : varchar(255)\l  patent_date_start : varchar(25)\l  patent_date_end : varchar(25)\l  working_city : varchar(255)\l  professional_adresses : text\l  personal_adresses : text\l  bibliography_sources : text\l  comment : text\l  date_of_birth : varchar(25)\l  loc_of_birth : varchar(255)\l  arrondissement : varchar(25)\l  professional_cv : text\l  _created_at : datetime\l  _updated_at : datetime\l  _last_editor : varchar(45)\l| id : integer\l }"];
+
+images                    -> printers                  [color = "#595959", style = solid , arrowtail = none    , arrowhead = normal  , taillabel = "", label = "printer_id:id", headlabel = ""];
+printer_has_relation_type -> printers                  [color = "#595959", style = solid , arrowtail = none    , arrowhead = normal  , taillabel = "", label = "related_printer_id:id", headlabel = ""];
+printer_has_relation_type -> printers                  [color = "#595959", style = solid , arrowtail = none    , arrowhead = normal  , taillabel = "", label = "printer_id:id", headlabel = ""];
+
+}

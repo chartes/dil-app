@@ -10,7 +10,7 @@
       
 ## Modélisation de la base de données avec SQLAlchemy
 
-- [ ] Esquisse d'un modèle SQLAlchemy (traduction des tables MySQL en classes SQLAlchemy, relations, contraintes) proposé deux versions (simple et élaboré) avec les schémas dans [schemas/](Proposal/schemas) et dans `models/`
+- [X] Esquisse d'un modèle SQLAlchemy (traduction des tables MySQL en classes SQLAlchemy, relations, contraintes) proposé deux versions (simple et élaboré (images et adresse)) avec les schémas dans [schemas/](Proposal/schemas) et dans `models/`
 
 ## Conception schéma applicatif
 
