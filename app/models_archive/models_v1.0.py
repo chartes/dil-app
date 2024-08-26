@@ -92,8 +92,8 @@ class Printer(Base):
     arrondissement = Column(String(25), nullable=True, unique=False)
     professional_cv = Column(Text, nullable=True, unique=False)
 
-    _created_at = Column(DateTime, nullable=False, unique=False, default=datetime.datetime.now())
-    _updated_at = Column(DateTime, nullable=False, unique=False, default=datetime.datetime.now(), onupdate=datetime.datetime.now())
+    _created_at = Column(DateTime(timezone=True), nullable=False, unique=False, default=datetime.datetime.now())
+    _updated_at = Column(DateTime(timezone=True), nullable=False, unique=False, default=datetime.datetime.now(), onupdate=datetime.datetime.now())
     _last_editor = Column(String(45), nullable=False, unique=False)
 
 
