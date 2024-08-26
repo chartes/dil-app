@@ -17,7 +17,7 @@
 ## Récupération des données
 
 - [X] Récupération des tables de la base MySQL (export CSV) dans [data/](../../data)
-- [ ] Analyse et préparation des données dans Dataiku
+- [ ] Import, analyse et préparation des données dans Dataiku
 - [ ] Analyse des images associées aux enregistrements (nombre, nommage, formats, status)
 - [ ] Analyse des liens externes et enrichissements si possible (Gallica, etc.)
 - [ ] Backup des données netoyées et préparées
