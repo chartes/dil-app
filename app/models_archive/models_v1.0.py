@@ -47,12 +47,14 @@ class PrinterRelationLabels(BaseEnum):
     :param PARTNER: associé
     :param SPONSOR: parrain
     :param SUCCESSOR: successeur
+    :param PREDECESSOR: prédécesseur
     :param OTHER_PATENT: autre brevet
     """
     __order__ = "PARTNER SPONSOR SUCCESSOR OTHER_PATENT"
     PARTNER = "associé"
     SPONSOR = "parrain"
     SUCCESSOR = "successeur"
+    PREDECESSOR = "prédécesseur"
     OTHER_PATENT = "autre brevet"
 
 # -- main tables --
@@ -66,7 +68,7 @@ class Printer(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True, nullable=False, unique=True)
     lastname = Column(String(255), nullable=False, unique=False)
-    firstname = Column(String(255), nullable=False, unique=False)
+    firstnames = Column(String(255), nullable=True, unique=False)
     patent_date_start = Column(String(25), nullable=True, unique=False)
     patent_date_end = Column(String(25), nullable=True, unique=False)
     working_city = Column(String(255), nullable=True, unique=False)

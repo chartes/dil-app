@@ -48,12 +48,14 @@ class PrinterRelationLabels(BaseEnum):
     :param PARTNER: associé
     :param SPONSOR: parrain
     :param SUCCESSOR: successeur
+    :param PREDECESSOR: prédécesseur
     :param OTHER_PATENT: autre brevet
     """
     __order__ = "PARTNER SPONSOR SUCCESSOR OTHER_PATENT"
     PARTNER = "associé"
     SPONSOR = "parrain"
     SUCCESSOR = "successeur"
+    PREDECESSOR = "prédécesseur"
     OTHER_PATENT = "autre brevet"
 
 
