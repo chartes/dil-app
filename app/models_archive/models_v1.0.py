@@ -57,7 +57,7 @@ class PrinterRelationLabels(BaseEnum):
     PREDECESSOR = "prédécesseur"
     OTHER_PATENT = "autre brevet"
 
-# -- main tables --
+# -- drupal_main tables --
 
 
 class Printer(Base):

@@ -11,6 +11,10 @@
 ## Modélisation de la base de données avec SQLAlchemy
 
 - [X] Esquisse d'un modèle SQLAlchemy (traduction des tables MySQL en classes SQLAlchemy, relations, contraintes) proposé deux versions (simple et élaboré (images et adresse)) avec les schémas dans [schemas/](Proposal/schemas) et dans `models/`
+- [ ] Modélisation des relations entre les tables
+- [ ] Modélisation des contraintes (non-circulaire, unique etc.)
+- [ ] Modélisation de la table User
+- [ ] ajout de l'abstraction pour les contraintes spécifiques (image)
 
 => Validation ici ?
 
@@ -27,6 +31,7 @@
 - [ ] Mise en place flask-admin
 - [ ] Migration de données de MySQL à SQLite
 - [ ] Évaluation CRUD sur les données migrées
+- [ ] Rédaction de tests
 
 ## Conception schéma applicatif
 

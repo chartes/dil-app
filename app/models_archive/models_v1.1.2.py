@@ -77,7 +77,7 @@ class AdressTypeLabels(BaseEnum):
     PERSONAL = "personnelle"
 
 
-# -- main tables --
+# -- drupal_main tables --
 
 class Adress(Base):
     """Table principale des adresses
