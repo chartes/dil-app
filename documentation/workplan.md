@@ -7,30 +7,44 @@
 - [X] Documentation de la structure actuelle de la base de données (mapping des tables et colonnes) dans [doc-mapping-database-analysis.md](Analysis/doc-mapping-database-analysis.md) et [doc-mapping-database-analysis.ods](Analysis/doc-mapping-database-analysis.ods)
 - [X] Analyse des fonctionnalités actuelles de l'application à répercuter dans [doc-pages-features-analysis.md](Analysis/doc-pages-features-analysis.md)
 - [X] Mise en place d'une esquisse d'arborescence de l'application
-      
-## Modélisation de la base de données avec SQLAlchemy
-
-- [X] Esquisse d'un modèle SQLAlchemy (traduction des tables MySQL en classes SQLAlchemy, relations, contraintes) proposé deux versions (simple et élaboré (images et adresse)) avec les schémas dans [schemas/](Proposal/schemas) et dans `models/`
-- [ ] Modélisation des relations entre les tables
-- [ ] Modélisation des contraintes (non-circulaire, unique etc.)
-- [ ] Modélisation de la table User
-- [ ] ajout de l'abstraction pour les contraintes spécifiques (image)
-
-=> Validation ici ?
 
 ## Récupération des données
 
-- [X] Récupération des tables de la base MySQL (export CSV) dans [data/](../../data)
-- [ ] Import, analyse et préparation des données dans Dataiku
-- [ ] Analyse des images associées aux enregistrements (nombre, nommage, formats, status)
-- [ ] Analyse des liens externes et enrichissements si possible (Gallica, etc.)
+- [X] Récupération des tables de la base MySQL (export CSV) dans [data/drupal_archive](../../data/drupal_archive)
+- [X] Import, analyse et préparation des données dans Dataiku
+- [X] Table Person
+  - [ ] Reste les liens href à nettoyer
+- [X] Table Patent
+  - [ ] Reste les liens href à nettoyer
+- [X] Table City
+- [ ] Table Image
+  - [ ] Liens IIIF si possible 
+  - [ ] Filtre et backup des images (dans Drupal)
+- [ ] Table Address
+- [ ] Table relation person_has_addresses
+- [ ] Table relation patent_has_images
+- [ ] Table relation patent_has_addresses
+- [ ] Table relation patent_has_relations (en cours attention vérifier pour les erreurs)
 - [ ] Backup des données netoyées et préparées
+
+## Modélisation de la base de données avec SQLAlchemy
+
+- [X] Esquisse d'un modèle SQLAlchemy (traduction des tables MySQL en classes SQLAlchemy, relations, contraintes) proposé deux versions (simple et élaboré (images et adresse)) avec les schémas dans [schemas/](Proposal/schemas) et dans `models/`
+- [X] Modélisation des relations entre les tables
+- [ ] Modélisation des contraintes (non-circulaire, unique etc.)
+- [ ] Modélisation de la table User
+- [ ] ajout de l'abstraction pour les contraintes spécifiques (image)
+- [ ] Relecture totale de la modélisation
+
+---
+- [ ] **Validation étape**
+---
 
 ## Tests de migration de données, gestion admin
 
 - [ ] Mise en place flask-admin
-- [ ] Migration de données de MySQL à SQLite
-- [ ] Évaluation CRUD sur les données migrées
+- [ ] Migration des données propres dans SQLite -> ajustements modèle
+- [ ] Évaluation CRUD sur les données migrées -> ajustements modèle
 - [ ] Rédaction de tests
 
 ## Conception schéma applicatif
