@@ -13,11 +13,12 @@
 - [X] Récupération des tables de la base MySQL (export CSV) dans [data/drupal_archive](../../data/drupal_archive)
 - [X] Import, analyse et préparation des données dans Dataiku
 - [X] Table Person
-  - [ ] Reste les liens href à nettoyer
+  - [X] Reste les liens href à nettoyer
 - [X] Table Patent
-  - [ ] Reste les liens href à nettoyer
+  - [X] Reste les liens href à nettoyer
 - [X] Table City
 - [ ] Table Image
+  - [ ] Liens iconographiques a modifier
   - [ ] Liens IIIF si possible 
   - [ ] Filtre et backup des images (dans Drupal)
 - [ ] Table Address
