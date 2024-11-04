@@ -25,7 +25,7 @@
 - [ ] Table relation person_has_addresses
 - [ ] Table relation patent_has_images
 - [ ] Table relation patent_has_addresses
-- [ ] Table relation patent_has_relations (en cours attention vérifier pour les erreurs)
+- [X] Table relation patent_has_relations
 - [ ] Backup des données netoyées et préparées
 
 ## Modélisation de la base de données avec SQLAlchemy
