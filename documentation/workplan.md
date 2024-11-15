@@ -18,10 +18,18 @@
   - [X] Reste les liens href à nettoyer
 - [X] Table City
 - [ ] Table Image
-  - [ ] Liens iconographiques a modifier
-  - [ ] Liens IIIF si possible 
+  - [X] Liens IIIF 
+  - [X] Merger carrousel avec iconographie
+  - [ ] Nettoyer la sortie "images_stacked" (entity_id)
+  - [ ] Filtre des patents inexistants dans la sortie
+  - [ ] Créer la table de référence des Images 
   - [ ] Filtre et backup des images (dans Drupal)
+  - [ ] Faire les relations avec les patents et les personnes
 - [ ] Table Address
+  - [ ] Nettoyer les adresses pro manuellement
+  - [ ] Nettoyer les adresses perso manuellement
+  - [ ] Créer la table de référence Address
+  - [ ] Faire les relations avec les patents et les personnes
 - [ ] Table relation person_has_addresses
 - [ ] Table relation patent_has_images
 - [ ] Table relation patent_has_addresses
@@ -30,6 +38,7 @@
 
 ## Modélisation de la base de données avec SQLAlchemy
 
+- [ ] Faire tests de manifeste IIIF avec liens IIIF et images dans le système de fichier => selon revoir la modélisation SQL
 - [X] Esquisse d'un modèle SQLAlchemy (traduction des tables MySQL en classes SQLAlchemy, relations, contraintes) proposé deux versions (simple et élaboré (images et adresse)) avec les schémas dans [schemas/](Proposal/schemas) et dans `models/`
 - [X] Modélisation des relations entre les tables
 - [ ] Modélisation des contraintes (non-circulaire, unique etc.)
