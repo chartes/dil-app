@@ -23,17 +23,17 @@
   - [X] Nettoyer la sortie "images_stacked" (entity_id)
   - [X] Filtre des patents inexistants dans la sortie
   - [X] Créer la table de référence des Images
-- [ ] Table Address
-  - [ ] Nettoyer les adresses pro manuellement
-  - [ ] Nettoyer les adresses perso manuellement
-  - [ ] Créer la table de référence Address
-  - [ ] Faire les relations avec les patents et les personnes
-- [ ] Table relation person_has_addresses
+- [X] Table Address
+  - [X] Nettoyer les adresses pro manuellement
+  - [X] Nettoyer les adresses perso manuellement
+  - [X] Créer la table de référence Address
+  - [X] Faire les relations avec les patents et les personnes
+- [X] Table relation person_has_addresses
 - [X] Table relation patent_has_images
-- [ ] Table relation patent_has_addresses
+- [X] Table relation patent_has_addresses
 - [X] Table relation patent_has_relations
 - [ ] Filtre et backup des images (dans Drupal) => arrangement table Image
-- [ ] Backup des données netoyées et préparées
+- [X] Backup des données netoyées et préparées
 
 ## Modélisation de la base de données avec SQLAlchemy
 

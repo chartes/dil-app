@@ -1,6 +1,8 @@
 # autres
 data/prepared/
 app/models_archive/db/dilapp_lts.db
+app/templates/tests/
+data/images/
 
 
 # Byte-compiled / optimized / DLL files
