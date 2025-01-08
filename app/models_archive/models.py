@@ -464,15 +464,12 @@ if __name__ == "__main__":
     from contextlib import contextmanager
     from dil_dtypes_spec import DTYPE_SPEC
 
-    # Créer le moteur et la base de données
     engine = create_engine(f"sqlite:///./db/DIL{__version__}.db")
     Base.metadata.create_all(engine)
 
-    # Configurer le sessionmaker
     Session = sessionmaker(bind=engine)
 
 
-    # Exemple de gestionnaire de session
     @contextmanager
     def get_session():
         session = Session()
@@ -486,32 +483,30 @@ if __name__ == "__main__":
             session.close()
 
 
-    # Fonction pour charger un fichier TSV dans une table
+
     def load_tsv_to_db(file_path, table_model):
         try:
             with get_session() as session:
                 print(f"==> Loading data from {file_path} to {table_model.__tablename__} table.")
 
-                # Charger les données avec pandas et appliquer les types
+
                 data = pd.read_csv(file_path, sep='\t', encoding='utf-8',
                                    dtype=DTYPE_SPEC.get(table_model.__tablename__, None))
 
-                # Remplacer les NaN par None
                 data = data.replace({np.nan: None})
 
-                # Ajouter la colonne _id_dil si elle n'existe pas
+
                 if '_id_dil' not in data.columns:
                     data.insert(0, '_id_dil', None)
 
-                # Générer les ID manquants dans _id_dil
+
                 data['_id_dil'] = data['_id_dil'].apply(
                     lambda x: x if x else generate_random_uuid(prefix=table_model.__prefix__, provider="dil")
                 )
 
-                # Convertir le DataFrame en dictionnaires
                 records = data.to_dict(orient='records')
 
-                # Utiliser bulk_insert_mappings pour insérer les données
+
                 session.bulk_insert_mappings(table_model, records)
 
                 print(f"==> {len(records)} rows inserted in {table_model.__tablename__} table.")
@@ -523,7 +518,7 @@ if __name__ == "__main__":
             print(f"Erreur lors de l'importation dans la table {table_model.__tablename__}: {e}")
 
 
-    # Charger les données
+
     base_path_data_tables = "../../data/tables_to_migrate/final_rev/tables/"
     base_path_data_relations = "../../data/tables_to_migrate/final_rev/relations/"
     ORDER_IMPORT = [
