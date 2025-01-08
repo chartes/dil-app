@@ -13,4 +13,6 @@ La base de données constituée grâce aux crédits du Labex CAP est hébergée 
 
 **janvier 2014** : Début du projet et création de l'application (PHP-Drupal+MySQL+Apache) hébergé sur http://elec.enc.sorbonne.fr/imprimeurs/ 
 
-**août 2024** : Migration de l'application
+**août 2024** : Début migration de l'application -> traitement des données
+
+**janvier 2025** : Données migrées en base -> création de la plateforme d'administration des données + réflexion sur le frontend
