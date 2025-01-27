@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JSON to Graph TOC</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            margin: 0;
+        }
+        #app {
+            display: flex;
+            flex: 1;
+        }
+        #toc {
+            width: 30%;
+            padding: 10px;
+            border-right: 1px solid #ccc;
+            overflow-y: auto;
+        }
+        #graph {
+            width: 40%;
+            height: 100%;
+            border-right: 1px solid #ccc;
+        }
+        #json-display {
+            width: 30%;
+            padding: 10px;
+            white-space: pre-wrap;
+            overflow: auto;
+        }
+        #toc div:hover {
+            background-color: #f0f0f0;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div id="toc"></div>
+        <div id="graph"></div>
+        <div id="json-display"></div>
+    </div>
+
+    <script>
+        // Convert JSON to Graph
+        function jsonToGraph(json, parentKey = 'root', graph = { nodes: [], edges: [] }) {
+            const currentNodeId = parentKey;
+
+            // Utiliser la valeur si disponible, sinon afficher la clé
+            const label = (typeof json === 'object' || Array.isArray(json))
+                ? parentKey.replace('root.', '') || 'Root'
+                : String(json);
+
+            graph.nodes.push({ id: currentNodeId, label: label });
+
+            if (typeof json === "object" && json !== null) {
+                Object.keys(json).forEach(key => {
+                    const childNodeId = `${currentNodeId}.${key}`;
+                    graph.edges.push({ from: currentNodeId, to: childNodeId });
+                    jsonToGraph(json[key], childNodeId, graph);
+                });
+            }
+
+            return graph;
+        }
+
+        // Generate TOC
+        function generateTOC(graph, currentNodeId = "root", depth = 0) {
+            const currentNode = graph.nodes.find(node => node.id === currentNodeId);
+            const childrenEdges = graph.edges.filter(edge => edge.from === currentNodeId);
+
+            let toc = `<div style="margin-left: ${depth * 20}px;" data-id="${currentNodeId}">${currentNode.label}</div>`;
+
+            childrenEdges.forEach(edge => {
+                toc += generateTOC(graph, edge.to, depth + 1);
+            });
+
+            return toc;
+        }
+
+        // Display part of JSON
+        function displayPart(graph, nodeId) {
+            const node = graph.nodes.find(n => n.id === nodeId);
+            const displayArea = document.getElementById("json-display");
+            displayArea.textContent = JSON.stringify(node || {}, null, 2);
+
+            highlightNode(nodeId);
+        }
+
+        // Highlight the selected node in the graph
+        function highlightNode(nodeId) {
+            network.selectNodes([nodeId]);
+            network.focus(nodeId, {
+                scale: 1.5,
+                animation: true
+            });
+        }
+
+        // Render graph using Vis.js
+        function renderGraph(graph) {
+            const container = document.getElementById("graph");
+
+            const data = {
+                nodes: new vis.DataSet(graph.nodes),
+                edges: new vis.DataSet(graph.edges)
+            };
+
+            const options = {
+    nodes: {
+        shape: 'dot',
+        size: 10,
+        font: { size: 14 }
+    },
+    edges: {
+        arrows: 'to',
+        smooth: true
+    },
+    physics: {
+        enabled: false
+    },
+    layout: {
+        improvedLayout: false // Désactiver le layout amélioré
+    }
+};
+
+            network = new vis.Network(container, data, options);
+        }
+
+        // Initialize interface
+        function init(jsonResponse) {
+            const graph = jsonToGraph(jsonResponse);
+
+            const toc = generateTOC(graph);
+            const tocContainer = document.getElementById("toc");
+            tocContainer.innerHTML = toc;
+
+            renderGraph(graph);
+
+            document.querySelectorAll("#toc div").forEach(div => {
+                div.style.cursor = "pointer";
+                div.addEventListener("click", () => {
+                    const nodeId = div.getAttribute("data-id");
+                    displayPart(graph, nodeId);
+                });
+            });
+
+            displayPart(graph, "root");
+        }
+
+        // Fetch data and initialize
+        fetch("https://dots.chartes.psl.eu/api/dts/collection?id=ENCPOS")
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(jsonResponse => init(jsonResponse))
+            .catch(error => console.error('Erreur lors de la récupération des données :', error));
+
+        let network;
+    </script>
+</body>
+</html>

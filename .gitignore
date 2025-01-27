@@ -1,8 +1,10 @@
 # autres
 data/prepared/
-app/templates/tests/
+# app/api/templates/tests/
 data/assets/
-
+app_old/
+scripts_help/
+db/DIL.db
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

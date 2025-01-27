@@ -1,0 +1,101 @@
+/* classes for quill editor */
+.ql-toolbar {
+    background-color: #d4d3d1 !important;
+    border-radius: 5px !important;
+    margin-bottom: -5px !important;
+}
+
+.ql-toolbar button {
+    height: 25px !important;
+}
+
+.ql-editor {
+    background-color: white !important;
+    font-size: 15px !important;
+}
+
+/* classes for bootstrap tooltip */
+.fa-info-circle {
+    font-size: 20px !important;
+}
+
+.tooltip-inner {
+    max-width: 300px !important;
+    width: 300px !important;
+}
+
+/* select2 specific */
+.select2-container {
+    align-items: center !important; /* Conserve votre alignement */
+    margin-top: 10px !important; /* Ajustez la valeur pour le décalage souhaité */
+    height: 100% !important;
+    width: 100% !important;
+}
+
+/* classes for image preview */
+#iframeContainer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+
+#imagePreview {
+    border: none;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+}
+
+#closePreview {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: red;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    border-radius: 10em;
+}
+
+.label-image-preview {
+    font-size: 15px;
+    color: white;
+}
+
+
+/* relations printer */
+.relation-container-attach {
+    display: none;
+}
+
+.relation-row {
+    display: flex; /* Active Flexbox */
+    align-items: center; /* Aligne les éléments verticalement au centre */
+    gap: 15px; /* Espacement horizontal entre les éléments */
+    margin-bottom: 10px; /* Espacement vertical entre les lignes */
+    padding: 10px;
+}
+
+.relation-row .form-control {
+    flex: 1; /* Les champs prennent une largeur égale */
+    min-width: 150px; /* Largeur minimale pour éviter qu'ils deviennent trop petits */
+    align-items: center !important; /* Conserve votre alignement */
+    margin-top: 5px !important; /* Ajustez la valeur pour le décalage souhaité */
+    margin-left: 10px !important;
+}
+
+.relation-row button {
+    flex: none;
+}
+
+.add-relation-button {
+    margin-top: 8px !important; /* Ajustez la valeur pour le décalage souhaité */
+    margin-left: 10px !important;
+}

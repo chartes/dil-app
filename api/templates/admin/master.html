@@ -1,0 +1,55 @@
+{% extends admin_base_template %}
+
+
+{% block head %}
+    {{ super() }}
+    <link rel="icon" href="https://www.chartes.psl.eu/favicon.ico">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.0/jquery.min.js"
+            integrity="sha512-3gJwYpMe3QewGELv8k/BX9vcqhryRdzRMxVfq6ngyWXwo03GFEzjsUm8Q7RZcHPHksttq7/GFoxjCVUjkjvPdw=="
+            crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+     crossorigin=""/>
+     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+     crossorigin=""></script>
+{% endblock %}
+
+{% block access_control %}
+    <div class="navbar-text btn-group pull-right access-ressources">
+    <!--
+        <a href="/endp-person/api/docs" target="_blank"
+           style="margin-right: 10px; text-decoration: none; vertical-align: 2px">
+            <img src="{{ url_for('static', filename='images/swagger-icon.png') }}"
+                 style="width: 24px; vertical-align: -8px; margin-right: -2px;">
+            <span style="vertical-align: middle;">API</span>
+        </a>
+        -->
+        {#
+         if current_user.is_authenticated %}
+            <a class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
+                <i class="glyphicon glyphicon-user"></i>
+                {{ current_user.username }}<span class="caret"></span>
+            </a>
+            <ul class="dropdown-menu" role="menu">
+                <li><a href="{{ url_for('admin.logout') }}">Se déconnecter</a></li>
+            </ul>
+        {% else %}
+            <a href="{{ url_for('admin.login') }}"><i class="glyphicon glyphicon-log-in"></i> Se connecter</a></span>
+         endif %}
+        #}
+    </div>
+
+
+
+
+{% endblock %}
+
+{% block head_css %}
+    {{ super() }}
+    <!-- font awesome 4 CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"
+          integrity="sha512-SfTiTlX6kk+qitfevl/7LibUOeJWlt9rbyDn92a1DqWOw9vWG2MFoays0sgObmWazO5BQPiFucnnEAjpAB+/Sw=="
+          crossorigin="anonymous" referrerpolicy="no-referrer"/>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/master.css') }}"/>
+{% endblock %}
