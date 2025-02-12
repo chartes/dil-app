@@ -6,7 +6,7 @@ Database connection and session management.
 
 import os
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 #from sqlalchemy.or.declarative import declarative_base
 from sqlalchemy.orm import (sessionmaker,
                             scoped_session,
@@ -29,6 +29,7 @@ engine = create_engine(
     pool_recycle=3600,
     echo=bool(settings.DB_ECHO)
 )
+
 
 
 session = scoped_session(sessionmaker(engine, autocommit=False, autoflush=False))

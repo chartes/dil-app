@@ -1,101 +1,85 @@
 #!/bin/bash
 
 ###################################################################################
-#                                                                                 #
-# run.sh                                                                          #
-# ----------                                                                      #
-#                                                                                 #
-# ** API main launch script **                                                    #
-#                                                                                 #
-# Usage:                                                                          #
-#   ./run.sh <mode> [-db]                                                         #
-#   <mode> : dev | prod [REQ.]                                                    #
-#   -db-re | -db-back : Recreate and populate database with initial               #
-#   data (from ressources or from db backup) [OPT.]                               #
-#   instance : launch with uvicorn instance on ENC server (dev/prod) [OPT.]       #
-#                                                                                 #
-# Examples:                                                                       #
-#   ./run.sh dev -db                                                              #
+# run.sh - API main launch script                                                 #
 ###################################################################################
 
+# Configuration des chemins et variables par défaut
 ENV="dev"
-DB="./db/DIL.db"
+DB="./db/dil.dev.sqlite"
 DB_BACKUP="./db/DIL.db"
 INSTANCE="/srv/webapp/api/endp-person-app/venv/bin/uvicorn"
+IMAGE_ORIGINAL_DIR="./data/assets/images/"
+IMAGE_API_DIR="./api/static/images_store/"
 
-# ajouter une commande help afficher l'aide
-if [[ "$1" == "-h" || "$1" == "--help" ]]; then
-  echo "run.sh - API main launch script"
-  echo "Usage: ./run.sh <mode> [-db]"
-  echo "  <mode> : dev | prod [REQ.]"
-  echo "  -db-re | -db-back : Recreate and populate database with initial data (from ressources or from db backup) [OPT.]"
-  echo " instance : launch with uvicorn instance on ENC server (dev/prod) [OPT.]"
+# Afficher l'aide
+usage() {
+  echo "Usage: ./run.sh <mode> [-db-re] [-db-back] [-images-back] [instance]"
+  echo "  <mode>       : dev | prod (Obligatoire)"
+  echo "  -db-re       : Recreate and populate database from resources"
+  echo "  -db-back     : Restore database from backup"
+  echo "  -images-back : Restore original images from backup"
+  echo "  instance     : Launch using the ENC server instance"
   exit 0
+}
+
+# Vérifier les arguments
+if [[ "$1" == "-h" || "$1" == "--help" || -z "$1" ]]; then
+  usage
 fi
 
-
-
-# Lancer l'application en fonction du mode
-echo "Loading vars env in "$1" mode..."
+# Définir les variables en fonction du mode
 case "$1" in
   dev)
     ENV="dev"
-    DB="./db/endp.dev.sqlite"
+    DB="./db/dil.dev.sqlite"
     source .dev.env
     ;;
   prod)
     ENV="prod"
-    DB="./db/endp.prod.sqlite"
-    INSTANCE="/srv/webapp/endp-person-app/venv/bin/uvicorn"
+    DB="./db/dil.prod.sqlite"
+    INSTANCE="/srv/webapp/dil-app/venv/bin/uvicorn"
     source .prod.env
     ;;
   *)
-    echo "Invalid mode. Please specify either 'dev' or 'prod'."
+    echo "Invalid mode: $1. Use 'dev' or 'prod'."
     exit 1
     ;;
 esac
 
 export ENV=$ENV
 
-# Vérification de l'argument pour la base de données
-if [[ "$2" == "-db-re" ]]; then
-  echo "=*= Database recreate and populate from csv ressources =*="
-  echo "> Prepare whoosh index dir..."
-  python3 manage.py index-create
-  echo "> Recreate database process:"
-  python3 manage.py db-recreate
-  echo "> Populate database process:"
-  python3 manage.py db-populate
-  # whoosh index auto populate via sqlalchemy events
-fi
+# Gérer les options supplémentaires
+for arg in "$@"; do
+  case "$arg" in
+    -db-re)
+      echo "Recreating and populating database..."
+      [[ -f $DB ]] && rm $DB
+      python3 -m scripts.create_db --db $DB
+      echo "Database setup complete."
+      ;;
+    -db-back)
+      echo "Restoring database from backup..."
+      cp "$DB_BACKUP" "$DB"
+      echo "Database restored."
+      ;;
+    -images-back)
+      echo "Restoring original images directory..."
+      # clean all files in the images directory API
+      rm -rf $IMAGE_API_DIR*
+      # copy all files from the original images directory to the API images directory
+      cp -r $IMAGE_ORIGINAL_DIR* $IMAGE_API_DIR
+      echo "Images restored."
+      ;;
+  esac
+done
 
-if [[ "$2" == "-db-back" ]]; then
-  echo "=*= Database recreate and populate from db backup =*="
-  echo "> Prepare whoosh index dir..."
-  python3 manage.py index-create
-  echo "> Recreate database process:"
-  python3 manage.py db-recreate
-  echo "> copy database process from backup:"
-  python3 manage.py db_copy $DB_BACKUP $DB
-  echo "> populate index with copy:"
-  python3 manage.py index-populate
-  # whoosh index auto populate via sqlalchemy events
-fi
-
-
-# Lancer l'application en fonction du mode
-echo "Starting the application [in "$1" mode]..."
-if [[ "$3" == "instance" || "$2" == "instance" ]]; then
-  echo "> run with instance..."
+# Lancer l'application
+echo "Starting the application in '$ENV' mode..."
+# shellcheck disable=SC2199
+if [[ " $@ " =~ " instance " ]]; then
+  echo "Running with instance..."
   $INSTANCE api.main:app --host $HOST --port $PORT --workers $WORKERS
-  #uvicorn api.main:app --host $HOST --port $PORT --workers $WORKERS
 else
-  if [[ "$ENV" == "dev" ]]; then
-    uvicorn api.main:app --host $HOST --port $PORT --reload
-  elif [[ "$ENV" == "prod" ]]; then
-    uvicorn api.main:app --host $HOST --port $PORT --workers $WORKERS
-  fi
+  uvicorn api.main:app --host $HOST --port $PORT --reload
 fi
-
-
-

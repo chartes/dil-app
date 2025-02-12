@@ -50,26 +50,42 @@
 ## Flask-Admin et API
 
 - [X] Mise en place flask-admin
-- [ ] Finalisation du formulaire de création imprimeur et villes + refactorisation
-- [ ] Finalisation des pages : consulation des imprimeurs, acceuil et documentation et sup des tables inutiles dans le front admin
-- [ ] Ajout de la logique user (login)
-- [ ] Tests CRUD (fixtures) + ajustements modèle
 
-- [ ] Conception API (routes et db async !!! + schemas) + doc (ajout dans l'admin du lien vers la doc) [doc-routes-api-REST-proposal.md](Proposal/doc-routes-api-REST-proposal.md)
-- [ ] Tests API (fixtures) + ajustements modèle
-- [ ] Préparer environnement de développement et production
-- [ ] Readme
-- [ ] Déploiement sur serveur de dev
-- 
+
+- [X] Finaliser formulaire Imprimeur (CRUD)
+    - pour l'ajout d'image bug quand on enlève la dernière image le thumbnail reste dans le carrousel + le pinned marche après deux enregistrement
+    - validateurs
+    - champs
+    - relations
+    - renvoi vers autre formulaire au besoin
+- [ ] Finaliser formulaire Ville (CRUD) WIP
+  - validateurs à ajouter
+  - champs
+- [ ] Finaliser formulaire Adresses (CRUD)
+  - validateurs
+  - champs (ajouter le Select2)
+- [X] Finaliser formulaire Image (CRUD)
+  - attention quand on supprime l'image elle reste dans le dir
+  - check les relations ondelete
+  - validateurs
+  - champs
+- [ ] Ajouter logique de connexion (table User, login, logout, roles)
+- [ ] régler le not found http://127.0.0.1:8888/admin/ --> http://127.0.0.1:8888/dil/admin/ (icone menu)
+- [ ] Finalisation des pages : consulation des imprimeurs, liste, acceuil et documentation et sup des tables inutiles dans le front admin
+- [ ] Refactorisation (admin, modèles, vues, scripts, template)
+- [ ] fichiers de config dev et prod + scripts de création de la base ou migration de la base a vérifier
+- [ ] nettoyage global des fichiers
+- [ ] Correction + données manquantes (Cf. issues + liens IIIF)
+- [ ] Déploiement sur serveur de dev + fichiers de config dev et prod + scripts de création de la base ou migration de la base a vérifier
+
 ---
-- [ ] **Validation étape**
+- [ ] **Validation étape + test utilisateur**
 ---
 
-## Mise en œuvre de l'application 
+## Mise en œuvre de l'application
 
-- [ ] Ouvrir projet Vue.js + dépot Git
+- [ ] Ouvrir projet Vue.js / Vite + dépot Git
 - [ ] Mise en place de l'application Vue.js (reprendre doc réunion 9/01/2025 avec EP)
-
 
 ## Maintenance, tests, retours utilisateurs
 

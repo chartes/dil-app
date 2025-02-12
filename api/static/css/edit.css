@@ -24,6 +24,33 @@
     width: 300px !important;
 }
 
+a[data-toggle="tooltip"] {
+    cursor: pointer;
+    /*z-index: 2;*/
+    text-decoration: none;
+    margin: 2px;
+
+}
+
+/* get label text only with class control-label */
+label.control-label {
+    display: flex;
+    justify-content: flex-end; /* Aligne les items à droite */
+    align-items: center; /* Centre verticalement les items */
+    gap: 5px; /* Réduit l'espace entre les items */
+    margin-bottom: 0;
+}
+
+
+.ql-tooltip {
+    z-index: 1000 !important;
+}
+
+.ql-container {
+    max-height: 150px !important;
+    overflow-y: auto !important;
+}
+
 /* select2 specific */
 .select2-container {
     align-items: center !important; /* Conserve votre alignement */
@@ -49,19 +76,25 @@
 #imagePreview {
     border: none;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    width: 100%;
+    height: 100%;
 }
 
 #closePreview {
     position: absolute;
-    top: 10px;
-    right: 10px;
+    top: 15px;
+    right: 25px;
     background-color: red;
     color: white;
     border: none;
-    padding: 5px 10px;
+    padding: 8px 10px;
     cursor: pointer;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
     border-radius: 10em;
+}
+
+#closePreview:hover {
+    background-color: darkred;
 }
 
 .label-image-preview {
@@ -98,4 +131,136 @@
 .add-relation-button {
     margin-top: 8px !important; /* Ajustez la valeur pour le décalage souhaité */
     margin-left: 10px !important;
+}
+
+
+
+.select2-choices {
+    /* reduce the height of the select2 with overflow */
+    max-height: 150px !important;
+    overflow-y: auto !important;
+}
+
+/* carrousels */
+ /* Réduire l’espacement entre les images */
+.slick-initialized {
+        margin: 4% !important;
+}
+    .slick-slide-custom {
+        padding: 0 1px !important; /* Ajuste l’espacement horizontal */
+    }
+
+    .slick-track {
+        display: flex !important;
+        gap: 1px !important; /* Ajuste l’espace entre les images */
+        margin-left: 60px !important;
+    }
+
+    /* Positionner les boutons près des images */
+    .custom-prev {
+        position: absolute;
+        left: -70px; /* Ajuster selon vos besoins */
+        top: 40%;
+        border: none;
+        padding: 5px 10px;
+        cursor: pointer !important;
+        font-size: 18px;
+    }
+
+    .custom-next {
+        position: absolute;
+        right: 30px !important; /* Ajuster selon vos besoins */
+        top: 40%;
+        border: none;
+        padding: 5px 10px;
+        cursor: pointer !important;
+    }
+
+    .slick-prev {
+  left: 10px !important;
+  top: 180px !important;
+}
+
+.slick-next {
+  right: 30px !important;
+  top: 180px !important;
+}
+
+    .slick-prev:before,
+.slick-next:before {
+    color:black !important;
+        /* augmenter la taille des flèches */
+        font-size: 25px !important;
+        line-height: 1 !important;
+}
+
+    /* Personnalisation supplémentaire des images si nécessaire */
+    .slick-slide-custom img {
+        border-radius: 5px;
+    }
+
+    .slick-dots {
+        position: relative !important;
+    }
+
+.desc-add-model-item {
+    display: flex;
+    align-items: center;
+    gap: 8px; /* Espacement légèrement augmenté pour respirer */
+    font-size: 14px;
+    font-style: italic;
+    color: #333; /* Couleur initiale du texte */
+    top: 5px;
+}
+
+
+/* Lien stylisé proprement */
+.link-model {
+    text-decoration: none;
+}
+
+.plus-icon {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #3279B7;
+    border-radius: 50%;
+    position: relative;
+    cursor: pointer;
+    top:3px;
+}
+
+.plus-icon::before,
+.plus-icon::after {
+    content: '';
+    position: absolute;
+    background-color: #3279B7;
+}
+
+.plus-icon::before {
+    width: 12px;
+    height: 2px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.plus-icon::after {
+    width: 2px;
+    height: 12px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.plus-icon:hover {
+    background-color: #52b3fc;
+    border-color: #3279B7;
+    transform: scale(1.2);
+    transition: all 0.3s;
+}
+
+.plus-icon:hover::before,
+.plus-icon:hover::after {
+    background-color: white;
 }

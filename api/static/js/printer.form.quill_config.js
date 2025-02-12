@@ -3,6 +3,8 @@
  * 2025 - L. Terriel (ENC)
  *
  * N.B.: adapted from e-NDP implementation
+ * use : Select2 v.3.5.3
+ * doc : https://select2.github.io/select2/index.html
  */
 // Quill editor options for the toolbar
 const TOOLBAR_OPTIONS = [

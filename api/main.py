@@ -49,6 +49,8 @@ def create_app():
     # Add routes
     #_app.include_router(api_router, prefix="/dil/api")
     # Mount admin interface (flask app) into FastAPI app
+    # use threaded=True to avoid blocking the event loop
+
     _app.mount('/dil/', WSGIMiddleware(flask_app))
     return _app
 

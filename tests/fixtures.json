@@ -1,0 +1,43 @@
+{
+  "persons": [
+    {
+      "lastname": "Dupont",
+      "firstnames": "Jean-Pierre",
+      "birth_date": "1820-01-01",
+      "birth_city_label": "Paris",
+      "personal_information": "<p>Imprimeur actif à Paris au 19ème siècle.</p>",
+      "professional_information": "<p>Spécialisé en lithographie.</p>",
+      "comment": "Premier imprimeur de la rue de l'Imprimerie."
+    },
+    {
+      "lastname": "Martin",
+      "firstnames": "Henri",
+      "birth_date": "1805-05-14",
+      "birth_city_label": "Lyon",
+      "personal_information": "<p>Fondateur de l'atelier 'Impression Moderne'.</p>",
+      "professional_information": "<p>Reconnu pour ses innovations techniques.</p>"
+    }
+  ],
+  "addresses": [
+    {
+      "label": "26, rue de l'Imprimerie",
+      "city_label": "Paris"
+    },
+    {
+      "label": "12, avenue de la Presse",
+      "city_label": "Lyon"
+    }
+  ],
+  "cities": [
+    {
+      "label": "Paris",
+      "country_iso_code": "FR",
+      "long_lat": "48.8566,2.3522"
+    },
+    {
+      "label": "Lyon",
+      "country_iso_code": "FR",
+      "long_lat": "45.7640,4.8357"
+    }
+  ]
+}

@@ -1,0 +1,19 @@
+{% extends 'admin/model/edit.html' %}
+
+
+{% block head_css %}
+    {{ super() }}
+
+{% endblock %}
+
+
+{% block body %}
+    {{ super() }}
+{% endblock %}
+
+{% block tail_js %}
+    {{ super() }}
+    <script type="text/javascript" src="{{ url_for('static', filename='js/image.form.loadImage.js') }}"></script>
+
+{% endblock %}
+

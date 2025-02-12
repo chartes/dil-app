@@ -51,6 +51,9 @@ class Settings(BaseSettings):
     # ~ Index settings ~
     WHOOSH_INDEX_DIR: str = str(os.environ.get("WHOOSH_INDEX_DIR", "index_dil"))
 
+    # ~ Image settings ~
+    IMAGE_STORE: str = str(os.environ.get("IMAGE_STORE", "api/static/images_store"))
+
     # Class configuration
     class Config:
         env_file = env_file

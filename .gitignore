@@ -5,6 +5,9 @@ data/assets/
 app_old/
 scripts_help/
 db/DIL.db
+api/static/images_store/
+db/dil.dev.sqlite
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
