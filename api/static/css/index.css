@@ -1,0 +1,43 @@
+.user-connect-home {
+    color: #64b987;
+    font-weight: bold;
+}
+
+
+.img-partner {
+  max-width: 100% !important;
+  height: auto !important;
+}
+
+@media (max-width: 767px) { /* Pour les petits écrans, par exemple les téléphones en portrait */
+  .img-partner {
+    max-width: 75% !important;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 991px) { /* Pour les écrans moyens, par exemple les tablettes */
+  .img-partner {
+    max-width: 85% !important;
+  }
+}
+
+@media (min-width: 992px) { /* Pour les grands écrans, par exemple les ordinateurs de bureau */
+  .img-partner {
+    max-width: 90% !important;
+  }
+}
+.image-column {
+   margin: 1rem !important;
+}
+
+.license-img {
+    border-width:0;
+}
+
+.row-partners-logo {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+}
+

@@ -12,14 +12,19 @@ from flask_admin.form import ImageUploadField, thumbgen_filename
 
 from wtforms import Form
 from wtforms.fields import StringField, FieldList
-from wtforms import TextAreaField
+from wtforms import TextAreaField, BooleanField
 from wtforms.widgets import TextArea
 
 from markupsafe import Markup
 from sqlalchemy import or_
 
 from .validators import (is_valid_date,
-                         is_valid_url)
+                         is_valid_url,
+                         is_only_digits,
+                         is_wikidata_qid,
+                         is_ark_id,
+                         validate_coordinates,
+                         validate_address)
 from ..models.models import *
 from .widget import QuillWidget
 from .formaters import (_format_label_form_with_tooltip,
@@ -671,33 +676,51 @@ class AddressView(GlobalModelView):
     """
 
     form_columns = [
+        "not_french_address",
         "label",
         "city_label",
-        "city_id"
+        "city"
     ]
+
+
 
     form_args = {
         "label": {
+            "validators": [validate_address],
             "label": "Libellé de l'adresse",
+            # Exemples d'adresses valides : '1, rue de la Paix', 'inconnue', '2 bis, rue du Faubourg Saint-Honoré', 'rue de la Paix', '12 quinquies, rue Victor Hugo', '3 ter, avenue des Champs-Élysées
             "description": "Libellé de l'adresse. "
-                           "Exemple : <b>1, rue de la Paix</b> ; <b>2, rue du Faubourg Saint-Honoré</b> ; etc. Laisser <b>'inconnue'</b> si l'adresse est inconnue."
+                           "Exemple : <b>1, rue de la Paix</b> ; <b>2, rue du Faubourg Saint-Honoré</b> ; <b>12 quinquies, rue Victor Hugo</b> ; <b>3 ter, avenue des Champs-Élysées</b> ; <b>rue de la Paix</b> ; <b>inconnue</b> ; <b>200 West 45th Street</b> (adresse hors france) etc."
+                           "; etc. Laisser <b>'inconnue'</b> si l'adresse est inconnue."
         },
         "city_label": {
             "label": "Ville",
             "description": "Libellé de la ville de l'adresse. Il peut correspondre au toponyme ancien. "
                            "Exemple : <b>Paris</b> ; <b>Lyon</b> ; <b>Abergement-Clémenciat (L')</b> etc.",
         },
-        "city_id": {
+        "city": {
             "label": "Ville (référentiel)",
             "description": "Ville de l'adresse dans le référentiel."
+        },
+        "is_french": {
+            "label": "Adresse française",
+            "description": "Cocher si l'adresse est française."
         }
     }
 
     form_ajax_refs = {
-        'city_id': QueryAjaxModelLoader(
-            'city_id', session, City, fields=['label'], page_size=10,
+        'city': QueryAjaxModelLoader(
+            'city', session, City, fields=['label'], page_size=10,
             placeholder='Commencer la saisie puis sélectionner une ville...',
             allow_blank=True
+        )
+    }
+
+    # add checkbox to select the type of address (french by default)
+    form_extra_fields = {
+        "not_french_address": BooleanField(
+            label="Adresse hors France ?",
+            render_kw={"id": "not_french_address"}
         )
     }
 
@@ -807,10 +830,12 @@ class CityView(GlobalModelView):
                            "Exemple : <b>FR</b> pour la France ; <b>BE</b> pour la Belgique ; etc."
         },
         "long_lat": {
+            "validators": [validate_coordinates],
             "label": "Coordonnées géographiques (longitude, latitude)",
             "description": "Coordonnées géographiques de la ville (longitude, latitude). "
         },
         "insee_fr_code": {
+            "validators": [is_only_digits],
             "label": "Code de la ville (INSEE)",
             "description": "Code géographique officiel de l'INSEE pour la ville. "
                            "Exemple : <b><a href='https://www.insee.fr/fr/metadonnees/geographie/commune/01001-labergement-clemenciat' target='_blank'>01001</a></b> pour Abergement-Clémenciat (L')."
@@ -826,11 +851,13 @@ class CityView(GlobalModelView):
                            "Exemple : <b>Paris</b> pour Paris ; <b>Rhône</b> pour Lyon ; etc."
         },
         "geoname_id": {
+            "validators": [is_only_digits],
             "label": "Identifiant Geonames",
             "description": "ID Geonames de la ville. "
                            "Exemple : <a href='https://www.geonames.org/2988507/paris.html' target='_blank'><b>2988507</b></a> pour Paris."
         },
         "wikidata_item_id": {
+            "validators": [is_wikidata_qid],
             "label": "Identifiant Wikidata",
             "description": "QID Wikidata de la ville. "
                            "Exemple : <a href='https://www.wikidata.org/wiki/Q456' target='_blank'><b>Q456</b></a> pour Lyon."
@@ -841,16 +868,19 @@ class CityView(GlobalModelView):
                            "Exemple : <a href='https://dicotopo.cths.fr/places/P17270150' target='_blank'><b>P17270150</b></a> pour Courcelles."
         },
         "databnf_ark": {
+            "validators": [is_ark_id],
             "label": "ARK BNF",
             "description": "ARK BNF (catalogue général) de la ville. "
                            "Exemple : <a href='https://catalogue.bnf.fr/ark:/12148/cb15272211b' target='_blank'><b>ark:/12148/cb15272211b</b></a> pour Lyon."
         },
         "viaf_id": {
+            "validators": [is_only_digits],
             "label": "Identifiant VIAF",
             "description": "ID VIAF de la ville. "
                            "Exemple : <a href='https://viaf.org/fr/viaf/312739984' target='_blank'><b>131453</b></a> pour Rennes."
         },
         "siaf_id": {
+            "validators": [is_only_digits],
             "label": "Identifiant SIAF",
             "description": "ID SIAF de la ville. "
                            "Exemple : <a href='https://francearchives.gouv.fr/fr/location/217180640'><b>217180640</b></a> pour Port-Sainte-Marie (Lot-et-Garonne, France)."

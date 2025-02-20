@@ -58,10 +58,10 @@
     - champs
     - relations
     - renvoi vers autre formulaire au besoin
-- [ ] Finaliser formulaire Ville (CRUD) WIP
+- [X] Finaliser formulaire Ville (CRUD) WIP
   - validateurs à ajouter
   - champs
-- [ ] Finaliser formulaire Adresses (CRUD)
+- [X] Finaliser formulaire Adresses (CRUD)
   - validateurs
   - champs (ajouter le Select2)
 - [X] Finaliser formulaire Image (CRUD)
@@ -70,8 +70,10 @@
   - validateurs
   - champs
 - [ ] Ajouter logique de connexion (table User, login, logout, roles)
+- [ ] revoir les tests
 - [ ] régler le not found http://127.0.0.1:8888/admin/ --> http://127.0.0.1:8888/dil/admin/ (icone menu)
 - [ ] Finalisation des pages : consulation des imprimeurs, liste, acceuil et documentation et sup des tables inutiles dans le front admin
+=> faire un check rapide avec Vincent
 - [ ] Refactorisation (admin, modèles, vues, scripts, template)
 - [ ] fichiers de config dev et prod + scripts de création de la base ou migration de la base a vérifier
 - [ ] nettoyage global des fichiers
