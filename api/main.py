@@ -8,7 +8,7 @@ from fastapi.middleware.wsgi import WSGIMiddleware
 from fastapi.middleware.cors import CORSMiddleware
 #from fastapi_pagination import add_pagination
 
-from .admin import flask_app
+from api.admin import flask_app
 #from .routes import api_router
 
 #from .api_meta import METADATA

@@ -40,9 +40,14 @@ class Settings(BaseSettings):
     FLASK_MAIL_USERNAME: str = str(os.environ.get("FLASK_MAIL_USERNAME", ""))
     FLASK_MAIL_PASSWORD: str = str(os.environ.get("FLASK_MAIL_PASSWORD", ""))
 
-    FLASK_ADMIN_NAME: str = str(os.environ.get("FLASK_ADMIN_NAME", "admin"))
+    FLASK_ADMIN_NAME: str = str(os.environ.get("FLASK_ADMIN_NAME", "api/admin"))
     FLASK_ADMIN_MAIL: str = str(os.environ.get("FLASK_ADMIN_MAIL", ""))
     FLASK_ADMIN_ADMIN_PASSWORD: str = str(os.environ.get("FLASK_ADMIN_ADMIN_PASSWORD", ""))
+
+    # ~ PWD Generation settings ~
+    PWD_LENGTH: str = str(os.environ.get("PWD_LENGTH", "8,16"))
+    PWD_PREFIX: str = str(os.environ.get("PWD_PREFIX", "fa-"))
+    PWD_SUFFIX: str = str(os.environ.get("PWD_SUFFIX", "!,?"))
 
     # ~ Database settings ~
     DB_URI: str = str(os.environ.get("DB_URI", "db/DIL.db"))
