@@ -20,14 +20,13 @@
     <!--
         <a href="/endp-person/api/docs" target="_blank"
            style="margin-right: 10px; text-decoration: none; vertical-align: 2px">
-            <img src="{{ url_for('static', filename='images/swagger-icon.png') }}"
+            <img src="{# { url_for('static', filename='images/swagger-icon.png') }#}"
                  style="width: 24px; vertical-align: -8px; margin-right: -2px;">
             <span style="vertical-align: middle;">API</span>
         </a>
         -->
-        {#
-         if current_user.is_authenticated %}
-            <a class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
+        {% if current_user.is_authenticated %}
+            <a id="btn-user-is-connected" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
                 <i class="glyphicon glyphicon-user"></i>
                 {{ current_user.username }}<span class="caret"></span>
             </a>
@@ -35,9 +34,8 @@
                 <li><a href="{{ url_for('admin.logout') }}">Se déconnecter</a></li>
             </ul>
         {% else %}
-            <a href="{{ url_for('admin.login') }}"><i class="glyphicon glyphicon-log-in"></i> Se connecter</a></span>
-         endif %}
-        #}
+            <a id="btn-user-to-connect" href="{{ url_for('admin.login') }}"><i class="glyphicon glyphicon-log-in"></i> Se connecter</a></span>
+        {% endif %}
     </div>
 
 

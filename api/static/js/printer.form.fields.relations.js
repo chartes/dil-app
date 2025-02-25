@@ -103,7 +103,7 @@ function addRelationRow(container, addButton, index) {
     // Initialiser Select2 AJAX pour le champ dynamique
     $(printerSelect).select2({
         ajax: {
-            url: '/dil/admin/person/get_printers', // URL de la route exposée
+            url: '/dil/dil/admin/person/get_printers', // URL de la route exposée
             dataType: 'json',
             type: "GET",
             quietMillis: 250, // Retard pour réduire la charge sur le serveur
@@ -131,7 +131,7 @@ function loadExistingRelations(personId) {
         return acc;
     }, {});
     $.ajax({
-        url: `/dil/admin/person/get_patent_relations/${personId}`,
+        url: `/dil/dil/admin/person/get_patent_relations/${personId}`,
         type: "GET",
         dataType: "json",
         success: function (groupedRelations) {
@@ -241,7 +241,7 @@ function addRelationRowFromData(container, relationData, patentId) {
             initSelection: function (element, callback) {
                 var id = $(element).val();
                 if (id !== "") {
-                    $.ajax("/dil/admin/person/get_printer/" + relationData.person_related_id, {
+                    $.ajax("/dil/dil/admin/person/get_printer/" + relationData.person_related_id, {
                         dataType: "json"
                     }).done(function (data) {
                         callback(data);
@@ -249,7 +249,7 @@ function addRelationRowFromData(container, relationData, patentId) {
                 }
             },
             ajax: {
-                url: '/dil/admin/person/get_printers', // URL de la route exposée
+                url: '/dil/dil/admin/person/get_printers', // URL de la route exposée
                 dataType: 'json',
                 type: "GET",
                 quietMillis: 250, // Retard pour réduire la charge sur le serveur

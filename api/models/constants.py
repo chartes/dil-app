@@ -1,3 +1,9 @@
+roles_user = {
+    "Administrateur": "ADMIN", # Admin (all rights : can create, edit, delete, read and manage users)
+    "Éditeur": "EDITOR", # Editor (can create, edit and delete, validate except manage users)
+    "Lecteur": "READER" # Reader (can read only)
+}
+
 type_patent_relations = {
     "Associé": "PARTNER",
     "Parrain": "SPONSOR",

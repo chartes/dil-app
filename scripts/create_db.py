@@ -83,8 +83,8 @@ if __name__ == "__main__":
         print(f"==> Database path: {db_path}")
 
     engine = create_engine(f"sqlite:///{db_path}", echo=True)
-
-    BASE.metadata.create_all(engine)
+    BASE.metadata.drop_all(bind=engine)
+    BASE.metadata.create_all(bind=engine)
     Session = sessionmaker(bind=engine)
 
     base_path_data_tables = os.path.join(current_dir, base_path_data_tables)
@@ -105,3 +105,8 @@ if __name__ == "__main__":
 
     for file_path, table_model in ORDER_IMPORT:
         load_tsv_to_db(file_path, table_model)
+
+    # add default user
+    User.add_default_user(in_session=session)
+    session.commit()
+

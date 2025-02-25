@@ -1,17 +1,23 @@
 """
 """
-import os
 
 from werkzeug.utils import secure_filename
-from flask import url_for, jsonify, request
+from flask import (url_for,
+                   jsonify,
+                   request,
+                   redirect,
+                   flash)
 from flask_admin.contrib.sqla import ModelView
 from flask_admin.contrib.sqla.ajax import QueryAjaxModelLoader
 from flask_admin.model.ajax import AjaxModelLoader, DEFAULT_PAGE_SIZE
-from flask_admin import expose
-from flask_admin.form import ImageUploadField, thumbgen_filename
+from flask_admin import expose, AdminIndexView
+from flask_admin.form import ImageUploadField
+from flask_login import (current_user,
+                         logout_user,
+                         login_user)
 
 from wtforms import Form
-from wtforms.fields import StringField, FieldList
+from wtforms.fields import StringField, FieldList, PasswordField
 from wtforms import TextAreaField, BooleanField
 from wtforms.widgets import TextArea
 
@@ -26,11 +32,18 @@ from .validators import (is_valid_date,
                          validate_coordinates,
                          validate_address)
 from ..models.models import *
+from ..crud import get_user
+from .forms import LoginForm
 from .widget import QuillWidget
 from .formaters import (_format_label_form_with_tooltip,
                         _format_link_add_model)
 from .model_handler import PrinterModelChangeHandler
-from ..config import settings
+from api.config import settings
+
+EDIT_ENDPOINTS = ["person", "city", "address", "image"]
+can_edit_roles = ['ADMIN', 'EDITOR', 'CONTRIBUTOR']
+can_delete_roles = ['ADMIN', 'EDITOR']
+can_create_roles = ['ADMIN', 'EDITOR', 'CONTRIBUTOR']
 
 def prefix_name(obj, file_data):
     parts = os.path.splitext(file_data.filename)
@@ -93,6 +106,33 @@ class ImageAjaxModelLoader(QueryAjaxModelLoader):
             .all()
         )
 
+class AdminView(AdminIndexView):
+    """Custom view for administration."""
+
+    @expose('/login', methods=('GET', 'POST'))
+    def login(self):
+        """Login view."""
+        if current_user.is_authenticated:
+            return redirect(url_for('admin.index'))
+        form = LoginForm()
+        if form.validate_on_submit():
+            user = get_user(session, dict(username=form.username.data))
+            if user and user.check_password(form.password.data):
+                login_user(user, remember=form.remember_me.data)
+                flash(f'Vous êtes connecté en tant que {current_user.username} !', 'success')
+                return redirect(url_for('admin.index'))
+            else:
+                flash('Identifiant ou mot de passe incorrect !', 'danger')
+                return self.render('admin/login.html', form=form)
+        return self.render('admin/login.html', form=form)
+
+    @expose('/logout', methods=('GET', 'POST'))
+    def logout(self):
+        """Logout view."""
+        logout_user()
+        flash('Vous êtes déconnecté !', 'warning')
+        return redirect(url_for('admin.index'))
+
 
 class GlobalModelView(ModelView):
     """Global & Shared parameters for the model views."""
@@ -101,12 +141,104 @@ class GlobalModelView(ModelView):
     can_set_page_size = False
     action_disallowed_list = ['delete']
     # list_template = 'admin/list.html'
-    can_edit = True
-    can_delete = True
-    can_create = True
-    can_export = True
+    def is_accessible(self):
+        if current_user.is_authenticated:
+            self.can_edit = current_user.role in can_edit_roles
+            self.can_delete = current_user.role in can_delete_roles
+            self.can_create = current_user.role in can_create_roles
+            self.can_export = True
+            return True
+        else:
+            return False
 
 
+
+class UserView(ModelView):
+    edit_template = 'admin/edit.user.html'
+    create_template = 'admin/edit.user.html'
+    list_template = 'admin/list.user.html'
+    column_list = ["id",
+                   "username",
+                   "email",
+                   "role",
+                   "created_at",
+                   "updated_at"]
+    column_labels = {
+        "id": "ID",
+        "username": "Nom d'utilisateur",
+        "role": "Rôle",
+        "email": "Adresse email",
+        "created_at": "Créé le",
+        "updated_at": "Modifié le"
+    }
+    # hide the password hash in edit/create form
+    form_excluded_columns = ["password_hash",
+                             "created_at",
+                             "updated_at"]
+
+    form_columns = ["username",
+                    "email",
+                    "role",
+                    "new_password"]
+
+    form_extra_fields = {
+        "new_password": PasswordField("Nouveau mot de passe",
+                                      id="new_password_field"),
+
+    }
+
+    @expose("/generate_password/", methods=["GET", "POST"])
+    def new_password(self):
+        if request.method in ["GET", "POST"]:
+            password = User.generate_password()
+
+            return jsonify({"password": password}), 200
+        return jsonify({"error": "No password provided"}), 400
+
+    def on_model_change(self, form, model, is_created):
+        if form.new_password.data:
+            if model.id == 1:
+                print(current_user.id)
+                if current_user.id != 1:
+                    flash("Vous ne pouvez pas modifier le mot de passe de ce compte administrateur.", "danger")
+                    #print("passe pas")
+                    #return False
+                else:
+
+                    model.set_password(form.new_password.data)
+                    session.commit()
+                    return model
+            else:
+                model.set_password(form.new_password.data)
+                session.commit()
+                return model
+
+        if is_created:
+            model.set_password(form.new_password.data)
+            session.commit()
+            return model
+
+
+    def delete_model(self, model):
+        if model.id == current_user.id:
+            flash("Vous ne pouvez pas supprimer votre propre compte.", "danger")
+            return False
+        if model.id == 1:
+            flash("Vous ne pouvez pas supprimer ce compte administrateur.", "danger")
+            return False
+        if model.role == "Admin":
+            if current_user.role != "ADMIN":
+                flash("Vous ne pouvez pas supprimer un compte administrateur.", "danger")
+                return False
+
+        return super().delete_model(model)
+
+    def is_accessible(self):
+        access_view = ['ADMIN']
+        if current_user.is_authenticated:
+            return current_user.role in access_view
+        else:
+            return False
 class PrinterView(GlobalModelView):
     """View for the person model."""
     edit_template = 'admin/edit.printer.html'
@@ -399,6 +531,11 @@ class PrinterView(GlobalModelView):
         # when model is created or updated
         handler.after_model_change(is_created=is_created)
 
+        print("on change avec", current_user.username)
+        model.last_editor = current_user.username
+        session.commit()
+
+
     def get_list_columns(self):
         """Return list of columns to display in list view."""
         return super(PrinterView, self).get_list_columns()
@@ -434,9 +571,11 @@ class PrinterView(GlobalModelView):
                 'id': image.id,
                 'label': image.label,
                 'img_name': image.img_name,
-                'img_url': url_for("static", filename=f"images_store/{img_name}") if img_name else img_name,
+                'img_url': url_for("static", filename=f"images_store/{img_name}") if (img_name != "unknown.jpg") or (image.iiif_url is not None) else url_for("static", filename="icons/preview-na.png"),
                 'img_iiif_url': image.iiif_url,
-                'is_pinned': is_pinned
+                'is_pinned': is_pinned,
+                'fallback_url': url_for("static", filename="icons/preview-na.png"),
+                'fallback_iiif_url': url_for("static", filename="icons/preview-na-iiif.png")
             })
 
     @expose('/get_printers', methods=['GET'])
@@ -589,7 +728,8 @@ class ImageView(GlobalModelView):
         if data['img_name'] is None:
             model.img_name = "unknown.jpg"
 
-
+        model.last_editor = current_user.username
+        session.commit()
 
 
 
@@ -723,6 +863,10 @@ class AddressView(GlobalModelView):
             render_kw={"id": "not_french_address"}
         )
     }
+
+    def on_model_change(self, form, model, is_created):
+        model.last_editor = current_user.username
+        session.commit()
 
 
 
@@ -886,6 +1030,10 @@ class CityView(GlobalModelView):
                            "Exemple : <a href='https://francearchives.gouv.fr/fr/location/217180640'><b>217180640</b></a> pour Port-Sainte-Marie (Lot-et-Garonne, France)."
         }
     }
+
+    def on_model_change(self, form, model, is_created):
+        model.last_editor = current_user.username
+        session.commit()
 
 
 class PatentHasRelationsView(GlobalModelView):

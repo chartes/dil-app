@@ -1,0 +1,33 @@
+{% extends 'admin/master.html' %}
+{% block head_css %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+{% endblock %}
+{% block body %}
+    <br>
+    <div class="container container-login">
+        <div class="row row-login">
+            <div class="left-column">
+                <img src="{{ url_for('static', filename='images/lautrec.jpg') }}"
+                     alt="login form" class="img-fluid show-on-large-screen img-card-login"/>
+            </div>
+            <div class="right-column">
+                <form action="" method="post">
+                    {{ form.hidden_tag() }}
+                    <p class="normal-text-form">
+                        {{ form.username.label }}<br>
+                        {{ form.username(size=32, class_='field_log') }}
+                    </p>
+                    <p class="normal-text-form">
+                        {{ form.password.label }}<br>
+                        {{ form.password(size=32, class_='field_log') }}
+                    </p>
+                    <p class="normal-text-form">{{ form.remember_me() }} {{ form.remember_me.label }}</p>
+                    <p class="normal-text-form">{{ form.submit(class_='btn btn-outline-secondary') }}</p>
+                    <!--<p class="normal-text-form">Mot de passe oublié ? <a href="{#{ url_for('reset_password_request') }#}">Cliquer ici</a></p>-->
+                </form>
+            </div>
+        </div>
+    </div>
+    <br>
+{% endblock body %}

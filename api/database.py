@@ -6,7 +6,7 @@ Database connection and session management.
 
 import os
 
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine
 #from sqlalchemy.or.declarative import declarative_base
 from sqlalchemy.orm import (sessionmaker,
                             scoped_session,
@@ -14,7 +14,7 @@ from sqlalchemy.orm import (sessionmaker,
 
 #from whoosh import index
 
-from .config import BASE_DIR, settings
+from api.config import BASE_DIR, settings
 
 SQLALCHEMY_DATABASE_URI = f"sqlite:///{os.path.join(BASE_DIR, settings.DB_URI)}"
 #WHOOSH_INDEX_DIR = os.path.join(BASE_DIR, settings.WHOOSH_INDEX_DIR)

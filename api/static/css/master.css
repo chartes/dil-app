@@ -17,19 +17,25 @@
     border-radius: 15px;
 }
 
+.navbar-collapse {
+    border-radius: 15px;
+}
+
 .navbar-brand {
     font-size: 23px;
-    color: #022846 !important;
     font-weight: bold;
+
 }
 
 #admin-navbar-collapse li a {
     font-size: 17px !important;
+    padding: 17px !important;
 }
 
 .pull-right a {
     font-weight: bold;
     font-size: 17px !important;
+
 }
 
 .access-ressources a *{
@@ -233,11 +239,11 @@ table th {
     bottom: 0;
     left: 0;
     width: 4px;
-    background-color: #1f618d;
+    background-color: #bc052d;
 }
 
 .sidebar .nav-link.active {
-    color: #1f618d !important;
+    color: #bc052d !important;
 }
 
 /* Person List */
@@ -259,4 +265,26 @@ table th {
 .pagination-menu-bar {
     clear: both !important;
     width: 30% !important;
+}
+
+#btn-user-is-connected{
+    color: #bc052d !important;
+    border: none !important;
+    padding: 10px 20px !important;
+    font-weight: bold !important;
+}
+
+#btn-user-is-connected:hover{
+    color: #ad2e3f !important;
+}
+
+#btn-user-to-connect{
+    color: #bc052d !important;
+    border: none !important;
+    padding: 10px 20px !important;
+    font-weight: bold !important;
+}
+
+#btn-user-to-connect:hover{
+    color: #ad2e3f !important;
 }

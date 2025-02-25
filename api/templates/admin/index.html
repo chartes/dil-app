@@ -4,19 +4,18 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
 {% endblock %}
 {% block body %}
-    <!--<p class="heading1">Administration de la base de données du dictionnaire des imprimeurs-lithographes du XIXe siècle</p>-->
-    <p class="heading2">Bienvenue {#% if current_user.is_authenticated %#}
-        <!--<span class="user-connect-home">{#{ current_user.username }#}</span>-->{#% endif %#} !</p>
+    <p class="heading1">Administration de la base de données du dictionnaire des imprimeurs-lithographes du XIXe siècle</p>
+    <p class="heading2">Bienvenue {% if current_user.is_authenticated %}
+        <span class="user-connect-home">{{ current_user.username }}</span>{% endif %} !</p>
     <p class="heading3">Vous êtes actuellement sur la plateforme d'administration de la base de données de dictionnaire des imprimeurs-lithographes du XIXe siècle</a>.</p>
-    {# if not current_user.is_authenticated
+    {% if not current_user.is_authenticated %}
         <p class="heading3">
             <span class="glyphicon glyphicon-hand-right"></span> Vous êtes administrateur ou contributeur ? <a
                 href="{{ url_for('admin.login') }}"> authentifiez-vous</a>.
         </p>
-     endif #}
-    <!--<hr class="sep-index">-->
+     {% endif %}
+    <hr class="sep-index">
     <br>
-    </div>
     <br>
 {% endblock body %}
 
@@ -34,11 +33,7 @@
                     <img class="img-fluid" src="{{ url_for('static', filename='images/partners-logo/enc-cjm.png') }}" alt="Centre-Jean-Mabillon-Ecole-nationale-chartes-logo" style="width: 75%">
                 </a>
             </div>
-        </div>
-    </div>
-    <div class="container-fluid full-height text-center">
-        <div class="row row-partners-logo">
-            <div class="col-md-2 col-sm-7 col-xs-9 image-column enc mb-3">
+             <div class="col-md-2 col-sm-7 col-xs-9 image-column enc mb-3">
                 <a href="#" target="_blank">
                     <img class="img-fluid" src="{{ url_for('static', filename='images/partners-logo/logo-labex-hesam.png') }}" alt="Logo-labex-HESAM" style="width: 100%">
                 </a>
@@ -50,4 +45,5 @@
             </div>
         </div>
     </div>
+
 {% endblock %}

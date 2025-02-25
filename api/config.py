@@ -6,6 +6,7 @@ By default, the application will run in debug mode.
 [prod | dev] only. go to tests/ for testing settings.
 """
 import dotenv
+
 import os
 import pathlib
 
@@ -40,7 +41,7 @@ class Settings(BaseSettings):
     FLASK_MAIL_USERNAME: str = str(os.environ.get("FLASK_MAIL_USERNAME", ""))
     FLASK_MAIL_PASSWORD: str = str(os.environ.get("FLASK_MAIL_PASSWORD", ""))
 
-    FLASK_ADMIN_NAME: str = str(os.environ.get("FLASK_ADMIN_NAME", "api/admin"))
+    FLASK_ADMIN_NAME: str = str(os.environ.get("FLASK_ADMIN_NAME", "admin"))
     FLASK_ADMIN_MAIL: str = str(os.environ.get("FLASK_ADMIN_MAIL", ""))
     FLASK_ADMIN_ADMIN_PASSWORD: str = str(os.environ.get("FLASK_ADMIN_ADMIN_PASSWORD", ""))
 
@@ -57,7 +58,7 @@ class Settings(BaseSettings):
     WHOOSH_INDEX_DIR: str = str(os.environ.get("WHOOSH_INDEX_DIR", "index_dil"))
 
     # ~ Image settings ~
-    IMAGE_STORE: str = str(os.environ.get("IMAGE_STORE", "api/static/images_store"))
+    IMAGE_STORE: str = str(os.environ.get("IMAGE_STORE", "static/images_store"))
 
     # Class configuration
     class Config:

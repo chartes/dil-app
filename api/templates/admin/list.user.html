@@ -1,0 +1,11 @@
+{% extends 'admin/model/list.html' %}
+{% import 'admin/lib.html' as lib with context %}
+
+{{ super() }}
+
+{% block head %}
+    {{ super() }}
+    <script type="text/javascript" src="{{ url_for('static', filename='js/user.list.js') }}"></script>
+{% endblock head %}
+
+

@@ -47,7 +47,7 @@
 - [X] **Validation étape**
 ---
 
-## Flask-Admin et API
+## Flask-Admin
 
 - [X] Mise en place flask-admin
 
@@ -69,23 +69,23 @@
   - check les relations ondelete
   - validateurs
   - champs
-- [ ] Ajouter logique de connexion (table User, login, logout, roles)
+- [X] Ajouter logique de connexion (table User, login, logout, roles)
 - [ ] revoir les tests
-- [ ] régler le not found http://127.0.0.1:8888/admin/ --> http://127.0.0.1:8888/dil/admin/ (icone menu)
+- [X] régler le not found http://127.0.0.1:8888/admin/ --> http://127.0.0.1:8888/dil/admin/ (icone menu)
 - [ ] Finalisation des pages : consulation des imprimeurs, liste, acceuil et documentation et sup des tables inutiles dans le front admin
-=> faire un check rapide avec Vincent
 - [ ] Refactorisation (admin, modèles, vues, scripts, template)
 - [ ] fichiers de config dev et prod + scripts de création de la base ou migration de la base a vérifier
 - [ ] nettoyage global des fichiers
-- [ ] Correction + données manquantes (Cf. issues + liens IIIF)
+- test de la base async pour le crud et alembic qui fonctionne pas
 - [ ] Déploiement sur serveur de dev + fichiers de config dev et prod + scripts de création de la base ou migration de la base a vérifier
-
 ---
-- [ ] **Validation étape + test utilisateur**
+- [ ] **Validation étape VJ et reprise + test utilisateur (EP)**
 ---
+- [ ] Correction + données manquantes (Cf. issues)
 
 ## Mise en œuvre de l'application
 
+- [ ] API à mettre en place et index si besoin
 - [ ] Ouvrir projet Vue.js / Vite + dépot Git
 - [ ] Mise en place de l'application Vue.js (reprendre doc réunion 9/01/2025 avec EP)
 

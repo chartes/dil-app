@@ -7,7 +7,7 @@
  */
 
 $(document).ready(function () {
-    const BASE_URL = "/dil/admin/person/"
+    const BASE_URL = "/dil/dil/admin/person/"
 
     let selectFirstnames = $('.input-select-tag-form-1');
 
@@ -33,7 +33,7 @@ $(document).ready(function () {
 // Fonction pour récupérer les détails d'une image
 async function fetchImageDetails(imageId, patentID) {
     try {
-        const response = await fetch(`/dil/admin/person/get_image_details/?id=${imageId}&patent_id=${patentID}`);
+        const response = await fetch(`/dil/dil/admin/person/get_image_details/?id=${imageId}&patent_id=${patentID}`);
         if (!response.ok) {
             throw new Error(`Erreur ${response.status}: ${response.statusText}`);
         }
@@ -135,7 +135,7 @@ async function addPreview(event, type = "ele") {
         let input = $(`#${inputId}-id`);
         let patentID = input.val();
 
-        const fallbackSrc = "../../../static/icons/preview-na.png"; // Fallback image
+        const fallbackSrc = "../static/icons/preview-na.png"; // Fallback image
         const imageDetails = await fetchImageDetails(imageId, patentID);
         let is_fallback = false;
 
@@ -143,9 +143,11 @@ async function addPreview(event, type = "ele") {
             let {id, img_iiif_url, img_url, label, is_pinned} = imageDetails;
             const img = new Image();
             img.src = img_url;
+            console.log(img.src);
             // Step 1: Test static_url
             img.onload = () => appendImagePreview(containerId, selectId, id, img_url, label, is_pinned, is_fallback);
             img.onerror = () => {
+                console.log("Error loading image from static_url test fallback to iiif_url");
                 // Step 2: If static_url fails, try iiif_url
                 img.src = img_iiif_url;
                 img.onload = () => appendImagePreview(containerId, selectId, id, img_iiif_url, label, is_pinned, is_fallback);

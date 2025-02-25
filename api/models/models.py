@@ -7,6 +7,7 @@ import random
 import re
 import string
 import uuid
+import time
 
 from sqlalchemy import (Column,
                         Integer,
@@ -19,15 +20,19 @@ from sqlalchemy import (Column,
 from sqlalchemy.orm import (relationship,
                             declared_attr,
                             sessionmaker)
-
 from sqlalchemy.exc import IntegrityError
+from flask_login import UserMixin
+from werkzeug.security import (generate_password_hash,
+                               check_password_hash)
+import jwt
 
 from ..database import (BASE,
                         session)
 from .constants import (countries_ISO_3166,
                         departments_INSEE_code,
-                        type_patent_relations)
-from ..config import settings, BASE_DIR
+                        type_patent_relations,
+                        roles_user)
+from api.config import settings
 
 # DB models constants and utilities
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".tiff"}
@@ -97,6 +102,7 @@ def _get_enum_values(enum_class):
 PatentRelationType = BaseEnum.create_enum("PatentRelationType", type_patent_relations)
 CountryISOEnum = BaseEnum.create_enum("CountryISOEnum", countries_ISO_3166)
 DepartementINSEEEnum = BaseEnum.create_enum("DepartementINSEEEnum", departments_INSEE_code)
+RolesUserEnum = BaseEnum.create_enum("RolesUserEnum", roles_user)
 
 
 ###############################################################
@@ -220,6 +226,64 @@ class AbstractVersion(AbstractBase):
 
 ###########################################################
 # ~~~~~~~~~~~~~~~~~~~ > Main tables < ~~~~~~~~~~~~~~~~~~~ #
+class User(UserMixin, BASE):
+    """User model"""
+    __tablename__ = 'users'
+    id = Column(Integer, primary_key=True, autoincrement=True, nullable=False, unique=True)
+    username = Column(String(64), index=True, unique=True, nullable=False)
+    email = Column(String(120), index=True, unique=True, nullable=False)
+    role = Column(Enum(*_get_enum_values(RolesUserEnum)), nullable=False, default="READER")
+    password_hash = Column(String(128))
+    created_at = Column(DateTime, default=datetime.datetime.now())
+    updated_at = Column(DateTime, default=datetime.datetime.now(), onupdate=datetime.datetime.now())
+
+    def __repr__(self):
+        return '<User {}>'.format(self.username)
+
+    @staticmethod
+    def generate_password():
+        from .user_utils import pwd_generator
+        return pwd_generator()
+
+    def set_password(self, password):
+        """Set a password hashed"""
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        """Check if password is correct"""
+        return check_password_hash(self.password_hash, password)
+
+    def get_reset_password_token(self, expires_in=600):
+        """Generate a token for reset password"""
+        return jwt.encode(
+            {'reset_password': self.id, 'exp': time() + expires_in},
+            settings.FLASK_SECRET_KEY, algorithm='HS256'
+        )
+
+    @staticmethod
+    def verify_reset_password_token(token):
+        """Verify if token is valid"""
+        try:
+            id_tok = jwt.decode(token,
+                                settings.FLASK_SECRET_KEY,
+                                algorithms=['HS256'])['reset_password']
+        except jwt.exceptions.InvalidTokenError:
+            return
+        return session.query(User).get(id_tok)
+
+    @staticmethod
+    def add_default_user(in_session):
+        """Add default user to database"""
+        admin = User()
+        admin.username = settings.FLASK_ADMIN_NAME
+        admin.email = settings.FLASK_ADMIN_MAIL
+        admin.password_hash = settings.FLASK_ADMIN_ADMIN_PASSWORD
+        admin.role = "ADMIN"
+        in_session.add(admin)
+        in_session.commit()
+
+
+
 class Person(AbstractVersion):
     """Imprimeurs et lithographes identifiés.
 

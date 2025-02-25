@@ -7,12 +7,11 @@ from flask import Flask
 from flask_admin import Admin
 #from flask_babel import Babel
 from flask_babelex import Babel
-# from flask_login import LoginManager
-# from flask_mail import Mail
+from flask_login import LoginManager
+from flask_mail import Mail
 
-# from ..crud import get_user
-from ..config import settings, BASE_DIR
-from ..database import session
+#from ..crud import get_user
+from api.config import BASE_DIR
 from .views import *
 
 # flask app #
@@ -38,18 +37,18 @@ Babel(flask_app)
 admin = Admin(flask_app,
               name="DIL DB Administration",
               template_mode="bootstrap3",
-              url="/admin/",
+              url="/dil/admin/",
               endpoint="admin",
-              #index_view=AdminView()
+              index_view=AdminView()
         )
-#login = LoginManager(flask_app)
-#mail = Mail(flask_app)
+login = LoginManager(flask_app)
+mail = Mail(flask_app)
 
 
-#@login.user_loader
-#def load_user(user_id):
-#    """load the user with the given id"""
-#    return get_user(session, {'id': user_id})
+@login.user_loader
+def load_user(user_id):
+    """load the user with the given id"""
+    return get_user(session, {'id': user_id})
 
 
 # Register views #
@@ -83,6 +82,11 @@ for view in [
               name='Gestion des images',
               menu_icon_type='glyph',
               menu_icon_value='glyphicon-picture'),
+    UserView(User,
+             session,
+             name='Utilisateurs',
+             menu_icon_type='glyph',
+             menu_icon_value='glyphicon-cog'),
     #PatentHasRelationsView(PatentHasRelations,
     #                       session,
     #                       name='Relation entre brevets',

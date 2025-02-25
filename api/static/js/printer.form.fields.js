@@ -5,7 +5,7 @@
  */
 
 $(document).ready(function () {
-    const BASE_URL = "/dil/admin/person/";
+    const BASE_URL = "/dil/dil/admin/person/";
 
     let selectFirstnames = $('.input-select-tag-form-1');
 
@@ -23,7 +23,7 @@ $(document).ready(function () {
 // Fonction pour récupérer les détails d'une image
 async function fetchImageDetails(imageId, patentID) {
     try {
-        const response = await fetch(`/dil/admin/person/get_image_details/?id=${imageId}&patent_id=${patentID}`);
+        const response = await fetch(`/dil/dil/admin/person/get_image_details/?id=${imageId}&patent_id=${patentID}`);
         if (!response.ok) throw new Error(`Erreur ${response.status}: ${response.statusText}`);
 
         const data = await response.json();
@@ -118,10 +118,11 @@ async function addPreview(event, type = "ele") {
             let imgSrc = await getValidImageSrc(
                 imageDetails.img_url,
                 imageDetails.img_iiif_url,
-                "../../../static/icons/preview-na.png"
+                imageDetails.fallback_iiif_url
             );
 
-            let isFallback = (imgSrc === "../../../static/icons/preview-na.png");
+            let isFallback = (imageDetails.img_url.endsWith('preview-na.png'));
+            console.log(isFallback)
 
             images.push({
                 id: imageDetails.id,
@@ -150,6 +151,8 @@ function getValidImageSrc(primaryUrl, secondaryUrl, fallbackUrl) {
 
         // Test de l'URL principale
         img.src = primaryUrl;
+        console.log(primaryUrl)
+        console.log(secondaryUrl)
         img.onload = () => resolve(primaryUrl);
         img.onerror = () => {
             // Si l'URL principale échoue, tester la seconde
@@ -157,6 +160,7 @@ function getValidImageSrc(primaryUrl, secondaryUrl, fallbackUrl) {
             img.onload = () => resolve(secondaryUrl);
             img.onerror = () => {
                 // Si les deux URLs échouent, utiliser le fallback
+                console.log("monfalback:", fallbackUrl)
                 resolve(fallbackUrl);
             };
         };
