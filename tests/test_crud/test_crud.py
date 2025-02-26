@@ -13,8 +13,6 @@ from api.models.models import (
     PatentHasImages
 )
 
-
-
 def test_create_person(session):
     """Test: Create a new person"""
     # Add a basic new person
@@ -31,9 +29,6 @@ def test_create_person(session):
     assert retrieved_person.lastname == "Dupont"
     assert retrieved_person.firstnames == "Jean"
 
-    session.rollback()
-
-
 def test_create_person_integrity_error_lastname(session):
     """Test: Check integrity error if lastname not added"""
     person = Person(
@@ -42,8 +37,6 @@ def test_create_person_integrity_error_lastname(session):
     with pytest.raises(IntegrityError):
         session.add(person)
         session.commit()
-
-    session.rollback()
 
 def test_create_multiple_person(session):
     """Test: Check when create multiple person"""
@@ -71,11 +64,9 @@ def test_create_multiple_person(session):
     retrieved_person = session.query(Person).filter_by(lastname="Moc").first()
     assert retrieved_person is not None
     assert retrieved_person.lastname == "Moc"
-    assert len(session.query(Person).all()) == 4
+    assert len(session.query(Person).all()) == 3
     retrieved_person = session.query(Person).filter_by(lastname="Mlk").first()
     assert retrieved_person is None
-
-    session.rollback()
 
 
 # ====== TODO:
