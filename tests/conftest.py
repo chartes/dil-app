@@ -14,18 +14,7 @@ from sqlalchemy.orm import sessionmaker
 from api.database import (BASE, get_db)
 from api.main import (app)
 from api.config import BASE_DIR, settings
-from api.models.models import (
-    User,
-    Person,
-    Patent,
-    City,
-    Address,
-    Image,
-    PatentHasRelations,
-    PatentHasAddresses,
-    PersonHasAddresses,
-    PatentHasImages
-)
+
 
 # set up ENV var for testing
 os.environ["ENV"] = "test"
@@ -75,3 +64,16 @@ def session():
 
 
 client = TestClient(app)
+
+from api.models.models import (
+    User,
+    Person,
+    Patent,
+    City,
+    Address,
+    Image,
+    PatentHasRelations,
+    PatentHasAddresses,
+    PersonHasAddresses,
+    PatentHasImages
+)
