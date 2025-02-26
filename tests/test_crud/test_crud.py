@@ -12,11 +12,13 @@ from api.models.models import (
     PersonHasAddresses,
     PatentHasImages
 )
-from tests.conftest import local_session
+from tests.conftest import local_session, BASE
 
 def test_create_person():
     """Test: Create a new person"""
     with local_session as session:
+        # check tables available in the database
+        print(BASE.metadata.tables)
         # Add a basic new person
         person = Person(
             lastname="Dupont",
