@@ -27,5 +27,5 @@ jobs:
         run: |
           ENV="test"
           cd ./tests/
-          pytest -tb=short -v
+          pytest
         shell: bash
