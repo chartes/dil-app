@@ -12,10 +12,10 @@ from api.models.models import (
     PersonHasAddresses,
     PatentHasImages
 )
-from tests.conftest import test_session as session
+from tests.conftest import local_session as session
 
 
-def test_create_person(session):
+def test_create_person():
     """Test: Create a new person"""
     # Add a basic new person
     person = Person(
@@ -31,8 +31,10 @@ def test_create_person(session):
     assert retrieved_person.lastname == "Dupont"
     assert retrieved_person.firstnames == "Jean"
 
+    session.rollback()
 
-def test_create_person_integrity_error_lastname(session):
+
+def test_create_person_integrity_error_lastname():
     """Test: Check integrity error if lastname not added"""
     person = Person(
         firstnames="Jean",
@@ -41,8 +43,9 @@ def test_create_person_integrity_error_lastname(session):
         session.add(person)
         session.commit()
 
+    session.rollback()
 
-def test_create_multiple_person(session):
+def test_create_multiple_person():
     """Test: Check when create multiple person"""
     person = Person(
         lastname="Mic"
@@ -68,9 +71,11 @@ def test_create_multiple_person(session):
     retrieved_person = session.query(Person).filter_by(lastname="Moc").first()
     assert retrieved_person is not None
     assert retrieved_person.lastname == "Moc"
-    assert len(session.query(Person).all()) == 3
+    assert len(session.query(Person).all()) == 4
     retrieved_person = session.query(Person).filter_by(lastname="Mlk").first()
     assert retrieved_person is None
+
+    session.rollback()
 
 
 # ====== TODO:

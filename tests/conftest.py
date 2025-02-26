@@ -1,35 +1,41 @@
-from typing import Generator
-
+import os
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
-from sqlalchemy.orm import Session
-from sqlalchemy.engine.base import Engine
-
-import pytest
-
+from sqlalchemy.pool import StaticPool
+from sqlalchemy.orm import sessionmaker
 from api.database import BASE, get_db
 from api.main import app
 
+os.environ["ENV"] = "test"
 
-@pytest.fixture(scope="session")
-def engine() -> Generator[Engine, None, None]:
-    engine = create_engine("sqlite:///:memory:?check_same_thread=False")
-    BASE.metadata.create_all(engine)
-    yield engine
+SQLALCHEMY_DATABASE_TEST_URL = "sqlite:///:memory:"
+
+engine = create_engine(
+    SQLALCHEMY_DATABASE_TEST_URL,
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool,
+    echo=False,
+)
+
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+BASE.metadata.create_all(bind=engine)
+
+def override_get_db():
+    """Override the get_db() dependency with a test database."""
+    try:
+        db = TestingSessionLocal()
+        yield db
+    except:
+        db.rollback()
+        raise
+    finally:
+        db.close()
 
 
-@pytest.fixture(scope="function")
-def test_session(engine) -> Generator[Session, None, None]:
-    conn = engine.connect()
-    conn.begin()
-    db = Session(bind=conn)
-    yield db
-    db.rollback()
-    conn.close()
+app.dependency_overrides[get_db] = override_get_db
 
+local_session = TestingSessionLocal()
 
-@pytest.fixture(scope="function")
-def test_client() -> Generator[TestClient, None, None]:
-    app.dependency_overrides[get_db] = lambda: test_session
-    with TestClient(app) as c:
-        yield c
+client = TestClient(app)
