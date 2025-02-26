@@ -6,8 +6,7 @@ Flask_Login==0.6.2
 flask_mail==0.10.0
 Flask_WTF==1.0.1
 MarkupSafe==2.1.1
-numpy==1.25.0
-numpy==1.23.5
+numpy==2.2.3
 pandas==2.2.3
 playwright==1.50.0
 pydantic==1.10.13
