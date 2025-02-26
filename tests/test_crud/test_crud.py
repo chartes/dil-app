@@ -12,6 +12,8 @@ from api.models.models import (
     PersonHasAddresses,
     PatentHasImages
 )
+from tests.conftest import test_session as session
+
 
 def test_create_person(session):
     """Test: Create a new person"""
@@ -29,6 +31,7 @@ def test_create_person(session):
     assert retrieved_person.lastname == "Dupont"
     assert retrieved_person.firstnames == "Jean"
 
+
 def test_create_person_integrity_error_lastname(session):
     """Test: Check integrity error if lastname not added"""
     person = Person(
@@ -37,6 +40,7 @@ def test_create_person_integrity_error_lastname(session):
     with pytest.raises(IntegrityError):
         session.add(person)
         session.commit()
+
 
 def test_create_multiple_person(session):
     """Test: Check when create multiple person"""

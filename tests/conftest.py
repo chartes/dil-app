@@ -1,30 +1,35 @@
-import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from api.database import BASE
+from typing import Generator
 
+from fastapi.testclient import TestClient
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
+from sqlalchemy.engine.base import Engine
+
+import pytest
+
+from api.database import BASE, get_db
+from api.main import app
+
+
+@pytest.fixture(scope="session")
+def engine() -> Generator[Engine, None, None]:
+    engine = create_engine("sqlite:///:memory:?check_same_thread=False")
+    BASE.metadata.create_all(engine)
+    yield engine
 
 
 @pytest.fixture(scope="function")
-def session():
-    engine = create_engine("sqlite:///tmp.test.db",
-                  echo=False,
-                  connect_args={'check_same_thread': False})
-    connection = engine.connect()
-    transaction = connection.begin()
-    Session = sessionmaker(bind=connection, autoflush=False, autocommit=False)
-    session = Session()
-    BASE.metadata.create_all(engine)
-    session.commit()
-    # BASE.metadata.drop_all(engine)
+def test_session(engine) -> Generator[Session, None, None]:
+    conn = engine.connect()
+    conn.begin()
+    db = Session(bind=conn)
+    yield db
+    db.rollback()
+    conn.close()
 
-    try:
-        yield session
-    except Exception as e:
-        transaction.rollback()  # Ce rollback sera ignoré si une exception est déjà gérée
-        raise
-    finally:
-        if transaction.is_active:
-            transaction.rollback()  # Ne rollback que si actif
-        session.close()
-        connection.close()
+
+@pytest.fixture(scope="function")
+def test_client() -> Generator[TestClient, None, None]:
+    app.dependency_overrides[get_db] = lambda: test_session
+    with TestClient(app) as c:
+        yield c
