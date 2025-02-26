@@ -5,13 +5,13 @@ from api.database import BASE
 
 @pytest.fixture(scope="module")
 def engine():
-    return create_engine("sqlite:///:memory:")
+    return create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
 
 @pytest.fixture(scope="module")
 def tables(engine):
     BASE.metadata.create_all(engine)
-    #yield
-    #BASE.metadata.drop_all(engine)
+    yield
+    BASE.metadata.drop_all(engine)
 
 @pytest.fixture(scope="function")
 def session(engine, tables):
