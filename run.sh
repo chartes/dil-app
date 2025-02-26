@@ -8,7 +8,7 @@
 ENV="dev"
 DB="./db/dil.dev.sqlite"
 DB_BACKUP="./db/DIL.db"
-INSTANCE="/srv/webapp/api/endp-person-app/venv/bin/uvicorn"
+INSTANCE="/srv/webapp/api/dil-app/venv/bin/uvicorn"
 IMAGE_ORIGINAL_DIR="./data/assets/images/"
 IMAGE_API_DIR="./api/static/images_store/"
 

@@ -1,4 +1,3 @@
-from tests.conftest import session
 from api.models.models import (Person,
                         Patent,
                         City,
@@ -26,7 +25,7 @@ def check_id_dil_routine(session: object,
         assert model.startswith(f"{prefix}_dil_")
         assert len(model.split("_")[-1]) == 8
 
-def test_generate_random_uuid():
+def test_generate_random_uuid(session):
     """Test the generation of a unique random UUID with the expected prefix and format."""
     uuid_str = generate_random_uuid(prefix="test_dil_")
     check_id_dil_routine(session, uuid_str, "test", add=False)

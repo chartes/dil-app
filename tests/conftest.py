@@ -1,32 +1,53 @@
 import pytest
+from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
+from sqlalchemy.pool import StaticPool
 from sqlalchemy.orm import sessionmaker
-from api.database import BASE
+from api.database import BASE, get_db
+from api.main import app
 
-@pytest.fixture(scope="module")
-def engine():
-    return create_engine("sqlite:///:memory:")
 
-@pytest.fixture(scope="module")
-def tables(engine):
-    BASE.metadata.create_all(engine)
-    yield
-    BASE.metadata.drop_all(engine)
+SQLALCHEMY_DATABASE_TEST_URL = "sqlite://"
+engine = create_engine(
+    SQLALCHEMY_DATABASE_TEST_URL,
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool,
+    echo=False,
+)
 
-@pytest.fixture(scope="function")
-def session(engine, tables):
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+BASE.metadata.create_all(bind=engine)
+
+def override_get_db():
+    """Override the get_db() dependency with a test database."""
+    try:
+        db = TestingSessionLocal()
+        yield db
+    finally:
+        db.close()
+
+app.dependency_overrides[get_db] = override_get_db
+
+@pytest.fixture
+def session():
+    """Create a new session for each test."""
     connection = engine.connect()
     transaction = connection.begin()
-    Session = sessionmaker(bind=connection, autoflush=False, autocommit=False)
-    session = Session()
-
+    session = TestingSessionLocal()
     try:
         yield session
-    except Exception as e:
-        transaction.rollback()  # Ce rollback sera ignoré si une exception est déjà gérée
+    except Exception:
+        transaction.rollback()
         raise
     finally:
         if transaction.is_active:
-            transaction.rollback()  # Ne rollback que si actif
+            transaction.rollback()
         session.close()
         connection.close()
+
+@pytest.fixture
+def client():
+    """Create a new TestClient for each test."""
+    with TestClient(app) as client:
+        yield client

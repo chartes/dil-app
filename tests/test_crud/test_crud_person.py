@@ -26,6 +26,7 @@ def test_update_person(session):
     session.add(person)
     session.commit()
 
+    person = session.query(Person).filter_by(lastname="Dupont").first()
     person.lastname = "Martin"
     session.commit()
 

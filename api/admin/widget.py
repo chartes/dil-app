@@ -6,7 +6,7 @@ Widgets or custom fields for views.
 
 
 from wtforms import TextAreaField
-from flask import Markup
+# from markupsafe import Markup
 
 
 

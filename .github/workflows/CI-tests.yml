@@ -23,11 +23,7 @@ jobs:
         run: |
           python3 -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-      - name: Check database schema
-        run: |
-          python3 -c 'from api.database import engine, BASE; BASE.metadata.create_all(engine)'
       - name: Test with pytest
         run: |
-          cd tests/
           pytest --tb=short -v
         shell: bash

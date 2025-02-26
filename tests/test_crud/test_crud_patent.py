@@ -25,6 +25,7 @@ def test_update_patent(session):
     session.add(patent)
     session.commit()
 
+    patent = session.query(Patent).filter_by(city_label="Lyon").first()
     patent.date_start = "2025-01-01"
     session.commit()
 

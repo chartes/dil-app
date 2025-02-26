@@ -1,4 +1,4 @@
-from flask import Markup, url_for
+from markupsafe import Markup
 
 def _create_tooltip(comment, place):
     return f"""<a data-toggle="tooltip" data-placement="{place}" data-html="true" title="<i>{comment}</i>">

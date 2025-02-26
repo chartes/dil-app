@@ -11,7 +11,6 @@ import os
 import pathlib
 
 from pydantic_settings import BaseSettings
-from pydantic import ConfigDict, BaseModel
 
 # Set the base directory for the project
 BASE_DIR = pathlib.Path(__file__).parent.parent
@@ -61,10 +60,8 @@ class Settings(BaseSettings):
     IMAGE_STORE: str = str(os.environ.get("IMAGE_STORE", "static/images_store"))
 
     # Class configuration
-    model_config = ConfigDict(env_file=env_file,
-                              env_file_encoding="utf-8")
-    #class Config:
-    #    env_file = env_file
-    #    env_file_encoding = "utf-8"
+    class Config:
+        env_file = env_file
+        env_file_encoding = "utf-8"
 
 settings = Settings()
