@@ -3,18 +3,15 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from api.database import BASE
 
-@pytest.fixture(scope="module")
-def engine():
-    return create_engine("sqlite:///:memory:")
 
-@pytest.fixture(scope="module")
-def tables(engine):
-    BASE.metadata.create_all(engine)
-    yield
-    BASE.metadata.drop_all(engine)
 
 @pytest.fixture(scope="function")
-def session(engine, tables):
+def session():
+    engine = create_engine("sqlite:///:memory:",
+                  echo=False,
+                  connect_args={'check_same_thread': False})
+    BASE.metadata.create_all(engine)
+    #BASE.metadata.drop_all(engine)
     connection = engine.connect()
     transaction = connection.begin()
     Session = sessionmaker(bind=connection, autoflush=False, autocommit=False)
