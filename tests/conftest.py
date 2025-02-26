@@ -18,7 +18,7 @@ engine = create_engine(
     echo=False,
 )
 
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=True, bind=engine)
 
 BASE.metadata.create_all(bind=engine)
 
