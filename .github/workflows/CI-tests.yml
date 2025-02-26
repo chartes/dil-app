@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         python-version: ['3.10']
@@ -23,6 +23,8 @@ jobs:
         run: |
           python3 -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip uninstall SQLAlchemy
+          pip install SQLAlchemy==2.0.12
       - name: Test with pytest
         run: |
           ENV="test"
