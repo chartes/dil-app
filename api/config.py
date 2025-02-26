@@ -10,7 +10,10 @@ import dotenv
 import os
 import pathlib
 
-from pydantic_settings import BaseSettings
+try:
+    from pydantic_settings import BaseSettings
+except ModuleNotFoundError as e:
+    from pydantic import BaseSettings
 
 # Set the base directory for the project
 BASE_DIR = pathlib.Path(__file__).parent.parent
