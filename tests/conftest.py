@@ -5,7 +5,9 @@ from api.database import BASE
 
 @pytest.fixture(scope="module")
 def engine():
-    return create_engine("sqlite:///:memory:")
+    return create_engine("sqlite:///tmp.test.db",
+                         echo=True,
+                         connect_args={'check_same_thread': False})
 
 @pytest.fixture(scope="module")
 def tables(engine):
