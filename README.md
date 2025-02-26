@@ -2,6 +2,8 @@
 
 [![DIL API CI](https://github.com/chartes/dil-app/actions/workflows/CI-tests.yml/badge.svg)](https://github.com/chartes/dil-app/actions/workflows/CI-tests.yml)
 
+[![Python versions](https://img.shields.io/badge/python-3.8%20%7C%203.9%20%7C%203.10-blue)]
+
 Application du dictionnaire des imprimeurs lithographes du XIXe siècle en France (site, base de données, administration, API).
 
 
