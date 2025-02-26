@@ -9,7 +9,7 @@ from api.main import app
 
 os.environ["ENV"] = "test"
 
-SQLALCHEMY_DATABASE_TEST_URL = "sqlite://"
+SQLALCHEMY_DATABASE_TEST_URL = "sqlite:///:memory:"
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_TEST_URL,
