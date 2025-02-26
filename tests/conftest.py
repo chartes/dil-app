@@ -10,12 +10,13 @@ def session():
     engine = create_engine("sqlite:///:memory:",
                   echo=False,
                   connect_args={'check_same_thread': False})
-    BASE.metadata.create_all(engine)
-    #BASE.metadata.drop_all(engine)
     connection = engine.connect()
     transaction = connection.begin()
     Session = sessionmaker(bind=connection, autoflush=False, autocommit=False)
     session = Session()
+    BASE.metadata.create_all(engine)
+    session.commit()
+    # BASE.metadata.drop_all(engine)
 
     try:
         yield session
