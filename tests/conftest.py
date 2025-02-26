@@ -1,36 +1,20 @@
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import StaticPool
 from api.database import BASE
 
-
-
-"""
-@pytest.fixture()
+@pytest.fixture(scope="module")
 def engine():
-    return create_engine("sqlite:///:memory:",
-                         connect_args={"check_same_thread": False}
-                         )
+    return create_engine("sqlite:///:memory:")
 
-
-@pytest.fixture()
+@pytest.fixture(scope="module")
 def tables(engine):
     BASE.metadata.create_all(engine)
     yield
     BASE.metadata.drop_all(engine)
-"""
 
 @pytest.fixture(scope="function")
-def session():
-    engine = create_engine("sqlite:///:memory:",
-                           connect_args={"check_same_thread": False},
-                           poolclass=StaticPool,
-                           echo=True
-                           )
-
-    # TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    BASE.metadata.create_all(bind=engine)
+def session(engine, tables):
     connection = engine.connect()
     transaction = connection.begin()
     Session = sessionmaker(bind=connection, autoflush=False, autocommit=False)
