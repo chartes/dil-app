@@ -10,7 +10,8 @@ import dotenv
 import os
 import pathlib
 
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings
+from pydantic import ConfigDict, BaseModel
 
 # Set the base directory for the project
 BASE_DIR = pathlib.Path(__file__).parent.parent
@@ -20,7 +21,6 @@ mode = os.environ.get("ENV", "dev")
 env_file = BASE_DIR / f".{mode}.env"
 print(env_file)
 dotenv.load_dotenv(env_file)
-
 
 class Settings(BaseSettings):
     # ~ General settings ~
@@ -61,9 +61,11 @@ class Settings(BaseSettings):
     IMAGE_STORE: str = str(os.environ.get("IMAGE_STORE", "static/images_store"))
 
     # Class configuration
-    class Config:
-        env_file = env_file
-        env_file_encoding = "utf-8"
+    model_config = ConfigDict(env_file=env_file,
+                              env_file_encoding="utf-8")
+    #class Config:
+    #    env_file = env_file
+    #    env_file_encoding = "utf-8"
 
 
 settings = Settings()
