@@ -16,22 +16,21 @@ from tests.conftest import local_session, BASE
 
 def test_create_person():
     """Test: Create a new person"""
-    with local_session as session:
-        # check tables available in the database
-        print(BASE.metadata.tables)
-        # Add a basic new person
-        person = Person(
-            lastname="Dupont",
-            firstnames="Jean",
-            birth_date="1970-01-01",
-            personal_information="Information personnelle",
-        )
-        session.add(person)
-        session.commit()
-        retrieved_person = session.query(Person).filter_by(lastname="Dupont").first()
-        assert retrieved_person is not None
-        assert retrieved_person.lastname == "Dupont"
-        assert retrieved_person.firstnames == "Jean"
+    session = local_session
+    print(BASE.metadata.tables)
+    # Add a basic new person
+    person = Person(
+        lastname="Dupont",
+        firstnames="Jean",
+        birth_date="1970-01-01",
+        personal_information="Information personnelle",
+    )
+    session.add(person)
+    session.commit()
+    retrieved_person = session.query(Person).filter_by(lastname="Dupont").first()
+    assert retrieved_person is not None
+    assert retrieved_person.lastname == "Dupont"
+    assert retrieved_person.firstnames == "Jean"
 
 """
 def test_create_person_integrity_error_lastname(session):
