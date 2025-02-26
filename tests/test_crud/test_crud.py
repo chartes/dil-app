@@ -15,7 +15,7 @@ from api.models.models import (
 
 from api.database import BASE
 
-def test_create_person(session):
+def test_create_person(db_session):
     """Test: Create a new person"""
     print("**** first", BASE.metadata.tables)
     # Add a basic new person
@@ -25,11 +25,11 @@ def test_create_person(session):
         birth_date="1970-01-01",
         personal_information="Information personnelle",
     )
-    session.add(person)
+    db_session.add(person)
     print("**** second", BASE.metadata.tables)
-    session.commit()
+    db_session.commit()
     print("**** third", BASE.metadata.tables)
-    retrieved_person = session.query(Person).filter_by(lastname="Dupont").first()
+    retrieved_person = db_session.query(Person).filter_by(lastname="Dupont").first()
     print("**** four", BASE.metadata.tables)
     assert retrieved_person is not None
     assert retrieved_person.lastname == "Dupont"

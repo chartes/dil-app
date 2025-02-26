@@ -14,57 +14,6 @@ from sqlalchemy.orm import sessionmaker
 from api.database import (BASE, get_db)
 from api.main import (app)
 from api.config import BASE_DIR, settings
-
-
-# set up ENV var for testing
-os.environ["ENV"] = "test"
-
-WHOOSH_INDEX_DIR = os.path.join(BASE_DIR, settings.WHOOSH_INDEX_DIR)
-SQLALCHEMY_DATABASE_TEST_URL = "sqlite://"
-
-engine = create_engine(
-    SQLALCHEMY_DATABASE_TEST_URL,
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
-    echo=True,
-)
-
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-BASE.metadata.drop_all(bind=engine)
-BASE.metadata.create_all(bind=engine)  # Création des tables
-BASE.metadata.reflect(bind=engine)  # 🔍 Vérifie les tables existantes
-
-
-def override_get_db():
-    """Override the get_db() dependency with a test database."""
-    try:
-        db = TestingSessionLocal()
-        yield db
-    except:
-        db.rollback()
-    finally:
-        db.close()
-
-
-app.dependency_overrides[get_db] = override_get_db
-
-
-@pytest.fixture(scope="function")
-def session():
-    """Fixture qui fournit une session de test isolée pour chaque test."""
-    db = TestingSessionLocal()  # Crée une session propre
-    try:
-        yield db
-        db.commit()  # Commit les changements après le test
-    except:
-        db.rollback()  # Annule en cas d'erreur
-    finally:
-        db.close()  # Ferme la session après le test
-
-
-client = TestClient(app)
-
 from api.models.models import (
     User,
     Person,
@@ -77,3 +26,47 @@ from api.models.models import (
     PersonHasAddresses,
     PatentHasImages
 )
+
+# set up ENV var for testing
+os.environ["ENV"] = "test"
+
+WHOOSH_INDEX_DIR = os.path.join(BASE_DIR, settings.WHOOSH_INDEX_DIR)
+SQLALCHEMY_DATABASE_TEST_URL = "sqlite:///./test.db"
+
+engine = create_engine(
+    SQLALCHEMY_DATABASE_TEST_URL,
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool,
+)
+
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+BASE.metadata.create_all(bind=engine)  # Création des tables
+
+
+@pytest.fixture(scope="function")
+def db_session():
+    """Create a new database session with a rollback at the end of the test."""
+    connection = engine.connect()
+    transaction = connection.begin()
+    session = TestingSessionLocal(bind=connection)
+    yield session
+    session.close()
+    transaction.rollback()
+    connection.close()
+
+
+
+@pytest.fixture(scope="function")
+def session_test(db_session):
+    """Create a test client that uses the override_get_db fixture to return a session."""
+
+    def override_get_db():
+        try:
+            yield db_session
+        finally:
+            db_session.close()
+
+    app.dependency_overrides[get_db] = override_get_db
+    with TestClient(app) as test_client:
+        yield test_client
