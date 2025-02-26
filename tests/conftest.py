@@ -10,8 +10,8 @@ def engine():
 @pytest.fixture(scope="module")
 def tables(engine):
     BASE.metadata.create_all(engine)
-    yield
-    BASE.metadata.drop_all(engine)
+    #yield
+    #BASE.metadata.drop_all(engine)
 
 @pytest.fixture(scope="function")
 def session(engine, tables):
