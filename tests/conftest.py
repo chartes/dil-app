@@ -14,6 +14,18 @@ from sqlalchemy.orm import sessionmaker
 from api.database import (BASE, get_db)
 from api.main import (app)
 from api.config import BASE_DIR, settings
+from api.models.models import (
+    User,
+    Person,
+    Patent,
+    City,
+    Address,
+    Image,
+    PatentHasRelations,
+    PatentHasAddresses,
+    PersonHasAddresses,
+    PatentHasImages
+)
 
 # set up ENV var for testing
 os.environ["ENV"] = "test"
@@ -31,7 +43,8 @@ engine = create_engine(
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 BASE.metadata.drop_all(bind=engine)
-BASE.metadata.create_all(bind=engine)
+BASE.metadata.create_all(bind=engine)  # Création des tables
+BASE.metadata.reflect(bind=engine)  # 🔍 Vérifie les tables existantes
 
 
 def override_get_db():
@@ -46,7 +59,6 @@ def override_get_db():
 app.dependency_overrides[get_db] = override_get_db
 
 
-
 @pytest.fixture(scope="function")
 def session():
     """Fixture qui fournit une session de test isolée pour chaque test."""
@@ -59,5 +71,6 @@ def session():
         raise
     finally:
         db.close()  # Ferme la session après le test
+
 
 client = TestClient(app)
