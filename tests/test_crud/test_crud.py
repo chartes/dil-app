@@ -17,7 +17,7 @@ from tests.conftest import local_session, BASE
 def test_create_person():
     """Test: Create a new person"""
     session = local_session
-    print(BASE.metadata.tables)
+    print("**** first", BASE.metadata.tables)
     # Add a basic new person
     person = Person(
         lastname="Dupont",
@@ -26,8 +26,11 @@ def test_create_person():
         personal_information="Information personnelle",
     )
     session.add(person)
+    print("**** second", BASE.metadata.tables)
     session.commit()
+    print("**** third", BASE.metadata.tables)
     retrieved_person = session.query(Person).filter_by(lastname="Dupont").first()
+    print("**** four", BASE.metadata.tables)
     assert retrieved_person is not None
     assert retrieved_person.lastname == "Dupont"
     assert retrieved_person.firstnames == "Jean"
