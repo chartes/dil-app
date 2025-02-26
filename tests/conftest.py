@@ -4,6 +4,8 @@ File that pytest automatically looks for in any directory.
 """
 import os
 
+import pytest
+
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
@@ -44,5 +46,18 @@ def override_get_db():
 app.dependency_overrides[get_db] = override_get_db
 
 
-local_session = TestingSessionLocal()
+
+@pytest.fixture(scope="function")
+def session():
+    """Fixture qui fournit une session de test isolée pour chaque test."""
+    db = TestingSessionLocal()  # Crée une session propre
+    try:
+        yield db
+        db.commit()  # Commit les changements après le test
+    except Exception:
+        db.rollback()  # Annule en cas d'erreur
+        raise
+    finally:
+        db.close()  # Ferme la session après le test
+
 client = TestClient(app)
