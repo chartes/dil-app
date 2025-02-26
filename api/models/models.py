@@ -139,19 +139,6 @@ class AbstractBase(BASE):
 
         return extension
 
-    @staticmethod
-    def validate_pinned_image(session, target):
-        """Vérifie qu'un brevet ne possède pas déjà une image épinglée."""
-        if isinstance(target, PatentHasImages) and target.is_pinned:
-            if session.query(PatentHasImages).filter_by(patent_id=target.patent_id, is_pinned=True).count() > 0:
-                # set the last pinned image to False
-                last_pinned_image = session.query(PatentHasImages).filter_by(patent_id=target.patent_id,
-                                                                             is_pinned=True).first()
-                last_pinned_image.is_pinned = False
-                session.add(last_pinned_image)
-                session.commit()
-                # raise ValueError(f"Le brevet {target.patent_id} possède déjà une image épinglée.")
-
     @classmethod
     def correct_markup(cls, target):
         """Corrige les balises HTML pour les champs textuels des objets Person."""
@@ -185,6 +172,18 @@ class AbstractBase(BASE):
                           os.path.join(settings.IMAGE_STORE, target.img_name))
 
     @classmethod
+    def check_img_patent_relations_pinned(cls, target, session):
+        """S'assure qu'une seule image d'un brevet est `pinned`."""
+        if isinstance(target, PatentHasImages):
+            if target.is_pinned:  # Si la nouvelle relation est `pinned`
+                # Récupérer toutes les autres relations liées au même brevet
+                session.query(PatentHasImages).filter(
+                PatentHasImages.patent_id == target.patent_id,
+                PatentHasImages.id != target.id  # Exclure l'image actuelle
+            ).update({"is_pinned": False})  # Désactiver le flag `pinned`
+                session.commit()
+
+    @classmethod
     def destroy_img(cls, target):
         """Détruit l'image associée à l'objet."""
         if isinstance(target, Image):
@@ -195,15 +194,15 @@ class AbstractBase(BASE):
 
 @event.listens_for(AbstractBase, "before_insert", propagate=True)
 @event.listens_for(AbstractBase, "before_update", propagate=True)
-def before_insert_or_update(mapper, connection, target):
+def before_insert_or_update(_, connection, target):
     with sessionmaker(bind=connection)() as session:
         target.correct_markup(target)
         target.check_person_exists(session, target)
-        # target.validate_pinned_image(session, target)
         target.set_img_name(target)
+        target.check_img_patent_relations_pinned(target, session)
 
 @event.listens_for(AbstractBase, "after_delete", propagate=True)
-def after_delete(mapper, connection, target):
+def after_delete(_, connection, target):
     with sessionmaker(bind=connection)() as session:
         target.destroy_img(target)
 

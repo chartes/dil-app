@@ -70,9 +70,9 @@
   - validateurs
   - champs
 - [X] Ajouter logique de connexion (table User, login, logout, roles)
-- [ ] revoir les tests
+- [X] revoir les tests
 - [X] régler le not found http://127.0.0.1:8888/admin/ --> http://127.0.0.1:8888/dil/admin/ (icone menu)
-- [ ] Finalisation des pages : consulation des imprimeurs, liste, acceuil et documentation et sup des tables inutiles dans le front admin
+- [ ] Finalisation des pages : consulation des imprimeurs, liste, recherche, acceuil et documentation et sup des tables inutiles dans le front admin
 - [ ] Refactorisation (admin, modèles, vues, scripts, template)
 - [ ] fichiers de config dev et prod + scripts de création de la base ou migration de la base a vérifier
 - [ ] nettoyage global des fichiers

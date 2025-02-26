@@ -21,14 +21,14 @@ def test_patent_relation_constraints(session):
         person_id=person1.id,
         person_related_id=person2.id,
         patent_id=patent1.id,
-        type=PatentRelationType.SPONSOR
+        type="SPONSOR"
     )
     session.add(relation)
     session.commit()
 
     assert session.query(PatentHasRelations).count() == 1
     retrieved_relation = session.query(PatentHasRelations).first()
-    assert retrieved_relation.type == PatentRelationType.SPONSOR
+    assert retrieved_relation.type == "SPONSOR"
 
 def test_person_patent_relationship(session):
     """Verify that a person can have multiple patents associated with them."""

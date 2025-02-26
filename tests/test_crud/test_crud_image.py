@@ -42,24 +42,24 @@ def test_image_constraints(session):
     assert session.query(Image).filter(Image.id == image2.id).one() is not None
     assert session.query(PatentHasImages).filter(PatentHasImages.patent_id == patent.id).one() is not None
 
+    patent_image1_id = session.query(PatentHasImages).filter(PatentHasImages.image_id == image1.id).one().id
+    assert session.query(PatentHasImages).filter(PatentHasImages.id == patent_image1_id).one().is_pinned == True
 
 
     patent_image2 = PatentHasImages(patent_id=patent.id, image_id=image2.id, is_pinned=True)
     session.add(patent_image2)
     session.commit()
-
-
-    # check now if patent_image1 is not pinned and patent_image2 is pinned
-    patent_image1_id = session.query(PatentHasImages).filter(PatentHasImages.image_id == image1.id).one().id
     patent_image2_id = session.query(PatentHasImages).filter(PatentHasImages.image_id == image2.id).one().id
 
     assert session.query(PatentHasImages).filter(PatentHasImages.id == patent_image1_id).one().is_pinned == False
     assert session.query(PatentHasImages).filter(PatentHasImages.id == patent_image2_id).one().is_pinned == True
 
+
+    
     patent_image3 = PatentHasImages(patent_id=patent.id, image_id=image3.id, is_pinned=True)
     session.add(patent_image3)
     session.commit()
-
+    
     # check now if patent_image1, patent_image2 are not pinned and patent_image3 is pinned
     patent_image3_id = session.query(PatentHasImages).filter(PatentHasImages.image_id == image3.id).one().id
     assert session.query(PatentHasImages).filter(PatentHasImages.id == patent_image1_id).one().is_pinned == False

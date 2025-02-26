@@ -43,6 +43,7 @@ def test_if_each_unique_id_dil_is_created_for_tables(session):
     # add address
     address = Address(city_label="26, rue de l'ENC")
     check_id_dil_routine(session, address, "address")
+
     # add patent
     patent = Patent(person_id=person.id,
                     city_label="Paris",
@@ -52,11 +53,12 @@ def test_if_each_unique_id_dil_is_created_for_tables(session):
                     references="<p>test</p>",
                     comment="test .... lorem ipsum ...")
     check_id_dil_routine(session, patent, "patent")
+
     # add image
     image = Image(
         label="test_image",
         reference_url="http://test.com",
-        img_name="test.jpg",
+        img_name="",
         iiif_url="http://test.com/iiif",
     )
     check_id_dil_routine(session, image, "img")
