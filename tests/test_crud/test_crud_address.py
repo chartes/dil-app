@@ -3,8 +3,9 @@ from api.models.models import (City,
                             Person,
                             Patent,
                             PatentHasAddresses)
+from tests.conftest import local_session as session
 
-def test_patent_address_relationship(session):
+def test_patent_address_relationship():
     """Test that patents can be correctly linked to addresses."""
     city = City(label="Marseille", country_iso_code="FR")
     address = Address(label="Port", city_label="Marseille", city=city)

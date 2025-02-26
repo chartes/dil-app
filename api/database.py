@@ -46,5 +46,8 @@ def get_db() -> scoped_session:
     db = session
     try:
         yield db
+    except Exception:
+        db.rollback()
+        raise
     finally:
         db.close()
