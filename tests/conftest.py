@@ -7,7 +7,7 @@ from api.database import BASE
 
 @pytest.fixture(scope="function")
 def session():
-    engine = create_engine("sqlite:///:memory:",
+    engine = create_engine("sqlite:///tmp.test.db",
                   echo=False,
                   connect_args={'check_same_thread': False})
     connection = engine.connect()
