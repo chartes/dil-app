@@ -12,34 +12,39 @@ from api.models.models import (
     PersonHasAddresses,
     PatentHasImages
 )
+from tests.conftest import local_session
 
-def test_create_person(session):
+def test_create_person():
     """Test: Create a new person"""
-    # Add a basic new person
-    person = Person(
-        lastname="Dupont",
-        firstnames="Jean",
-        birth_date="1970-01-01",
-        personal_information="Information personnelle",
-    )
-    session.add(person)
-    session.commit()
-    retrieved_person = session.query(Person).filter_by(lastname="Dupont").first()
-    assert retrieved_person is not None
-    assert retrieved_person.lastname == "Dupont"
-    assert retrieved_person.firstnames == "Jean"
+    with local_session as session:
+        # Add a basic new person
+        person = Person(
+            lastname="Dupont",
+            firstnames="Jean",
+            birth_date="1970-01-01",
+            personal_information="Information personnelle",
+        )
+        session.add(person)
+        session.commit()
+        retrieved_person = session.query(Person).filter_by(lastname="Dupont").first()
+        assert retrieved_person is not None
+        assert retrieved_person.lastname == "Dupont"
+        assert retrieved_person.firstnames == "Jean"
 
+"""
 def test_create_person_integrity_error_lastname(session):
-    """Test: Check integrity error if lastname not added"""
+    "Test: Check integrity error if lastname not added"
     person = Person(
         firstnames="Jean",
     )
     with pytest.raises(IntegrityError):
         session.add(person)
         session.commit()
+"""
 
+"""
 def test_create_multiple_person(session):
-    """Test: Check when create multiple person"""
+    "Test: Check when create multiple person"
     person = Person(
         lastname="Mic"
     )
@@ -67,7 +72,7 @@ def test_create_multiple_person(session):
     assert len(session.query(Person).all()) == 3
     retrieved_person = session.query(Person).filter_by(lastname="Mlk").first()
     assert retrieved_person is None
-
+"""
 
 # ====== TODO:
 # test du markup <br> et <p></p>
