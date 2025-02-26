@@ -12,10 +12,10 @@ from api.models.models import (
     PersonHasAddresses,
     PatentHasImages
 )
-from tests.conftest import local_session as session
 
 
-def test_create_person():
+
+def test_create_person(session):
     """Test: Create a new person"""
     # Add a basic new person
     person = Person(
@@ -34,7 +34,7 @@ def test_create_person():
     session.rollback()
 
 
-def test_create_person_integrity_error_lastname():
+def test_create_person_integrity_error_lastname(session):
     """Test: Check integrity error if lastname not added"""
     person = Person(
         firstnames="Jean",
@@ -45,7 +45,7 @@ def test_create_person_integrity_error_lastname():
 
     session.rollback()
 
-def test_create_multiple_person():
+def test_create_multiple_person(session):
     """Test: Check when create multiple person"""
     person = Person(
         lastname="Mic"

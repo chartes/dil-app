@@ -15,15 +15,18 @@ engine = create_engine(
     SQLALCHEMY_DATABASE_TEST_URL,
     connect_args={"check_same_thread": False},
     poolclass=StaticPool,
-    echo=False,
+    echo=True,
 )
 
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-BASE.metadata.create_all(bind=engine)
+def init_db():
+    BASE.metadata.create_all(bind=engine)
+
+init_db()
 
 def override_get_db():
-    """Override the get_db() dependency with a test database."""
+    """Override la dépendance get_db avec une session de test."""
     try:
         db = TestingSessionLocal()
         yield db
@@ -33,9 +36,18 @@ def override_get_db():
     finally:
         db.close()
 
-
 app.dependency_overrides[get_db] = override_get_db
 
-local_session = TestingSessionLocal()
-
-client = TestClient(app)
+@pytest.fixture(scope="function")
+def session():
+    """Crée une session de test avec rollback après chaque test."""
+    init_db()  # 🔥 Ajoute ça pour être sûr que les tables existent avant chaque test
+    db = TestingSessionLocal()
+    try:
+        yield db
+        db.commit()
+    except:
+        db.rollback()
+        raise
+    finally:
+        db.close()
