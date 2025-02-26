@@ -52,6 +52,8 @@ def override_get_db():
     try:
         db = TestingSessionLocal()
         yield db
+    except:
+        db.rollback()
     finally:
         db.close()
 
@@ -66,9 +68,8 @@ def session():
     try:
         yield db
         db.commit()  # Commit les changements après le test
-    except Exception:
+    except:
         db.rollback()  # Annule en cas d'erreur
-        raise
     finally:
         db.close()  # Ferme la session après le test
 
