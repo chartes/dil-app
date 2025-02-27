@@ -5,6 +5,10 @@ from api.models.models import Person
 
 def test_create_person(session):
     """Test: Create a new person"""
+    # check if person table exists
+    assert session.query(Person).count() == 0
+
+
     # Add a basic new person
     person = Person(
         lastname="Dupont",

@@ -17,14 +17,14 @@
 
 {% block access_control %}
     <div class="navbar-text btn-group pull-right access-ressources">
-    <!--
-        <a href="/endp-person/api/docs" target="_blank"
+
+        <a href="/dil/api/docs" target="_blank"
            style="margin-right: 10px; text-decoration: none; vertical-align: 2px">
-            <img src="{# { url_for('static', filename='images/swagger-icon.png') }#}"
+            <img src="{{ url_for('static', filename='icons/swagger-icon.png') }}"
                  style="width: 24px; vertical-align: -8px; margin-right: -2px;">
             <span style="vertical-align: middle;">API</span>
         </a>
-        -->
+
         {% if current_user.is_authenticated %}
             <a id="btn-user-is-connected" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-expanded="false">
                 <i class="glyphicon glyphicon-user"></i>

@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from api.admin import flask_app
 from api.routes import api_router
 
-#from .api_meta import METADATA
+from api.api_meta import METADATA
 
 
 def create_app():
@@ -21,15 +21,15 @@ def create_app():
         """
     # TODO: add to settings
     _app = FastAPI(
-        #title=METADATA["title"],
-        #description=METADATA["description"],
-        #version=METADATA["version"],
-        #openapi_url=METADATA["openapi_url"],
-        #docs_url=METADATA["docs_url"],
-        #redoc_url=METADATA["redoc_url"],
-        #license_info=METADATA["license_info"],
-        #swagger_ui_parameters=METADATA["swagger_ui_parameters"],
-        #openapi_tags=METADATA["openapi_tags"],
+        title=METADATA["title"],
+        description=METADATA["description"],
+        version=METADATA["version"],
+        openapi_url=METADATA["openapi_url"],
+        docs_url=METADATA["docs_url"],
+        redoc_url=METADATA["redoc_url"],
+        license_info=METADATA["license_info"],
+        swagger_ui_parameters=METADATA["swagger_ui_parameters"],
+        openapi_tags=METADATA["openapi_tags"],
     )
     origins = [
         "*",
@@ -47,7 +47,7 @@ def create_app():
     # extensions
     # add_pagination(_app)
     # Add routes
-    _app.include_router(api_router, prefix="/dil/api")
+    #_app.include_router(api_router, prefix="/dil/api")
     # Mount admin interface (flask app) into FastAPI app
     # use threaded=True to avoid blocking the event loop
 

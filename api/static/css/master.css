@@ -24,7 +24,16 @@
 .navbar-brand {
     font-size: 23px;
     font-weight: bold;
+    color: black !important;
 
+}
+
+.leaflet-container .leaflet-control-attribution {
+    display: none;
+}
+
+.leaflet-control {
+    display: none;
 }
 
 #admin-navbar-collapse li a {

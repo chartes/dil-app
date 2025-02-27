@@ -1,24 +1,25 @@
 """
+views.py
+
+Model views for the admin interface.
 """
 
-from werkzeug.utils import secure_filename
 from flask import (url_for,
                    jsonify,
                    request,
                    redirect,
                    flash)
 from flask_admin.contrib.sqla import ModelView
-from flask_admin.contrib.sqla.ajax import QueryAjaxModelLoader
-from flask_admin.model.ajax import AjaxModelLoader, DEFAULT_PAGE_SIZE
-from flask_admin import expose, AdminIndexView
+from flask_admin import (expose,
+                         AdminIndexView,
+                         BaseView)
 from flask_admin.form import ImageUploadField
 from flask_login import (current_user,
                          logout_user,
                          login_user)
 
-from wtforms import Form
-from wtforms.fields import StringField, FieldList, PasswordField
-from wtforms import TextAreaField, BooleanField
+from wtforms.fields import StringField, PasswordField
+from wtforms import BooleanField
 from wtforms.widgets import TextArea
 
 from markupsafe import Markup
@@ -35,76 +36,27 @@ from ..models.models import *
 from ..crud import get_user
 from .forms import LoginForm
 from .widget import QuillWidget
+
 from .formaters import (_format_label_form_with_tooltip,
-                        _format_link_add_model)
+                        _format_link_add_model,
+                        _format_href)
 from .model_handler import PrinterModelChangeHandler
 from api.config import settings
+
+from api.admin.views_dir.utils import *
+from api.admin.views_dir.loaders import *
 
 EDIT_ENDPOINTS = ["person", "city", "address", "image"]
 can_edit_roles = ['ADMIN', 'EDITOR', 'CONTRIBUTOR']
 can_delete_roles = ['ADMIN', 'EDITOR']
 can_create_roles = ['ADMIN', 'EDITOR', 'CONTRIBUTOR']
 
-def prefix_name(obj, file_data):
-    parts = os.path.splitext(file_data.filename)
-    return secure_filename('file-%s%s' % parts)
+version_metadata = {
+    "created_at": "Date de création",
+    "updated_at": "Date de modification",
+    "last_editor": "Dernier éditeur"
+}
 
-class CustomForm(Form):
-    dynamic_printers = FieldList(StringField('Imprimeur'), min_entries=1)
-    dynamic_relation_types = FieldList(StringField('Type de relation'), min_entries=1)
-
-
-class CKTextAreaWidget(TextArea):
-    def __call__(self, field, **kwargs):
-        if kwargs.get('class'):
-            kwargs['class'] += ' ckeditor'
-        else:
-            kwargs.setdefault('class', 'ckeditor')
-        return super(CKTextAreaWidget, self).__call__(field, **kwargs)
-
-
-class CKTextAreaField(TextAreaField):
-    widget = CKTextAreaWidget()
-
-
-class CityAjaxModelLoader(AjaxModelLoader):
-    def __init__(self, name, **options):
-        super(CityAjaxModelLoader, self).__init__(name, options)
-
-    def format(self, model):
-        if model is None:
-            return None
-        if isinstance(model, int):
-            # find city by primary key
-            model = session.query(City).get(model)
-        return (model.id, repr(model))
-
-    def get_one(self, pk):
-        return session.query(City).get(pk)
-
-    def get_list(self, query, offset=0, limit=DEFAULT_PAGE_SIZE):
-        search_term = query.strip().lower()
-        return session.query(City).filter(City.label.ilike(f"%{search_term}%")).offset(offset).limit(limit).all()
-
-
-class ImageAjaxModelLoader(QueryAjaxModelLoader):
-    def format(self, model):
-        if model is None:
-            return None
-        if isinstance(model, PatentHasImages):
-            model = session.query(Image).filter(Image.id == model.image_id).first()
-        return (model.id,
-                repr(model))
-
-    def get_list(self, query, offset=0, limit=DEFAULT_PAGE_SIZE):
-        search_term = query.strip().lower()
-        return (
-            session.query(Image)
-            .filter(Image.label.ilike(f"%{search_term}%"))
-            .offset(offset)
-            .limit(limit)
-            .all()
-        )
 
 class AdminView(AdminIndexView):
     """Custom view for administration."""
@@ -140,6 +92,8 @@ class GlobalModelView(ModelView):
     can_view_details = True
     can_set_page_size = False
     action_disallowed_list = ['delete']
+    list_template = 'admin/list.html'
+
     # list_template = 'admin/list.html'
     def is_accessible(self):
         if current_user.is_authenticated:
@@ -150,7 +104,6 @@ class GlobalModelView(ModelView):
             return True
         else:
             return False
-
 
 
 class UserView(ModelView):
@@ -171,6 +124,7 @@ class UserView(ModelView):
         "created_at": "Créé le",
         "updated_at": "Modifié le"
     }
+    column_searchable_list = ["username", "email"]
     # hide the password hash in edit/create form
     form_excluded_columns = ["password_hash",
                              "created_at",
@@ -201,8 +155,8 @@ class UserView(ModelView):
                 print(current_user.id)
                 if current_user.id != 1:
                     flash("Vous ne pouvez pas modifier le mot de passe de ce compte administrateur.", "danger")
-                    #print("passe pas")
-                    #return False
+                    # print("passe pas")
+                    # return False
                 else:
 
                     model.set_password(form.new_password.data)
@@ -217,7 +171,6 @@ class UserView(ModelView):
             model.set_password(form.new_password.data)
             session.commit()
             return model
-
 
     def delete_model(self, model):
         if model.id == current_user.id:
@@ -239,14 +192,14 @@ class UserView(ModelView):
             return current_user.role in access_view
         else:
             return False
+
+
 class PrinterView(GlobalModelView):
     """View for the person model."""
     edit_template = 'admin/edit.printer.html'
     create_template = 'admin/edit.printer.html'
+    list_template = "admin/list.printer.html"
     column_auto_select_related = True
-    # list_template = 'admin/person_list.html'
-    # details_template = 'admin/person_details.html'
-    # Define column that will be displayed in list view
 
     column_list = ["id",
                    '_id_dil',
@@ -257,10 +210,7 @@ class PrinterView(GlobalModelView):
                    "birth_city_id",
                    "personal_information",
                    "professional_information",
-                   "comment",
-                   "created_at",
-                   "updated_at",
-                   "last_editor"]
+                   "comment"] + list(version_metadata.keys())
 
     # Overrides column labels
     column_labels = {"id": "ID",
@@ -281,10 +231,16 @@ class PrinterView(GlobalModelView):
                      'city': "Ville de naissance (référentiel)",
                      "date_start": "Début du brevet",
                      "date_end": "Fin du brevet",
+                     **version_metadata
                      }
     column_searchable_list = ["lastname",
                               "firstnames",
-                              "birth_city_label"]
+                              "birth_city_label",
+                              "personal_information",
+                              "professional_information"]
+    column_filters = ["lastname",
+                      "firstnames",
+                      "birth_city_label"]
 
     column_formatters = {
         'birth_city_id': lambda v, c, m, p: (
@@ -307,9 +263,9 @@ class PrinterView(GlobalModelView):
             "form_args": {
                 "address_persons": {
                     "label": _format_label_form_with_tooltip(label="Adresse",
-                                                                comment="Adresses personnelles de l'imprimeur."),
+                                                             comment="Adresses personnelles de l'imprimeur."),
                     "description": _format_link_add_model(description="une nouvelle adresse",
-                                                            href='/dil/admin/address/new/?url=/dil/admin/address/')
+                                                          href='/dil/admin/address/new/?url=/dil/admin/address/')
                 },
                 "date_occupation": {
                     "validators": [is_valid_date],
@@ -324,8 +280,12 @@ class PrinterView(GlobalModelView):
                 }
             },
             "form_ajax_refs": {
-                "address_persons": QueryAjaxModelLoader(
-                    "address_persons", session, Address, fields=["label"], page_size=10,
+                "address_persons": GenericAjaxModelLoader(
+                    "address_persons",
+                    session,
+                    Address,
+                    search_field="label",
+                    page_size=10,
                     placeholder="Commencer la saisie puis sélectionner une adresse...",
                     allow_blank=True
                 )
@@ -372,18 +332,30 @@ class PrinterView(GlobalModelView):
                 "relation_container": {"onchange": "makeRelation(this)", "class": "relation-container-attach"}
             },
             "form_ajax_refs": {
-                "city": QueryAjaxModelLoader(
-                    "city", session, City, fields=["label"], page_size=10,
+                "city": GenericAjaxModelLoader(
+                    "city",
+                    session,
+                    City,
+                    search_field="label",
+                    page_size=10,
                     placeholder="Commencer la saisie puis sélectionner une ville...",
                     allow_blank=True
                 ),
-                "addresses": QueryAjaxModelLoader(
-                    "addresses", session, Address, fields=["label"], page_size=10,
+                "addresses": GenericAjaxModelLoader(
+                    "addresses",
+                    session,
+                    Address,
+                    search_field="label",
+                    page_size=10,
                     placeholder="Commencer la saisie puis sélectionner une ou plusieurs adresses...",
                     allow_blank=True
                 ),
-                "images": ImageAjaxModelLoader(
-                    "images", session, Image, fields=["label"], page_size=10,
+                "images": GenericAjaxModelLoader(
+                    "images",
+                    session,
+                    Image,
+                    search_field="label",
+                    page_size=10,
                     placeholder="Commencer la saisie puis sélectionner une ou plusieurs images...",
                     allow_blank=True,
                 )
@@ -422,9 +394,9 @@ class PrinterView(GlobalModelView):
                 },
                 "city": {
                     "label": _format_label_form_with_tooltip(label="Ville (référentiel)",
-                                                                comment="Ville du brevet dans le référentiel."),
+                                                             comment="Ville du brevet dans le référentiel."),
                     "description": _format_link_add_model(description="une nouvelle ville",
-                                                            href='/dil/admin/city/new/?url=/dil/admin/city/')
+                                                          href='/dil/admin/city/new/?url=/dil/admin/city/')
                 },
                 "addresses": {
                     "label": _format_label_form_with_tooltip(label="Adresses professionnelles",
@@ -434,14 +406,12 @@ class PrinterView(GlobalModelView):
                 },
                 "images": {
                     "label": _format_label_form_with_tooltip(label="Images",
-                                                                comment="Images liées au brevet."),
+                                                             comment="Images liées au brevet."),
                     "description": _format_link_add_model(description="une nouvelle image",
-                                                            href='/dil/admin/image/new/?url=/dil/admin/image/')
+                                                          href='/dil/admin/image/new/?url=/dil/admin/image/')
                 }
 
-
             },
-
 
         }),
 
@@ -469,10 +439,15 @@ class PrinterView(GlobalModelView):
     }
 
     form_ajax_refs = {
-        'city': QueryAjaxModelLoader(
-            'city', session, City, fields=['label'], page_size=10,
+        'city': GenericAjaxModelLoader(
+            'city',
+            session,
+            City,
+            search_field="label",
+            page_size=10,
             placeholder='Commencer la saisie puis sélectionner une ville...',
             allow_blank=True
+
         )
     }
 
@@ -535,7 +510,6 @@ class PrinterView(GlobalModelView):
         model.last_editor = current_user.username
         session.commit()
 
-
     def get_list_columns(self):
         """Return list of columns to display in list view."""
         return super(PrinterView, self).get_list_columns()
@@ -571,7 +545,8 @@ class PrinterView(GlobalModelView):
                 'id': image.id,
                 'label': image.label,
                 'img_name': image.img_name,
-                'img_url': url_for("static", filename=f"images_store/{img_name}") if (img_name != "unknown.jpg") or (image.iiif_url is not None) else url_for("static", filename="icons/preview-na.png"),
+                'img_url': url_for("static", filename=f"images_store/{img_name}") if (img_name != "unknown.jpg") or (
+                        image.iiif_url is not None) else url_for("static", filename="icons/preview-na.png"),
                 'img_iiif_url': image.iiif_url,
                 'is_pinned': is_pinned,
                 'fallback_url': url_for("static", filename="icons/preview-na.png"),
@@ -641,18 +616,15 @@ class PrinterView(GlobalModelView):
 
 class ImageView(GlobalModelView):
     """View for the image model."""
-    edit_template = 'admin/edit.image.html'
-    create_template = 'admin/edit.image.html'
-    column_list = [
-        "id",
-        "_id_dil",
-        "label",
-        "img_name",
-        "reference_url",
-        "iiif_url",
-        "added_at",
-        "added_by",
-    ]
+    edit_template = "admin/edit.image.html"
+    create_template = "admin/edit.image.html"
+    column_list = ["id",
+                   "_id_dil",
+                   "label",
+                   "img_name",
+                   "reference_url",
+                   "iiif_url",
+                   ] + list(version_metadata.keys())
     column_labels = {
         "id": "ID",
         "_id_dil": "ID DIL",
@@ -660,23 +632,22 @@ class ImageView(GlobalModelView):
         "img_name": "Image",
         "reference_url": "URL de référence (opt.)",
         "iiif_url": "URL IIIF (opt.)",
-        "added_at": "Ajouté le",
-        "added_by": "Ajouté par",
-    }
+        **version_metadata}
+
+    column_searchable_list = ["label"]
+
     column_formatters = {
         'img_name': lambda v, c, m, p: Markup(
             f'<img src="{url_for("static", filename=f"images_store/{m.img_name}")}" '
             'style="max-width: 200px; max-height: 200px;">'
             if m.img_name != 'unknown.jpg' else f'<img src="{m.iiif_url}" style="max-width: 200px; max-height: 200px;">'
         ),
-        'reference_url': lambda v, c, m, p: Markup(
-            f'<a href="{m.reference_url}" target="_blank">{m.reference_url}</a>'
-            if m.reference_url else '<p>Pas d\'URL de référence</p>'
-        ),
-        'iiif_url': lambda v, c, m, p: Markup(
-            f'<a href="{m.iiif_url}" target="_blank">{m.iiif_url}</a>'
-            if m.iiif_url else '<p>Pas d\'URL IIIF</p>'
-        ),
+        #'reference_url': lambda v, c, m, p: Markup(
+        #    f'<a href="{m.reference_url}" target="_blank">{m.reference_url}</a>'
+        #    if m.reference_url else '<p>Pas d\'URL de référence</p>'
+        #),
+        'reference_url': lambda v, c, m, p: _format_href(prefix_url="", label=m.reference_url) if m.reference_url !='unknown_url' else 'Inconnue',
+        'iiif_url': lambda v, c, m, p: _format_href(prefix_url="", label=m.iiif_url) if m.iiif_url else 'Inconnue'
     }
 
     form_columns = [
@@ -708,7 +679,6 @@ class ImageView(GlobalModelView):
         }
     }
 
-
     # Alternative way to contribute field is to override it completely.
     # In this case, Flask-Admin won't attempt to merge various parameters for the field.
     form_extra_fields = {
@@ -732,19 +702,15 @@ class ImageView(GlobalModelView):
         session.commit()
 
 
-
 class PatentHasRelationsView(GlobalModelView):
     column_list = [
-        "id",
-        "_id_dil",
-        "person_id",
-        "person_related_id",
-        "patent_id",
-        "type",
-        "created_at",
-        "updated_at",
-        "last_editor"
-    ]
+                      "id",
+                      "_id_dil",
+                      "person_id",
+                      "person_related_id",
+                      "patent_id",
+                      "type",
+                  ] + list(version_metadata.keys())
     column_labels = {
         "id": "ID",
         "_id_dil": "ID DIL",
@@ -752,7 +718,7 @@ class PatentHasRelationsView(GlobalModelView):
         "person_related_id": "Imprimeur lié",
         "patent_id": "Brevet",
         "type": "Type de relation",
-        "created_at": "Créé le",
+        **version_metadata
     }
 
     column_formatters = {
@@ -779,26 +745,22 @@ class PatentHasRelationsView(GlobalModelView):
 
 
 class AddressView(GlobalModelView):
-    column_list = [
-        "id",
-        "_id_dil",
-        "label",
-        "city_label",
-        "city_id",
-        "created_at",
-        "updated_at",
-        "last_editor"
-    ]
+    column_list = ["id",
+                   "_id_dil",
+                   "label",
+                   "city_label",
+                   "city_id",
+                   ] + list(version_metadata.keys())
     column_labels = {
         "id": "ID",
         "_id_dil": "ID DIL",
         "label": "Libellé",
         "city_label": "Ville",
         "city_id": "Ville (référentiel)",
-        "created_at": "Créé le",
-        "updated_at": "Modifié le",
-        "last_editor": "Dernier éditeur"
+        **version_metadata
     }
+
+    column_searchable_list = ["label", "city_label"]
 
     column_formatters = {
         'city_id': lambda v, c, m, p: (
@@ -809,20 +771,12 @@ class AddressView(GlobalModelView):
         )
     }
 
-    """
-    label = Column(String, nullable=False, unique=False, default='inconnue')
-    city_label = Column(String, nullable=False, unique=False, default=None)
-    city_id = Column(Integer, ForeignKey('cities.id'), nullable=True, unique=False, default=None)
-    """
-
     form_columns = [
         "not_french_address",
         "label",
         "city_label",
         "city"
     ]
-
-
 
     form_args = {
         "label": {
@@ -849,8 +803,12 @@ class AddressView(GlobalModelView):
     }
 
     form_ajax_refs = {
-        'city': QueryAjaxModelLoader(
-            'city', session, City, fields=['label'], page_size=10,
+        'city': GenericAjaxModelLoader(
+            'city',
+            session,
+            City,
+            search_field='label',
+            page_size=10,
             placeholder='Commencer la saisie puis sélectionner une ville...',
             allow_blank=True
         )
@@ -869,55 +827,43 @@ class AddressView(GlobalModelView):
         session.commit()
 
 
+class CityView(GlobalModelView):
+    column_list = ["id",
+                   "_id_dil",
+                   "label",
+                   "country_iso_code",
+                   "long_lat",
+                   "insee_fr_code",
+                   "insee_fr_department_code",
+                   "insee_fr_department_label",
+                   "geoname_id",
+                   "wikidata_item_id",
+                   "dicotopo_item_id",
+                   "databnf_ark",
+                   "viaf_id",
+                   "siaf_id",
+                   ] + list(version_metadata.keys())
 
-class PatentView(GlobalModelView):
-    column_list = [
-        "id",
-        "_id_dil",
-        "drupal_nid",
-        "person_id",
-        "date_start",
-        "date_end",
-        "references",
-        "comment",
-        "city_label",
-        "city_id",
-        "created_at",
-        "updated_at",
-        "last_editor"
-    ]
     column_labels = {
         "id": "ID",
         "_id_dil": "ID DIL",
-        "drupal_nid": "ancien ID Drupal",
-        "person_id": "Imprimeur concerné",
-        "date_start": "Date de début",
-        "date_end": "Date de fin",
-        "references": "Bibliographie / Sources",
-        "comment": "Remarques",
-        "city_label": "Ville du brevet",
-        "city_id": "Ville du brevet (référentiel)",
-        "created_at": "Créé le",
-        "updated_at": "Modifié le",
-        "last_editor": "Dernier éditeur"
+        "label": "Libellé",
+        "country_iso_code": "Code ISO du pays",
+        "long_lat": "Coordonnées géographiques (longitude, latitude)",
+        "insee_fr_code": "Code INSEE",
+        "insee_fr_department_code": "Code du département (INSEE)",
+        "insee_fr_department_label": "Libellé du département (INSEE)",
+        "geoname_id": "Identifiant Geonames",
+        "wikidata_item_id": "Identifiant Wikidata",
+        "dicotopo_item_id": "Identifiant Dicotopo (ENC)",
+        "databnf_ark": "ARK BNF",
+        "viaf_id": "Identifiant VIAF",
+        "siaf_id": "Identifiant SIAF",
+        **version_metadata
     }
 
-    column_formatters = {
-        'city_id': lambda v, c, m, p: (
-            Markup(
-                f'<a href="{url_for("city.details_view", id=m.city_id)}">'
-                f'{m.city}</a>'
-            ) if m.city_label else "(Aucune ville)"),
-        'person_id': lambda v, c, m, p: (
-            Markup(
-                f'<a href="{url_for("person.details_view", id=m.person_id)}">'
-                f'{m.person_id}</a>'
-            ) if m.person else "(Aucun imprimeur)"),
-    }
-
-
-class CityView(GlobalModelView):
     column_searchable_list = ["label"]
+
     # Transformer la colonne `long_lat` pour afficher une carte
     column_formatters = {
         'long_lat': lambda v, c, m, p: (
@@ -944,7 +890,39 @@ class CityView(GlobalModelView):
                     }}
                 }});
             </script>
-        ''') if m.long_lat else "(Pas de coordonnées disponibles)")
+        ''') if m.long_lat else "(Pas de coordonnées disponibles)"),
+        "insee_fr_code": lambda v, c, m, p: _format_href(
+            label=m.insee_fr_code,
+            prefix_url="https://www.insee.fr/fr/metadonnees/geographie/commune/"
+        ),
+        "insee_fr_department_code": lambda v, c, m, p: _format_href(
+            label=m.insee_fr_department_code.replace("DEP_", ""),
+            prefix_url="https://www.insee.fr/fr/metadonnees/geographie/departement/"
+        ),
+        "geoname_id": lambda v, c, m, p: _format_href(
+            label=m.geoname_id,
+            prefix_url="https://www.geonames.org/"
+        ),
+        "wikidata_item_id": lambda v, c, m, p: _format_href(
+            label=m.wikidata_item_id,
+            prefix_url="https://www.wikidata.org/wiki/"
+        ),
+        "dicotopo_item_id": lambda v, c, m, p: _format_href(
+            label=m.dicotopo_item_id,
+            prefix_url="https://dicotopo.cths.fr/places/"
+        ),
+        "databnf_ark": lambda v, c, m, p: _format_href(
+            label=m.databnf_ark,
+            prefix_url="https://data.bnf.fr/fr/"
+        ),
+        "viaf_id": lambda v, c, m, p: _format_href(
+            label=m.viaf_id,
+            prefix_url="https://viaf.org/fr/viaf/"
+        ),
+        "siaf_id": lambda v, c, m, p: _format_href(
+            label=m.siaf_id,
+            prefix_url="https://francearchives.gouv.fr/fr/location/"
+        )
     }
 
     form_columns = [
@@ -1035,119 +1013,26 @@ class CityView(GlobalModelView):
         model.last_editor = current_user.username
         session.commit()
 
+class AboutView(BaseView):
+    """Custom view for database documentation."""
 
-class PatentHasRelationsView(GlobalModelView):
-    column_list = [
-        "id",
-        "_id_dil",
-        "person_id",
-        "person_related_id",
-        "patent_id",
-        "type",
-        "created_at",
-        "updated_at",
-        "last_editor"
-    ]
-    column_labels = {
-        "id": "ID",
-        "_id_dil": "ID DIL",
-        "person_id": "Imprimeur",
-        "person_related_id": "Imprimeur lié",
-        "patent_id": "Brevet",
-        "type": "Type de relation",
-        "created_at": "Créé le",
-    }
+    @expose('/')
+    def index(self):
+        """Renders automatic documentation of database in html view."""
+        return self.render('admin/about/documentation_db.html')
 
-    column_formatters = {
-        'person_id': lambda v, c, m, p: (
-            Markup(
-                f'<a href="{url_for("person.details_view", id=m.person_id)}">'
-                f'{m.person_id}</a>'
-            ) if m.person else "(Aucune personne)"),
-        'person_related_id': lambda v, c, m, p: (
-            Markup(
-                f'<a href="{url_for("person.details_view", id=m.person_related_id)}">'
-                f'{m.person_related_id}</a>'
-            ) if m.person_related else "(Aucune personne)"),
-        'patent_id': lambda v, c, m, p: (
-            Markup(
-                f'<a href="{url_for("patent.details_view", id=m.patent_id)}">'
-                f'{m.patent_id}</a>'
-            ) if m.patent else "(Aucun brevet)"),
-        'type': lambda v, c, m, p: (
-            Markup(
-                f'<span>{m.type}</span>'
-            ) if m.type else "(Aucun type)"),
-    }
+    @expose('/')
+    def database_documentation(self):
+        """Renders automatic documentation of database in html view."""
+        return self.render('admin/about/documentation_db.html')
 
+    @expose('/contacts')
+    def contacts(self):
+        """Renders contacts in html view."""
+        return self.render('admin/about/contacts.html')
 
-class PatentHasImagesView(GlobalModelView):
-    column_list = [
-        "id",
-        "_id_dil",
-        "patent_id",
-        "image_id",
-        "created_at",
-        "updated_at",
-        "last_editor"
-    ]
-    column_labels = {
-        "id": "ID",
-        "_id_dil": "ID DIL",
-        "patent_id": "Brevet",
-        "image_id": "Image",
-        "created_at": "Créé le",
-        "updated_at": "Modifié le",
-        "last_editor": "Dernier éditeur"
-    }
+    @expose('/credits')
+    def credits(self):
+        """Renders credits in html view."""
+        return self.render('admin/about/credits.html')
 
-    column_formatters = {
-        'patent_id': lambda v, c, m, p: (
-            Markup(
-                f'<a href="{url_for("patent.details_view", id=m.patent_id)}">'
-                f'{m.patent_id}</a>'
-            ) if m.patent_images else "(Aucun brevet)"),
-        'image_id': lambda v, c, m, p: (
-            Markup(
-                f'<a href="{url_for("image.details_view", id=m.image_id)}">'
-                f'{m.image_id}</a>'
-            ) if m.image_patents else "(Aucune image)"),
-    }
-
-
-"""
-class PatentHasAddressesView(GlobalModelView):
-    column_list = [
-        "id",
-        "_id_dil",
-        "person_id",
-        "address_id",
-        "date_occupation",
-        "created_at",
-        "updated_at",
-        "last_editor"
-    ]
-    column_labels = {
-        "id": "ID",
-        "_id_dil": "ID DIL",
-        "person_id": "Imprimeur",
-        "address_id": "Adresse",
-        "date_occupation": "Date d'occupation",
-        "created_at": "Créé le",
-        "updated_at": "Modifié le",
-        "last_editor": "Dernier éditeur"
-    }
-
-    column_formatters = {
-        'patent_id': lambda v, c, m, p: (
-            Markup(
-                f'<a href="{url_for("patent.details_view", id=m.patent_id)}">'
-                f'{m.patent_id}</a>'
-            ) if m.patent else "(Aucun brevet)"),
-        'address_id': lambda v, c, m, p: (
-            Markup(
-                f'<a href="{url_for("address.details_view", id=m.address_id)}">'
-                f'{m.address_id}</a>'
-            ) if m.address else "(Aucune adresse)"),
-    }
-"""

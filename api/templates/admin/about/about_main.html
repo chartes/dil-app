@@ -1,0 +1,29 @@
+{% extends 'admin/master.html' %}
+
+{% block body %}
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Menu sur la gauche -->
+            <nav class="col-md-3 col-lg-2 d-md-block bg-light sidebar">
+                <div class="position-sticky" style="top: 10%; max-height: 80%; overflow-y: auto;">
+                    <ul class="nav flex-column d-flex justify-content-center">
+                        <li class="nav-item">
+                            <a class="nav-link {{ 'active' if request.endpoint == 'aboutview.database_documentation' else '' }}" href="{{ url_for('aboutview.database_documentation') }}">DOCUMENTATION DE LA BASE DE DONNÉES</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {{ 'active' if request.endpoint == 'aboutview.contacts' else '' }}" href="{{ url_for('aboutview.contacts') }}">CONTACT</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {{ 'active' if request.endpoint == 'aboutview.credits' else '' }}" href="{{ url_for('aboutview.credits') }}">CRÉDITS</a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- Contenu à droite -->
+            <main class="col-md-9">
+                {% block about_content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+{% endblock body %}

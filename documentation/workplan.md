@@ -72,12 +72,14 @@
 - [X] Ajouter logique de connexion (table User, login, logout, roles)
 - [X] revoir les tests
 - [X] régler le not found http://127.0.0.1:8888/admin/ --> http://127.0.0.1:8888/dil/admin/ (icone menu)
-- [ ] Finalisation des pages : consulation des imprimeurs, liste, recherche, acceuil et documentation et sup des tables inutiles dans le front admin
-- [ ] Refactorisation (admin, modèles, vues, scripts, template)
-- [ ] fichiers de config dev et prod + scripts de création de la base ou migration de la base a vérifier
-- [ ] nettoyage global des fichiers
+- [ ] Finir page consultation personne
+- [ ] Finaliser en savoir plus (documentation db, juste le schéma)
+- [ ] Commencer API
+- [ ] Refactoriser et nettoyage (local et distant) (admin, modèles, vues, scripts, template)
+- [ ] Préparer fichiers de config dev et prod
 - test de la base async pour le crud et alembic qui fonctionne pas
 - [ ] Déploiement sur serveur de dev + fichiers de config dev et prod + scripts de création de la base ou migration de la base a vérifier
+- [ ] optimisation
 ---
 - [ ] **Validation étape VJ et reprise + test utilisateur (EP)**
 ---

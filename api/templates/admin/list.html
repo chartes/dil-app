@@ -1,0 +1,32 @@
+{% extends 'admin/model/list.html' %}
+{% import 'admin/lib.html' as lib with context %}
+
+{{ super() }}
+
+{% block head %}
+    {{ super() }}
+    <script type="text/javascript" src="{{ url_for('static', filename='js/list.js') }}"></script>
+{% endblock head %}
+
+{% block list_row_actions_header %}
+    {{ super() }}
+    {% if num_pages is not none %}
+        {{ lib.pager(page, num_pages, pager_url) }}
+    {% else %}
+        {{ lib.simple_pager(page, data|length == page_size, pager_url) }}
+    {% endif %}
+    <hr>
+{% endblock list_row_actions_header %}
+
+
+{% block model_menu_bar_after_filters %}
+    {{ super() }}
+    <li class="pagination-menu-bar">
+        {% if num_pages is not none %}
+            {{ lib.pager(page, num_pages, pager_url) }}
+        {% else %}
+            {{ lib.simple_pager(page, data|length == page_size, pager_url) }}
+        {% endif %}
+        <hr>
+    </li>
+{% endblock model_menu_bar_after_filters %}

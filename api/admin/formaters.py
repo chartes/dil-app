@@ -20,6 +20,9 @@ def _format_link_add_model(description, href="#"):
      </span>
     """
 
+def _format_href(prefix_url, label):
+    return Markup(f'<a href="{prefix_url}{label}" target="_blank">{label}</a>')
+
 
 def format_image():
     pass
@@ -28,6 +31,3 @@ def format_image():
 def format_map():
     pass
 
-
-def format_href():
-    pass

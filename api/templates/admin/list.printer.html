@@ -1,0 +1,26 @@
+{% extends 'admin/list.html' %}
+{% import 'admin/lib.html' as lib with context %}
+
+
+
+{% macro custom_page_size_form(generator, btn_class='dropdown-toggle') %}
+    <a class="{{ btn_class }}" data-toggle="dropdown" href="javascript:void(0)">
+        Afficher {{ page_size }} {{ _gettext('résultats') }} par page<b class="caret"></b>
+    </a>
+    <ul class="dropdown-menu">
+        <li><a href="{{ generator(20) }}">20 {{ _gettext('résultats') }}</a></li>
+        {% for i in range(1, 11) %}
+            {% set step_value = i * 50 %}
+            <li><a href="{{ generator(step_value) }}">{{ step_value }} {{ _gettext('résultats') }}</a></li>
+        {% endfor %}
+    </ul>
+{% endmacro %}
+
+{{ super() }}
+
+{% block model_menu_bar_before_filters %}
+    {{ super() }}
+    <li class="dropdown">
+        {{ custom_page_size_form(page_size_url) }}
+    </li>
+{% endblock model_menu_bar_before_filters %}
