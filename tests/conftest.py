@@ -4,10 +4,7 @@ File that pytest automatically looks for in any directory.
 """
 import os
 import pytest
-import asyncio
 
-from fastapi import Depends
-from fastapi.testclient import TestClient
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 
@@ -54,5 +51,5 @@ async def session_test(db_session: AsyncSession):
 
     app.dependency_overrides[get_db] = override_get_db
 
-    async with AsyncClient(app=app, base_url="http://test") as ac:
+    async with AsyncClient(app=app) as ac:
         yield ac
