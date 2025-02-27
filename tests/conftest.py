@@ -3,70 +3,56 @@
 File that pytest automatically looks for in any directory.
 """
 import os
-
 import pytest
+import asyncio
 
+from fastapi import Depends
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
-from sqlalchemy.pool import StaticPool
-from sqlalchemy.orm import sessionmaker
+from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 
-from api.database import (BASE, get_db)
-from api.main import (app)
+from api.database import BASE, get_db
+from api.main import app
 from api.config import BASE_DIR, settings
-from api.models.models import (
-    User,
-    Person,
-    Patent,
-    City,
-    Address,
-    Image,
-    PatentHasRelations,
-    PatentHasAddresses,
-    PersonHasAddresses,
-    PatentHasImages
-)
 
-# set up ENV var for testing
+# Set up ENV var for testing
 os.environ["ENV"] = "test"
 
 WHOOSH_INDEX_DIR = os.path.join(BASE_DIR, settings.WHOOSH_INDEX_DIR)
-SQLALCHEMY_DATABASE_TEST_URL = "sqlite:///./test.db"
+SQLALCHEMY_DATABASE_TEST_URL = "sqlite+aiosqlite:///./test.db"
 
-engine = create_engine(
+# Create an async engine for tests
+engine = create_async_engine(
     SQLALCHEMY_DATABASE_TEST_URL,
+    echo=False,
     connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
 )
 
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-BASE.metadata.create_all(bind=engine)  # Création des tables
-
-
-@pytest.fixture(scope="function")
-def db_session():
-    """Create a new database session with a rollback at the end of the test."""
-    connection = engine.connect()
-    transaction = connection.begin()
-    session = TestingSessionLocal(bind=connection)
-    yield session
-    session.close()
-    transaction.rollback()
-    connection.close()
-
+# Create an async session factory
+TestingSessionLocal = async_sessionmaker(bind=engine, expire_on_commit=False)
 
 
 @pytest.fixture(scope="function")
-def session_test(db_session):
-    """Create a test client that uses the override_get_db fixture to return a session."""
+async def db_session() -> AsyncSession:
+    """Create a new database session and clean up after the test."""
+    async with engine.begin() as conn:
+        await conn.run_sync(BASE.metadata.drop_all)  # Clean the DB before each test
+        await conn.run_sync(BASE.metadata.create_all)  # Recreate fresh tables
 
-    def override_get_db():
-        try:
-            yield db_session
-        finally:
-            db_session.close()
+    async with TestingSessionLocal() as session:
+        yield session  # Provide the session to the test
+        await session.rollback()
+
+
+@pytest.fixture(scope="function")
+async def session_test(db_session: AsyncSession):
+    """Create a test client that overrides the database session."""
+
+    async def override_get_db():
+        async with db_session as session:
+            yield session
 
     app.dependency_overrides[get_db] = override_get_db
-    with TestClient(app) as test_client:
-        yield test_client
+
+    async with AsyncClient(app=app, base_url="http://test") as ac:
+        yield ac
