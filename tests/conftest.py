@@ -16,7 +16,7 @@ from api.config import BASE_DIR, settings
 os.environ["ENV"] = "test"
 
 WHOOSH_INDEX_DIR = os.path.join(BASE_DIR, settings.WHOOSH_INDEX_DIR)
-SQLALCHEMY_DATABASE_TEST_URL = "sqlite+aiosqlite:///./test.db"
+SQLALCHEMY_DATABASE_TEST_URL = "sqlite+aiosqlite:///./test.sqlite"
 
 # Create an async engine for tests
 engine = create_async_engine(
