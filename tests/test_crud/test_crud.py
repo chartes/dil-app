@@ -3,26 +3,18 @@ import datetime
 from sqlalchemy import select
 from api.models.models import Person
 
-@pytest.mark.asyncio
-async def test_create_person(db_session):
+def test_create_person(session):
     """Test: Create a new person"""
-
-    # Création d'une personne
+    # Add a basic new person
     person = Person(
         lastname="Dupont",
         firstnames="Jean",
-        birth_date="1970-1-1",  # Utilisation d'un objet `date`
+        birth_date="1970-01-01",
         personal_information="Information personnelle",
     )
-
-    db_session.add(person)
-    await db_session.commit()  # Utilisation de `await`
-
-    # Récupération de la personne
-    result = await db_session.execute(select(Person).where(Person.lastname == "Dupont"))
-    retrieved_person = result.scalars().first()  # `scalars().first()` pour récupérer l'objet
-
-    # Vérifications
+    session.add(person)
+    session.commit()
+    retrieved_person = session.query(Person).filter_by(lastname="Dupont").first()
     assert retrieved_person is not None
     assert retrieved_person.lastname == "Dupont"
     assert retrieved_person.firstnames == "Jean"

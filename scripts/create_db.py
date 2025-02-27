@@ -109,4 +109,4 @@ if __name__ == "__main__":
     # add default user
     User.add_default_user(in_session=session)
     session.commit()
-
+    print("==> Default user added.")
