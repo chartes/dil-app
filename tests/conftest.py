@@ -21,7 +21,9 @@ def session():
     transaction = connection.begin()
     session = scoped_session(sessionmaker(bind=connection, autoflush=False, autocommit=False))
     #session = Session()
+    yield session
 
+    """
     try:
         yield session
     except Exception as e:
@@ -32,3 +34,4 @@ def session():
             transaction.rollback()  # Ne rollback que si actif
         session.close()
         connection.close()
+    """
