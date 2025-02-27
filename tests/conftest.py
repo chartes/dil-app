@@ -3,18 +3,20 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 from api.database import BASE
 
-@pytest.fixture(scope="module")
-def engine():
-    return create_engine("sqlite:///:memory:")
+#@pytest.fixture(scope="function")
+#def engine():
+#    return create_engine("sqlite:///:memory:")
 
-@pytest.fixture(scope="module")
-def tables(engine):
+#@pytest.fixture(scope="function")
+#def tables(engine):
+#    BASE.metadata.create_all(engine)
+#    yield
+#    BASE.metadata.drop_all(engine)
+
+@pytest.fixture(scope="session")
+def session():
+    engine = create_engine("sqlite:///:memory:")
     BASE.metadata.create_all(engine)
-    yield
-    BASE.metadata.drop_all(engine)
-
-@pytest.fixture(scope="function")
-def session(engine, tables):
     connection = engine.connect()
     transaction = connection.begin()
     session = scoped_session(sessionmaker(bind=connection, autoflush=False, autocommit=False))
