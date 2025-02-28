@@ -1,6 +1,13 @@
 from api.models.models import (City,
                             Address)
 
+from sqlalchemy import inspect
+
+def test_check_tables(session):
+    inspector = inspect(session.bind)
+    tables = inspector.get_table_names()
+    assert "cities" in tables, f"Tables disponibles: {tables}"
+
 def test_create_city(session):
     """Test the creation of a city and verify data persistence."""
     city = City(label="Paris", country_iso_code="FR")
