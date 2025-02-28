@@ -4,14 +4,15 @@ File that pytest automatically looks for in any directory.
 """
 from typing import TYPE_CHECKING
 
-
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from api.models.models import BASE
 
 if TYPE_CHECKING:
-    from sqlalchemy.orm import Session
+    from sqlalchemy.orm.session import Session
+
+
 
 @pytest.fixture(scope="session")
 def connection_url():
@@ -28,11 +29,20 @@ def sqlalchemy_declarative_base():
 @pytest.fixture(scope="function")
 def connection(engine, sqlalchemy_declarative_base):
     if sqlalchemy_declarative_base:
-        sqlalchemy_declarative_base.metadata.create_all(engine)
-    return engine
+        sqlalchemy_declarative_base.metadata.create_all(engine)  # Création de toutes les tables
+    connection = engine.connect()
+    yield connection
+    sqlalchemy_declarative_base.metadata.drop_all(engine)  # Nettoyage après chaque test
+    connection.close()
+
 
 @pytest.fixture(scope="function")
-def session(connection, sqlalchemy_declarative_base):
+def session(connection):
+    """Fixture pour gérer la session SQLAlchemy"""
+    transaction = connection.begin()  # Démarre une transaction
     session: Session = sessionmaker()(bind=connection)
-    yield session
+
+    yield session  # Exécute le test
+
     session.close()
+    transaction.rollback()  # Annule toutes les modifications après le test
