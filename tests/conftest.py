@@ -17,9 +17,10 @@ def engine():
 def tables(engine):
     logger.info("Creating tables")
     BASE.metadata.create_all(engine)
+    logger.info(BASE.metadata.tables)
     yield
-    logger.info("Dropping tables")
-    BASE.metadata.drop_all(engine)
+    #logger.info("Dropping tables")
+    #BASE.metadata.drop_all(engine)
 
 @pytest.fixture(scope="function")
 def session(engine, tables):
