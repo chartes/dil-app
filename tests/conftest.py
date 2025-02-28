@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 @pytest.fixture(scope="module")
 def engine():
     logger.info("Creating engine")
-    return create_engine("sqlite:///:memory:", connect_args={'check_same_thread': False}, echo=False)
+    return create_engine("sqlite:///:memory:", connect_args={'check_same_thread': False}, echo=True)
 
 @pytest.fixture(scope="module")
 def tables(engine):
@@ -25,14 +25,17 @@ def tables(engine):
 @pytest.fixture(scope="function")
 def session(engine, tables):
     logger.info("Creating session")
-    session = scoped_session(sessionmaker(bind=engine, autoflush=False, autocommit=False))
+    connection = engine.connect()
+    transaction = connection.begin()
+    session = scoped_session(sessionmaker(bind=connection))
     try:
         yield session
     except Exception as e:
         logger.error(f"Exception occurred: {e}")
-        session.rollback()
+        transaction.rollback()
         raise
     finally:
-        if session.is_active:
-            session.rollback()
-        session.close()
+        if transaction.is_active:
+            transaction.rollback()
+    session.close()
+    connection.close()
