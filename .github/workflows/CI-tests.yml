@@ -26,5 +26,5 @@ jobs:
       - name: Test with pytest
         run: |
           cd ./tests/
-          pytest --tb=short -v --log-cli-level=INFO
+          pytest --tb=short -v
         shell: bash
