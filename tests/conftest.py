@@ -1,48 +1,28 @@
-"""conftest.py
-
-File that pytest automatically looks for in any directory.
-"""
-from typing import TYPE_CHECKING
-
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from api.models.models import BASE
-
-if TYPE_CHECKING:
-    from sqlalchemy.orm.session import Session
-
-
+from api.database import BASE
 
 @pytest.fixture(scope="session")
-def connection_url():
-    return "sqlite:///:memory:"
+def engine():
+    return create_engine("sqlite:///:memory:")  # Ou utiliser un fichier
+
+@pytest.fixture(scope="session")
+def tables(engine):
+    BASE.metadata.create_all(engine)  # Crée les tables avant les tests
+    yield
+    BASE.metadata.drop_all(engine)  # Nettoyage après les tests
 
 @pytest.fixture(scope="function")
-def engine(connection_url):
-    return create_engine(connection_url)
-
-@pytest.fixture(scope="function")
-def sqlalchemy_declarative_base():
-    return BASE
-
-@pytest.fixture(scope="function")
-def connection(engine, sqlalchemy_declarative_base):
-    if sqlalchemy_declarative_base:
-        sqlalchemy_declarative_base.metadata.create_all(engine)  # Création de toutes les tables
+def session(engine, tables):
+    """Session propre par test"""
     connection = engine.connect()
-    yield connection
-    sqlalchemy_declarative_base.metadata.drop_all(engine)  # Nettoyage après chaque test
-    connection.close()
+    transaction = connection.begin()
+    Session = sessionmaker(bind=connection)
+    session = Session()
 
-
-@pytest.fixture(scope="function")
-def session(connection):
-    """Fixture pour gérer la session SQLAlchemy"""
-    transaction = connection.begin()  # Démarre une transaction
-    session: Session = sessionmaker()(bind=connection)
-
-    yield session  # Exécute le test
+    yield session
 
     session.close()
-    transaction.rollback()  # Annule toutes les modifications après le test
+    transaction.rollback()  # Annule tout après le test
+    connection.close()
