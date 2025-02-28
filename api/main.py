@@ -6,7 +6,7 @@ Entry point for FastAPI application.
 from fastapi import FastAPI
 from fastapi.middleware.wsgi import WSGIMiddleware
 from fastapi.middleware.cors import CORSMiddleware
-#from fastapi_pagination import add_pagination
+from fastapi_pagination import add_pagination
 
 from api.admin import flask_app
 from api.routes import api_router
@@ -36,6 +36,7 @@ def create_app():
         "http://localhost",
         "http://localhost:8888",
         "http://localhost:9091",
+        "http://localhost:9090",
     ]
     _app.add_middleware(
         CORSMiddleware,
@@ -45,12 +46,11 @@ def create_app():
         allow_headers=["*"],
     )
     # extensions
-    # add_pagination(_app)
+    add_pagination(_app)
     # Add routes
-    #_app.include_router(api_router, prefix="/dil/api")
+    _app.include_router(api_router)
     # Mount admin interface (flask app) into FastAPI app
     # use threaded=True to avoid blocking the event loop
-
     _app.mount('/dil/', WSGIMiddleware(flask_app))
     return _app
 

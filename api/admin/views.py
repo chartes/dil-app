@@ -41,8 +41,9 @@ from .formaters import (_format_label_form_with_tooltip,
                         _format_link_add_model,
                         _format_href)
 from .model_handler import PrinterModelChangeHandler
-from api.config import settings
 
+from api.config import settings
+from api.crud import (get_patents, get_printer)
 from api.admin.views_dir.utils import *
 from api.admin.views_dir.loaders import *
 
@@ -199,6 +200,7 @@ class PrinterView(GlobalModelView):
     edit_template = 'admin/edit.printer.html'
     create_template = 'admin/edit.printer.html'
     list_template = "admin/list.printer.html"
+    details_template = "admin/details.printer.html"
     column_auto_select_related = True
 
     column_list = ["id",
@@ -211,6 +213,21 @@ class PrinterView(GlobalModelView):
                    "personal_information",
                    "professional_information",
                    "comment"] + list(version_metadata.keys())
+
+    column_details_list = [
+        "lastname",
+        "firstnames",
+        "birth_date",
+        "birth_city_label",
+        "city",
+        "personal_information",
+        "professional_information",
+    ]
+
+    column_formatters_detail = {
+        "personal_information": lambda v, c, m, p: Markup(m.personal_information) if m.personal_information else "Aucune information personnelle",
+        "professional_information": lambda v, c, m, p: Markup(m.professional_information) if m.professional_information else "Aucune information professionnelle",
+    }
 
     # Overrides column labels
     column_labels = {"id": "ID",
@@ -389,7 +406,7 @@ class PrinterView(GlobalModelView):
                                                              comment="Libellé de la ville du brevet. "
                                                                      "Peut correspondre au toponyme ancien.",
                                                              ),
-                    "description": "exemples : Verdun-sur-le-Doubs (Saône-et-Loire) ; "
+                    "description": "Exemples : Verdun-sur-le-Doubs (Saône-et-Loire) ; "
                                    "Clermont-Ferrand (Puy-de-Dôme) ; Paris etc."
                 },
                 "city": {
@@ -484,7 +501,7 @@ class PrinterView(GlobalModelView):
             "label": _format_label_form_with_tooltip(label="Ville de naissance",
                                                      comment="Libellé de la ville de naissance. "
                                                              "Peut correspondre au toponyme ancien."),
-            "description": "exemples : Verdun-sur-le-Doubs (Saône-et-Loire) ; Clermont-Ferrand (Puy-de-Dôme) ; Paris etc."
+            "description": "Exemples : Verdun-sur-le-Doubs (Saône-et-Loire) ; Clermont-Ferrand (Puy-de-Dôme) ; Paris etc."
         },
 
     }
@@ -517,6 +534,23 @@ class PrinterView(GlobalModelView):
     def get_list_form(self):
         """Return list of columns to display in list form."""
         return super(PrinterView, self).get_list_form()
+
+    def render(self, template, **kwargs):
+        """Render a template with the given context."""
+        if template == "admin/details.printer.html":
+            printer = get_printer(session, {
+                'id': kwargs['model'].id
+            })
+            patents = get_patents(session, {
+                'person_id':kwargs['model'].id
+            })
+            id_patents = [evt.id for evt in get_printer(session, {'id':kwargs['model'].id}).patents]
+            if len(patents) == len(id_patents):
+                return super(PrinterView, self).render(template, **kwargs, patents=list(zip(id_patents, patents)), printer=printer)
+            else:
+                return super(PrinterView, self).render(template, **kwargs)
+        return super(PrinterView, self).render(template, **kwargs)
+
 
     # Expose custom routes for printer view
     # for Ajax requests
@@ -782,7 +816,6 @@ class AddressView(GlobalModelView):
         "label": {
             "validators": [validate_address],
             "label": "Libellé de l'adresse",
-            # Exemples d'adresses valides : '1, rue de la Paix', 'inconnue', '2 bis, rue du Faubourg Saint-Honoré', 'rue de la Paix', '12 quinquies, rue Victor Hugo', '3 ter, avenue des Champs-Élysées
             "description": "Libellé de l'adresse. "
                            "Exemple : <b>1, rue de la Paix</b> ; <b>2, rue du Faubourg Saint-Honoré</b> ; <b>12 quinquies, rue Victor Hugo</b> ; <b>3 ter, avenue des Champs-Élysées</b> ; <b>rue de la Paix</b> ; <b>inconnue</b> ; <b>200 West 45th Street</b> (adresse hors france) etc."
                            "; etc. Laisser <b>'inconnue'</b> si l'adresse est inconnue."

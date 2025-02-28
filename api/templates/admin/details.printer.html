@@ -1,0 +1,75 @@
+{% extends 'admin/model/details.html' %}
+
+{% macro render_unknown(prop) %}
+    {% if prop == None %}
+        Inconnue
+    {% else %}
+        {{ prop }}
+    {% endif %}
+{% endmacro %}
+
+{% block details_table %}
+    {{ super() }}
+    <h3><b>{{ printer.addresses_relations | length }}</b>  Adresse(s) personnelle(s) associée(s)</h3>
+    <ul>
+        {% for rel in printer.addresses_relations %}
+            <li>{{ rel.address_persons  }}</li>
+        {% endfor %}
+    </ul>
+    <h3><b>{{ patents | length }}</b> Brevet(s) associé(s)</h3>
+    <table class="table table-hover table-bordered searchable">
+        <thead>
+        <tr>
+            <th>Ville</th>
+            <th>Date de début</th>
+            <th>Date de fin</th>
+            <th>Relations</th>
+            <th>Adresse(s) professionnelle(s)</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% set type_mapping = {
+    'PREDECESSOR': 'Prédécesseur',
+    'SUCCESSOR': 'Successeur',
+    'ASSOCIATE': 'Associé',
+    'SPONSOR': 'Parrain'
+} %}
+        {% for id, patent in patents %}
+            <tr>
+                <td>{{ render_unknown(patent['city_label']) }}</td>
+                <td>{{ render_unknown(patent['date_start']) }}</td>
+                <td>{{ render_unknown(patent['date_end']) }}</td>
+                <td>
+                    <ul>
+                        {% for type, relations in patent['patent_relations']|groupby('type') %}
+                            <li>
+                                <strong>{{ type_mapping.get(type, type)  }}</strong>
+                                <ul>
+                                    {% for relation in relations %}
+                                        <li>
+                                            <a href="{{ url_for('person.details_view', id=relation['person_related'].id) }}"
+                                               target="_blank">
+                                                {{ relation['person_related'].lastname }}, {{ relation['person_related'].firstnames }}
+                                            </a>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </td>
+                <td>
+                    <ul>
+                        {% for address in patent['addresses'] %}
+                            <li>
+                                {{ address }}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </td>
+
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

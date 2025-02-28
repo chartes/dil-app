@@ -73,7 +73,7 @@
 - [X] revoir les tests
 - [X] régler le not found http://127.0.0.1:8888/admin/ --> http://127.0.0.1:8888/dil/admin/ (icone menu)
 - [X] remettre les tests
-- [ ] Finir page consultation personne
+- [X] Finir page consultation personne
 - [ ] Finaliser en savoir plus (documentation db, juste le schéma)
 - [ ] Commencer API se baser sur site actuel + reprendre besoin pour ajusteent plus tard
 - [ ] Refactoriser et nettoyage (local et distant) (admin, modèles, vues, scripts, template)

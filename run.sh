@@ -7,7 +7,6 @@
 # Configuration des chemins et variables par défaut
 ENV="dev"
 DB="./db/dil.dev.sqlite"
-DB_BACKUP="./db/DIL.db"
 INSTANCE="/srv/webapp/api/dil-app/venv/bin/uvicorn"
 IMAGE_ORIGINAL_DIR="./data/assets/images/"
 IMAGE_API_DIR="./api/static/images_store/"
@@ -17,8 +16,8 @@ usage() {
   echo "Usage: ./run.sh <mode> [-db-re] [-db-back] [-images-back] [instance]"
   echo "  <mode>       : dev | prod (Obligatoire)"
   echo "  -db-re       : Recreate and populate database from resources"
-  echo "  -db-back     : Restore database from backup"
   echo "  -images-back : Restore original images from backup"
+  #TODO: add command for index creation and populate
   echo "  instance     : Launch using the ENC server instance"
   exit 0
 }
@@ -57,11 +56,6 @@ for arg in "$@"; do
       [[ -f $DB ]] && rm $DB
       python3 -m scripts.create_db --db $DB
       echo "Database setup complete."
-      ;;
-    -db-back)
-      echo "Restoring database from backup..."
-      cp "$DB_BACKUP" "$DB"
-      echo "Database restored."
       ;;
     -images-back)
       echo "Restoring original images directory..."

@@ -14,6 +14,7 @@ email_validator==2.2.0
 exceptiongroup==1.2.2
 fastapi==0.115.8
 fastapi-cli==0.0.7
+fastapi-pagination==0.12.34
 Flask==2.3.3
 Flask-Admin==1.6.1
 Flask-BabelEx==0.9.4

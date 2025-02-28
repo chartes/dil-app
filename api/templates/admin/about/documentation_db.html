@@ -1,6 +1,11 @@
 {% extends 'admin/about/about_main.html' %}
 
 {% block about_content %}
-    <p>en cours de construction...</p>
+    <h2>Schéma de la base de données</h2>
+    <img
+        class="img-fluid"
+        width="80%"
+        height="auto"
+            src="{{ url_for('static', filename='images/schemas/dil-db-schema-stable.svg') }}">
 {% endblock about_content %}
 

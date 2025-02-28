@@ -17,11 +17,7 @@ METADATA = {
     "swagger_ui_parameters": {"defaultModelsExpandDepth": -1},
     "openapi_tags": [
         {"name": "default"},
-        {"name": "persons", "description": "Retrieve persons and their information."},
-        {"name": "persons relations", "description": "Retrieve persons relations like family relationships or events."},
-        {"name": "persons thesauri", "description": "Retrieve thesaurus terms (e-NDP specific vocabulary, "
-                                                    "places and status) that "
-                                                    "describe persons."},
+        {"name": "Persons", "description": "Retrieve persons and their information."},
     ],
     "description": """
 ## API Documentation for Dictionnaire des imprimeurs-lithographes du XIXe siècle
