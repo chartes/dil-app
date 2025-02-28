@@ -1,10 +1,12 @@
+import sqlite3
+
 from api.models.models import (City,
                             Address,
                             Person,
                             Patent,
                             PatentHasAddresses)
 
-def test_patent_address_relationship(session):
+def test_patent_address_relationship(session, engine, tables):
     """Test that patents can be correctly linked to addresses."""
     city = City(label="Marseille", country_iso_code="FR")
     address = Address(label="Port", city_label="Marseille", city=city)
