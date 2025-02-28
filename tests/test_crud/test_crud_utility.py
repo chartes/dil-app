@@ -8,40 +8,41 @@ from api.models.models import (Person,
                         PatentHasImages,
                         PatentHasRelations,
                         generate_random_uuid)
+from tests.conftest import local_session
 
-def check_id_dil_routine(session: object,
-                         model: object,
+def check_id_dil_routine(model: object,
                          prefix: str,
                          add: bool=True):
     """Check the generation of a unique _id_dil for a given model."""
-    if add:
-        session.add(model)
-        session.commit()
-        assert model._id_dil is not None
-        assert model._id_dil.startswith(f"{prefix}_dil_")
-        assert len(model._id_dil.split("_")[-1]) == 8
-    else:
-        assert model is not None
-        assert model.startswith(f"{prefix}_dil_")
-        assert len(model.split("_")[-1]) == 8
+    with local_session as session:
+        if add:
+            session.add(model)
+            session.commit()
+            assert model._id_dil is not None
+            assert model._id_dil.startswith(f"{prefix}_dil_")
+            assert len(model._id_dil.split("_")[-1]) == 8
+        else:
+            assert model is not None
+            assert model.startswith(f"{prefix}_dil_")
+            assert len(model.split("_")[-1]) == 8
 
 def test_generate_random_uuid(session):
     """Test the generation of a unique random UUID with the expected prefix and format."""
     uuid_str = generate_random_uuid(prefix="test_dil_")
-    check_id_dil_routine(session, uuid_str, "test", add=False)
+    check_id_dil_routine(uuid_str, "test", add=False)
 
 
 def test_if_each_unique_id_dil_is_created_for_tables(session):
     """Test the creation of unique _id_dil for each table."""
     # add a person
     person = Person(lastname="Dupont", firstnames="Jean", birth_date="1970-01-01")
-    check_id_dil_routine(session, person, "person")
+    check_id_dil_routine(person, "person")
     # add city
     city = City(label="Paris")
-    check_id_dil_routine(session, city, "city")
+    check_id_dil_routine(city, "city")
     # add address
     address = Address(city_label="26, rue de l'ENC")
-    check_id_dil_routine(session, address, "address")
+    check_id_dil_routine(address, "address")
 
     # add patent
     patent = Patent(person_id=person.id,
@@ -51,7 +52,7 @@ def test_if_each_unique_id_dil_is_created_for_tables(session):
                     date_end="1970-01-01",
                     references="<p>test</p>",
                     comment="test .... lorem ipsum ...")
-    check_id_dil_routine(session, patent, "patent")
+    check_id_dil_routine(patent, "patent")
 
     # add image
     image = Image(
@@ -60,22 +61,22 @@ def test_if_each_unique_id_dil_is_created_for_tables(session):
         img_name="",
         iiif_url="http://test.com/iiif",
     )
-    check_id_dil_routine(session, image, "img")
+    check_id_dil_routine(image, "img")
     # add patent_has_addresses
     patent_has_addresses = PatentHasAddresses(patent_id=patent.id, address_id=address.id)
-    check_id_dil_routine(session, patent_has_addresses, "patent_address")
+    check_id_dil_routine(patent_has_addresses, "patent_address")
     # add patent_has_images
     patent_has_images = PatentHasImages(patent_id=patent.id, image_id=image.id)
-    check_id_dil_routine(session, patent_has_images, "patent_image")
+    check_id_dil_routine(patent_has_images, "patent_image")
     # add another person
     person2 = Person(lastname="Martin", firstnames="Jean", birth_date="1970-01-01")
-    check_id_dil_routine(session, person2, "person")
+    check_id_dil_routine(person2, "person")
     # add patent_has_relations
     patent_has_relations = PatentHasRelations(patent_id=patent.id,
                                               person_id=person.id,
                                               person_related_id=person2.id,
                                               type="PARTNER")
-    check_id_dil_routine(session, patent_has_relations, "patent_relation")
+    check_id_dil_routine(patent_has_relations, "patent_relation")
     # add person_has_addresses
     person_has_addresses = PersonHasAddresses(person_id=person.id, address_id=address.id)
-    check_id_dil_routine(session, person_has_addresses, "person_address")
+    check_id_dil_routine(person_has_addresses, "person_address")

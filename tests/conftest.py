@@ -1,41 +1,65 @@
-import pytest
+"""conftest.py
+
+File that pytest automatically looks for in any directory.
+"""
+import os
+
+from fastapi.testclient import TestClient
+#from fastapi_pagination import add_pagination
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, scoped_session
-from api.database import BASE
-import logging
+from sqlalchemy.pool import StaticPool
+from sqlalchemy.orm import sessionmaker
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+from api.database import (BASE, get_db)
+from api.main import (app)
+#from api.models import User
 
-@pytest.fixture(scope="module")
-def engine():
-    logger.info("Creating engine")
-    return create_engine("sqlite:///:memory:", connect_args={'check_same_thread': False}, echo=True)
+#from api.database_utils import populate_db_process
+from api.config import BASE_DIR, settings
+#from api.index_fts.index_utils import (create_index,
+#                                       create_store)
+#from api.index_conf import st
+#from api.index_fts.schemas import PersonIdxSchema
 
-@pytest.fixture(scope="module")
-def tables(engine):
-    logger.info("Creating tables")
-    BASE.metadata.create_all(engine)
-    logger.info(BASE.metadata.tables)
-    yield
-    #logger.info("Dropping tables")
-    #BASE.metadata.drop_all(engine)
+# set up ENV var for testing
+os.environ["ENV"] = "test"
 
-@pytest.fixture(scope="function")
-def session(engine, tables):
-    logger.info("Creating session")
-    connection = engine.connect()
-    transaction = connection.begin()
-    session = scoped_session(sessionmaker(bind=connection))
+#WHOOSH_INDEX_DIR = os.path.join(BASE_DIR, settings.WHOOSH_INDEX_DIR)
+SQLALCHEMY_DATABASE_TEST_URL = "sqlite://"
+
+engine = create_engine(
+    SQLALCHEMY_DATABASE_TEST_URL,
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool,
+    echo=True,
+)
+
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+BASE.metadata.create_all(bind=engine)
+
+
+def override_get_db():
+    """Override the get_db() dependency with a test database."""
     try:
-        yield session
-    except Exception as e:
-        logger.error(f"Exception occurred: {e}")
-        transaction.rollback()
-        raise
+        db = TestingSessionLocal()
+        yield db
     finally:
-        if transaction.is_active:
-            transaction.rollback()
-    session.close()
-    connection.close()
+        db.close()
+
+
+app.dependency_overrides[get_db] = override_get_db
+
+
+local_session = TestingSessionLocal()
+# populate database from last migration
+# create_store(st, WHOOSH_INDEX_DIR)
+# create_index(st, PersonIdxSchema)
+# add default user
+# User.add_default_user(in_session=local_session)
+# add data
+# populate_db_process(in_session=local_session)
+# populate index
+# populate_index(session=local_session, index_=ix, model=Person)
+# add_pagination(app)
+client = TestClient(app)
