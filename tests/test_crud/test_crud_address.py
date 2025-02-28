@@ -1,5 +1,3 @@
-import sqlite3
-
 from api.models.models import (City,
                             Address,
                             Person,
