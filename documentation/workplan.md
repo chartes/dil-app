@@ -72,9 +72,10 @@
 - [X] Ajouter logique de connexion (table User, login, logout, roles)
 - [X] revoir les tests
 - [X] régler le not found http://127.0.0.1:8888/admin/ --> http://127.0.0.1:8888/dil/admin/ (icone menu)
+- [ ] remettre les tests
 - [ ] Finir page consultation personne
 - [ ] Finaliser en savoir plus (documentation db, juste le schéma)
-- [ ] Commencer API
+- [ ] Commencer API se baser sur site actuel + reprendre besoin pour ajusteent plus tard
 - [ ] Refactoriser et nettoyage (local et distant) (admin, modèles, vues, scripts, template)
 - [ ] Préparer fichiers de config dev et prod
 - test de la base async pour le crud et alembic qui fonctionne pas
