@@ -241,7 +241,7 @@ class User(UserMixin, BASE):
 
     @staticmethod
     def generate_password():
-        from .user_utils import pwd_generator
+        from .models_utils import pwd_generator
         return pwd_generator()
 
     def set_password(self, password):
@@ -353,6 +353,8 @@ class Person(AbstractVersion):
 
     def __str__(self):
         return f"{self.lastname} {self.firstnames}"
+
+
 
 
 class Patent(AbstractVersion):

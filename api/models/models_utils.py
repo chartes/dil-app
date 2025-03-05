@@ -15,6 +15,7 @@ except ImportError:
         PWD_SUFFIX = "!,?"
         PWD_LENGTH = "150"
 
+
 def pwd_generator():
     """
     Generate a random password.

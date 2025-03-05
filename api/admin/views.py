@@ -101,10 +101,12 @@ class GlobalModelView(ModelView):
             self.can_edit = current_user.role in can_edit_roles
             self.can_delete = current_user.role in can_delete_roles
             self.can_create = current_user.role in can_create_roles
-            self.can_export = True
-            return True
         else:
-            return False
+            self.can_edit = False
+            self.can_delete = False
+            self.can_create = False
+        self.can_export = True
+        return True
 
 
 class UserView(ModelView):
@@ -153,11 +155,8 @@ class UserView(ModelView):
     def on_model_change(self, form, model, is_created):
         if form.new_password.data:
             if model.id == 1:
-                print(current_user.id)
                 if current_user.id != 1:
                     flash("Vous ne pouvez pas modifier le mot de passe de ce compte administrateur.", "danger")
-                    # print("passe pas")
-                    # return False
                 else:
 
                     model.set_password(form.new_password.data)
@@ -210,8 +209,8 @@ class PrinterView(GlobalModelView):
                    "birth_date",
                    "birth_city_label",
                    "birth_city_id",
-                   "personal_information",
-                   "professional_information",
+                   # "personal_information",
+                   # "professional_information",
                    "comment"] + list(version_metadata.keys())
 
     column_details_list = [
@@ -225,8 +224,10 @@ class PrinterView(GlobalModelView):
     ]
 
     column_formatters_detail = {
-        "personal_information": lambda v, c, m, p: Markup(m.personal_information) if m.personal_information else "Aucune information personnelle",
-        "professional_information": lambda v, c, m, p: Markup(m.professional_information) if m.professional_information else "Aucune information professionnelle",
+        "personal_information": lambda v, c, m, p: Markup(
+            m.personal_information) if m.personal_information else "Aucune information personnelle disponible.",
+        "professional_information": lambda v, c, m, p: Markup(
+            m.professional_information) if m.professional_information else "Aucune information professionnelle disponible.",
     }
 
     # Overrides column labels
@@ -252,9 +253,10 @@ class PrinterView(GlobalModelView):
                      }
     column_searchable_list = ["lastname",
                               "firstnames",
-                              "birth_city_label",
-                              "personal_information",
-                              "professional_information"]
+                              # "birth_city_label",
+                              # "personal_information",
+                              # "professional_information"
+                              ]
     column_filters = ["lastname",
                       "firstnames",
                       "birth_city_label"]
@@ -282,7 +284,7 @@ class PrinterView(GlobalModelView):
                     "label": _format_label_form_with_tooltip(label="Adresse",
                                                              comment="Adresses personnelles de l'imprimeur."),
                     "description": _format_link_add_model(description="une nouvelle adresse",
-                                                          href='/dil/admin/address/new/?url=/dil/admin/address/')
+                                                          href='/dil/dil/admin/address/new/?url=/dil/dil/admin/address/')
                 },
                 "date_occupation": {
                     "validators": [is_valid_date],
@@ -413,19 +415,19 @@ class PrinterView(GlobalModelView):
                     "label": _format_label_form_with_tooltip(label="Ville (référentiel)",
                                                              comment="Ville du brevet dans le référentiel."),
                     "description": _format_link_add_model(description="une nouvelle ville",
-                                                          href='/dil/admin/city/new/?url=/dil/admin/city/')
+                                                          href='/dil/dil/admin/city/new/?url=/dil/dil/admin/city/')
                 },
                 "addresses": {
                     "label": _format_label_form_with_tooltip(label="Adresses professionnelles",
                                                              comment="Adresses professionnelles liées au brevet."),
                     "description": _format_link_add_model(description="une nouvelle adresse",
-                                                          href='/dil/admin/address/new/?url=/dil/admin/address/')
+                                                          href='/dil/dil/admin/address/new/?url=/dil/dil/admin/address/')
                 },
                 "images": {
                     "label": _format_label_form_with_tooltip(label="Images",
                                                              comment="Images liées au brevet."),
                     "description": _format_link_add_model(description="une nouvelle image",
-                                                          href='/dil/admin/image/new/?url=/dil/admin/image/')
+                                                          href='/dil/dil/admin/image/new/?url=/dil/dil/admin/image/')
                 }
 
             },
@@ -478,7 +480,7 @@ class PrinterView(GlobalModelView):
                                                      comment="Ville de naissance de l'imprimeur. "
                                                              "Peut correspondre au toponyme ancien."),
             "description": _format_link_add_model(description="une nouvelle ville",
-                                                  href='/dil/admin/city/new/?url=/dil/admin/city/')
+                                                  href='/dil/dil/admin/city/new/?url=/dil/dil/admin/city/')
         },
         "firstnames": {
             "label": _format_label_form_with_tooltip(label="Prénom(s)",
@@ -523,7 +525,6 @@ class PrinterView(GlobalModelView):
         # when model is created or updated
         handler.after_model_change(is_created=is_created)
 
-        print("on change avec", current_user.username)
         model.last_editor = current_user.username
         session.commit()
 
@@ -542,15 +543,15 @@ class PrinterView(GlobalModelView):
                 'id': kwargs['model'].id
             })
             patents = get_patents(session, {
-                'person_id':kwargs['model'].id
+                'person_id': kwargs['model'].id
             })
-            id_patents = [evt.id for evt in get_printer(session, {'id':kwargs['model'].id}).patents]
+            id_patents = [evt.id for evt in get_printer(session, {'id': kwargs['model'].id}).patents]
             if len(patents) == len(id_patents):
-                return super(PrinterView, self).render(template, **kwargs, patents=list(zip(id_patents, patents)), printer=printer)
+                return super(PrinterView, self).render(template, **kwargs, patents=list(zip(id_patents, patents)),
+                                                       printer=printer)
             else:
                 return super(PrinterView, self).render(template, **kwargs)
         return super(PrinterView, self).render(template, **kwargs)
-
 
     # Expose custom routes for printer view
     # for Ajax requests
@@ -603,18 +604,21 @@ class PrinterView(GlobalModelView):
         ).limit(20)  # Limiter les résultats
 
         results = [{"id": person.id, "text": repr(person)} for person in query]
-        print(results)
         # Ajouter une clé "results" pour que Select2 comprenne le format
         return jsonify(results)
 
     @expose('/get_printer/<int:person_id>', methods=['GET'])
     def ajax_printer(self, person_id):
         """Retrieves details of a printer from the database."""
-        person = (
-            session.query(Person)
-            .filter(Person.id == person_id)
-            .first()
-        )
+        person = get_printer(session, {
+            'id': person_id
+        })
+
+        # (
+        # session.query(Person)
+        # .filter(Person.id == person_id)
+        # .first()
+        # )
         return jsonify({
             "id": person_id,
             "text": repr(person)
@@ -676,11 +680,12 @@ class ImageView(GlobalModelView):
             'style="max-width: 200px; max-height: 200px;">'
             if m.img_name != 'unknown.jpg' else f'<img src="{m.iiif_url}" style="max-width: 200px; max-height: 200px;">'
         ),
-        #'reference_url': lambda v, c, m, p: Markup(
+        # 'reference_url': lambda v, c, m, p: Markup(
         #    f'<a href="{m.reference_url}" target="_blank">{m.reference_url}</a>'
         #    if m.reference_url else '<p>Pas d\'URL de référence</p>'
-        #),
-        'reference_url': lambda v, c, m, p: _format_href(prefix_url="", label=m.reference_url) if m.reference_url !='unknown_url' else 'Inconnue',
+        # ),
+        'reference_url': lambda v, c, m, p: _format_href(prefix_url="",
+                                                         label=m.reference_url) if m.reference_url != 'unknown_url' else 'Inconnue',
         'iiif_url': lambda v, c, m, p: _format_href(prefix_url="", label=m.iiif_url) if m.iiif_url else 'Inconnue'
     }
 
@@ -1046,6 +1051,7 @@ class CityView(GlobalModelView):
         model.last_editor = current_user.username
         session.commit()
 
+
 class AboutView(BaseView):
     """Custom view for database documentation."""
 
@@ -1068,4 +1074,3 @@ class AboutView(BaseView):
     def credits(self):
         """Renders credits in html view."""
         return self.render('admin/about/credits.html')
-
