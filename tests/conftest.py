@@ -1,9 +1,8 @@
 import pytest
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from api.models.models import *
 from api.database import BASE
-
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
 
 """
 @pytest.fixture(scope="session")
@@ -39,12 +38,42 @@ def session():
         "check_same_thread": False
     })
     Session = sessionmaker(bind=engine, expire_on_commit=False)
+    from api.models.models import (City,
+                                   Person,
+                                   Patent,
+                                   Address,
+                                   User,
+                                   PersonHasAddresses,
+                                   PatentHasAddresses,
+                                   Image,
+                                   PatentHasImages,)
+
+    City.metadata.create_all(engine)
+    Person.metadata.create_all(engine)
+    Patent.metadata.create_all(engine)
+    Address.metadata.create_all(engine)
+    User.metadata.create_all(engine)
+    PersonHasAddresses.metadata.create_all(engine)
+    PatentHasAddresses.metadata.create_all(engine)
+    Image.metadata.create_all(engine)
+    PatentHasImages.metadata.create_all(engine)
+
     if not engine.url.get_backend_name() == "sqlite":
         raise RuntimeError('Use SQLite backend to run tests')
 
-    BASE.metadata.create_all(engine)
+    #Base.metadata.create_all(engine)
     try:
         with Session() as session:
             yield session
     finally:
-        BASE.metadata.drop_all(engine)
+        City.metadata.drop_all(engine)
+        Person.metadata.drop_all(engine)
+        Patent.metadata.drop_all(engine)
+        Address.metadata.drop_all(engine)
+        User.metadata.drop_all(engine)
+        PersonHasAddresses.metadata.drop_all(engine)
+        PatentHasAddresses.metadata.drop_all(engine)
+        Image.metadata.drop_all(engine)
+        PatentHasImages.metadata.drop_all(engine)
+
+        #Base.metadata.drop_all(engine)
