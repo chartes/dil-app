@@ -75,5 +75,5 @@ if [[ " $@ " =~ " instance " ]]; then
   echo "Running with instance..."
   $INSTANCE api.main:app --host $HOST --port $PORT --workers $WORKERS
 else
-  uvicorn api.main:app --host $HOST --port $PORT --reload --workers 2
+  uvicorn api.main:app --host $HOST --port $PORT --reload
 fi
