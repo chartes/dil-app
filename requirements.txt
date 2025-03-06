@@ -42,7 +42,7 @@ markdown-it-py==3.0.0
 MarkupSafe==3.0.2
 mccabe==0.7.0
 mdurl==0.1.2
-numpy==2.2.3
+numpy
 packaging==24.2
 pandas==2.2.3
 pendulum==3.0.0
