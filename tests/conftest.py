@@ -2,7 +2,7 @@ import os
 
 from fastapi.testclient import TestClient
 from fastapi_pagination import add_pagination
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, MetaData
 from sqlalchemy.pool import StaticPool
 from sqlalchemy.orm import sessionmaker
 
@@ -21,22 +21,28 @@ os.environ["ENV"] = "test"
 WHOOSH_INDEX_DIR = os.path.join(BASE_DIR, settings.WHOOSH_INDEX_DIR)
 SQLALCHEMY_DATABASE_TEST_URL = "sqlite:///./test.db"
 
-engine = create_engine(
+def setup_database():
+    # Create an engine and metadata
+    engine = create_engine(
     SQLALCHEMY_DATABASE_TEST_URL,
-    connect_args={"check_same_thread": True},
-    poolclass=StaticPool,
-    echo=True,
-)
+    )
 
-TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    # Create all tables
+    BASE.metadata.create_all(engine)
 
-BASE.metadata.create_all(bind=engine)
+    # Optionally, you can also create a session
+    Session = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    session = Session()
+
+    return session
+
+
 
 
 def override_get_db():
     """Override the get_db() dependency with a test database."""
     try:
-        db = TestingSessionLocal()
+        db = setup_database()
         yield db
     finally:
         db.close()
@@ -45,7 +51,7 @@ def override_get_db():
 app.dependency_overrides[get_db] = override_get_db
 
 
-local_session = TestingSessionLocal()
+local_session = setup_database()
 # populate database from last migration
 #create_store(st, WHOOSH_INDEX_DIR)
 #create_index(st, PersonIdxSchema)
