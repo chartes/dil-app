@@ -122,7 +122,6 @@ async function addPreview(event, type = "ele") {
             );
 
             let isFallback = (imageDetails.img_url.endsWith('preview-na.png'));
-            console.log(isFallback)
 
             images.push({
                 id: imageDetails.id,
@@ -151,16 +150,12 @@ function getValidImageSrc(primaryUrl, secondaryUrl, fallbackUrl) {
 
         // Test de l'URL principale
         img.src = primaryUrl;
-        console.log(primaryUrl)
-        console.log(secondaryUrl)
         img.onload = () => resolve(primaryUrl);
         img.onerror = () => {
             // Si l'URL principale échoue, tester la seconde
             img.src = secondaryUrl;
             img.onload = () => resolve(secondaryUrl);
             img.onerror = () => {
-                // Si les deux URLs échouent, utiliser le fallback
-                console.log("monfalback:", fallbackUrl)
                 resolve(fallbackUrl);
             };
         };

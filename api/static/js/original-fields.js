@@ -143,11 +143,9 @@ async function addPreview(event, type = "ele") {
             let {id, img_iiif_url, img_url, label, is_pinned} = imageDetails;
             const img = new Image();
             img.src = img_url;
-            console.log(img.src);
             // Step 1: Test static_url
             img.onload = () => appendImagePreview(containerId, selectId, id, img_url, label, is_pinned, is_fallback);
             img.onerror = () => {
-                console.log("Error loading image from static_url test fallback to iiif_url");
                 // Step 2: If static_url fails, try iiif_url
                 img.src = img_iiif_url;
                 img.onload = () => appendImagePreview(containerId, selectId, id, img_iiif_url, label, is_pinned, is_fallback);

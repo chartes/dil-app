@@ -18,7 +18,6 @@ patentButton.onclick = function (event) {
     let lastname = lastnameInput.value;
     if (lastname) {
         faForm.addInlineField(this, 'patents');
-        console.log("Ajout d'un comportement supplémentaire avant l'appel existant.");
         const submitButton = document.querySelector('input[name="_continue_editing"]');
         // get the position of page before adding a new patent
         //let position = window.scrollY;

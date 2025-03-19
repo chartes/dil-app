@@ -19,7 +19,6 @@ generatePasswordBtn.addEventListener('click', async () => {
 
     try {
         let newPwd = await generatePassword();  // Attendre la réponse AJAX
-        console.log(newPwd);
 
         if (newPwd) {
             passwordField.value = newPwd;

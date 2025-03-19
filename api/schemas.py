@@ -13,8 +13,7 @@ class BaseMeta(BaseModel):
     id_dil: str = Field(..., alias="_id_dil")
 
     class Config:
-        from_attributes = True
-        populate_by_name = True
+        orm_mode = True
 
 class Message(BaseModel):
     message: str = Field(alias="message")

@@ -20,10 +20,8 @@ $('#patents-button').on('click', function () {
     containers.forEach(container => {
         const containerId = container.id;
         let index = containerId.split('-')[1]
-        console.log("avant btn:", index)
         // Vérifie si un bouton d'ajout existe déjà pour ce conteneur
         if (!document.querySelector(`#${containerId} ~ .add-relation-button`)) {
-            console.log("oui le boutton est la", index)
             // Créer et ajouter un bouton d'ajout
             const addButton = createButton("+", ["btn", "btn-primary", "mb-2"], null);
             addButton.classList.add("add-relation-button");
@@ -135,15 +133,10 @@ function loadExistingRelations(personId) {
         type: "GET",
         dataType: "json",
         success: function (groupedRelations) {
-            //console.log(groupedRelations)
-            if (Object.keys(groupedRelations).length === 0) {
-                console.log('aucun brevets')
-            } else {
+            if (Object.keys(groupedRelations).length !== 0) {
                 Object.entries(groupedRelations).forEach(([pid, relations]) => {
                         // test if relations is empty
                         if (relations.length !== 0) {
-                            console.log('relations trouvées')
-                            console.log(relations)
                             // build relation rows associated with the patent
                             let containerId = `#patents-${patentStruct[pid]}-relation-container`;
                             let container = document.querySelector(`${containerId}`);
@@ -159,17 +152,10 @@ function loadExistingRelations(personId) {
                                     // Événement pour ajouter une nouvelle relation
                                     addButton.addEventListener("click", () => addRelationRow(container, addButton, patentStruct[pid]));
                                 }
-                            } else {
-                                console.log('container not found')
-
-
                             }
                         } else {
-                            // build a btn to add a relation
-                            console.log('aucune relation')
                             // build place to add a relation
                             let containerId = `#patents-${patentStruct[pid]}-relation-container`;
-                            console.log(containerId)
                             let container = document.querySelector(`${containerId}`);
                             if (container) {
                                 // Vérifie si un bouton d'ajout existe déjà pour ce conteneur
@@ -198,8 +184,6 @@ function loadExistingRelations(personId) {
 
 // Ajouter une ligne à partir des données existantes
 function addRelationRowFromData(container, relationData, patentId) {
-    console.log("add relations from data");
-    console.log(relationData);
     const row = document.createElement("div");
     row.classList.add("relation-row", "mb-3", "d-flex", "align-items-center");
 

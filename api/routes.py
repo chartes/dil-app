@@ -4,6 +4,8 @@ routes.py
 FastAPI routes for the DIL API.
 """
 
+from typing import Union
+
 from fastapi import (APIRouter,
                      Depends,
                      Query)
@@ -14,7 +16,8 @@ from fastapi_pagination.ext.sqlalchemy import (paginate)
 from fastapi_pagination.customization import CustomizedPage
 
 from sqlalchemy import (or_,
-                        asc)
+                        asc,
+                        select)
 from sqlalchemy.orm import Session
 from starlette.responses import JSONResponse
 
@@ -113,7 +116,7 @@ def read_printers(db: Session = Depends(get_db),
                                                  description="Filtrer des personnes par la date de début des brevets. Forme requise : `YYYY`, `YYYY-MM`, `YYYY-MM-DD`"),
                   exact_patent_date_start: bool = Query(False,
                                                         description="Recherche exacte sur la date de début des brevets.")) -> \
-        JSONResponse:
+        Union[JSONResponse,Page]:
     """
        🔍 **Rechercher des personnes (imprimeurs et/ou lithographes) avec filtres**
 
@@ -137,7 +140,6 @@ def read_printers(db: Session = Depends(get_db),
         ).join(
             City, City.id == Patent.city_id, isouter=True
         )
-
         if patent_city_query:
             query = query.filter(
                 or_(
@@ -145,7 +147,6 @@ def read_printers(db: Session = Depends(get_db),
                     Patent.city_label.like(f"%{patent_city_query}%")
                 )
             )
-
         if patent_date_start:
             if len(patent_date_start) >= 4:
                 normalized_date = normalize_date(patent_date_start)
@@ -157,13 +158,7 @@ def read_printers(db: Session = Depends(get_db),
                         Patent.date_start >= normalized_date
                     ))
                 query = query.order_by(asc(Patent.date_start))
-
-        paginated_printers = paginate(query)
-
-        if not paginated_printers.items:
-            return JSONResponse(status_code=404,
-                                content={"message": "No printers found"})
-
+        paginated_printers = paginate(db, query)
         transformed_items = [
             PrinterMinimalResponseOut(
                 _id_dil=str(printer.id_dil) if printer.id_dil else None,
@@ -174,7 +169,8 @@ def read_printers(db: Session = Depends(get_db),
                 if printer.id_dil else 0
             ) for printer in paginated_printers.items if printer.id_dil
         ]
-
+        if not transformed_items:
+            return JSONResponse(status_code=200, content={"message": "No printers found"})
         return Page(
             page=paginated_printers.page,
             total=paginated_printers.total,
@@ -268,15 +264,38 @@ def read_cities(db: Session = Depends(get_db)):
         return JSONResponse(status_code=500,
                             content={"message": f"It seems the server have trouble: {e}"})
 
-
 @api_router.get("/referential/cities/city/{id}",
                 response_model=CityOut,
                 include_in_schema=True,
                 responses={404: {"model": Message}, 500: {"model": Message}},
                 summary='',
                 tags=['Referential'])
-def read_cities():
-    pass
+def read_city(db: Session = Depends(get_db), id: str = None):
+    try:
+        city = get_city(db, {"_id_dil": id})
+        if city is None:
+            return JSONResponse(status_code=404,
+                                content={"message": f"Address with id {id} not found"})
+        transformed_address = CityOut(
+            _id_dil=str(city._id_dil) if city._id_dil else None,
+            label=city.label,
+            country_iso_code=city.country_iso_code,
+            long_lat=city.long_lat,
+            insee_fr_code=city.insee_fr_code,
+            insee_fr_department_code=city.insee_fr_department_code,
+            insee_fr_department_label=city.insee_fr_department_label,
+            geoname_id=city.geoname_id,
+            wikidata_item_id=city.wikidata_item_id,
+            dicotopo_item_id=city.dicotopo_item_id,
+            databnf_ark=city.databnf_ark,
+            viaf_id=city.viaf_id,
+            siaf_id=city.siaf_id
+        )
+        return transformed_address
+    except Exception as e:
+        return JSONResponse(status_code=500,
+                            content={"message": f"It seems the server have trouble: {e}"})
+
 
 
 @api_router.get("/referential/addresses",
@@ -326,7 +345,6 @@ def read_addresses(db: Session = Depends(get_db)):
 def read_address(db: Session = Depends(get_db), id: str = None):
     try:
         address = get_address(db, {"_id_dil": id})
-        print(get_city(db, {"id": int(address.city_id)})._id_dil)
         if address is None:
             return JSONResponse(status_code=404,
                                 content={"message": f"Address with id {id} not found"})

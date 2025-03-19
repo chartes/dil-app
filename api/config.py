@@ -21,7 +21,6 @@ BASE_DIR = pathlib.Path(__file__).parent.parent
 # Load the environment variables (by, default, the dev environment)
 mode = os.environ.get("ENV", "dev")
 env_file = BASE_DIR / f".{mode}.env"
-print(env_file)
 dotenv.load_dotenv(env_file)
 
 class Settings(BaseSettings):

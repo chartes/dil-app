@@ -102,26 +102,21 @@ class PrinterModelChangeHandler(ModelChangeHandler):
     def _update_pinned_images(self) -> None:
         """Updates the pinned images for the patents related to the given model.
         """
-        print("update pinned images")
-        print(self.grouped_data)
         self.session.commit()
         for values in self.grouped_data.values():
             if "pinned_images" in values and values["pinned_images"]:
                 relations = self.session.query(PatentHasImages).filter_by(patent_id=values["patent_id"]).all()
-                print(relations)
                 relation_to_pinned = self.session.query(PatentHasImages).filter_by(
                     patent_id=values["patent_id"], image_id=int(values["pinned_images"])
                 ).first()
                 # Unpin existing relations and pin the selected image
                 if  len(relations) > 0:
                     if relation_to_pinned:
-                        print("not first time")
                         for relation in relations:
                             relation.is_pinned = False
                         relation_to_pinned.is_pinned = True
                         self.session.commit()
                     else:
-                        print("first time")
                         # probably the first time the image is pinned
                         for relation in relations:
                             image_id = relation.image_id
@@ -131,7 +126,7 @@ class PrinterModelChangeHandler(ModelChangeHandler):
                                 relation.is_pinned = False
                         self.session.commit()
                 else:
-                    print("no relations")
+                    pass
 
     def _update_patent_relations(self) -> None:
         """Updates the relations between patents and printers based on the grouped data.

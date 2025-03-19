@@ -866,6 +866,7 @@ class AddressView(GlobalModelView):
 
 
 class CityView(GlobalModelView):
+    list_template = "admin/list.city.html"
     column_list = ["id",
                    "_id_dil",
                    "label",

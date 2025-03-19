@@ -27,13 +27,12 @@ MARKUP_HTML_FIELDS = {'personal_information', 'professional_information'}
 inverted_type_relations = {v: k for k, v in type_patent_relations.items()}
 
 
-def get_user(db: Session, args: dict) \
-        -> Union[User, None]:
+def get_user(db: Session, args: dict):
     """Get a user from the database."""
     return db.query(User).filter_by(**args).first()
 
 
-def clean_html_markup(html_markup: str) -> str:
+def clean_html_markup(html_markup: str):
     if html_markup:
         return bleach.clean(
         re.sub(r"<br>",
@@ -47,7 +46,7 @@ def clean_html_markup(html_markup: str) -> str:
 
 def enhance_patent_response(db: Session,
                             patent: Type[Patent],
-                            html_markup: bool = False) -> dict:
+                            html_markup: bool = False):
     """Enhance patent response."""
     return {
                 '_id_dil': str(patent._id_dil) if patent._id_dil else None,
@@ -78,7 +77,7 @@ def enhance_patent_response(db: Session,
 
 def enhance_printer_response(db: Session,
                              printer: Type[Person],
-                             html_markup) -> dict:
+                             html_markup):
     """Enhance printer response with cleaner html."""
     if not html_markup:
         for field in MARKUP_HTML_FIELDS:
@@ -97,7 +96,7 @@ def enhance_printer_response(db: Session,
             "id": printer.__dict__["birth_city_id"]})._id_dil) if printer.__dict__["birth_city_id"] else None,
         "personal_information": printer.personal_information,
         "professional_information": printer.professional_information,
-        "addresses_relations": [
+        "personal_addresses": [
             {
                 '_id_dil': str(address.address_persons._id_dil) if address.address_persons._id_dil else None,
                 'label': address.address_persons.label,
@@ -115,7 +114,7 @@ def enhance_printer_response(db: Session,
 
 
 
-def get_printer(db: Session, args: dict, enhance: bool = False) -> Union[dict, None]:
+def get_printer(db: Session, args: dict, enhance: bool = False):
     """Get a printer from the database."""
     html_markup = args.pop("html", False)
     printer = db.query(Person).filter_by(**args).first()
@@ -128,7 +127,7 @@ def get_printer(db: Session, args: dict, enhance: bool = False) -> Union[dict, N
         return None
 
 
-def get_printers(db: Session, args: dict, enhance: bool = False) -> list:
+def get_printers(db: Session, args: dict, enhance: bool = False):
     """Get persons from the database."""
     printers = db.query(Person).filter_by(**args).all()
     if len(printers) > 0:
@@ -148,7 +147,7 @@ def get_printers(db: Session, args: dict, enhance: bool = False) -> list:
     else:
         return []
 
-def get_patent(db: Session, args: dict, enhance: bool = False) -> Union[dict, None]:
+def get_patent(db: Session, args: dict, enhance: bool = False):
     """Get a patent"""
     html_markup = args.pop("html", False)
     patent = db.query(Patent).filter_by(**args).first()
@@ -171,31 +170,31 @@ def get_entities(db: Session, model, args: dict):
     return db.query(model).filter_by(**args).all()
 """
 
-def get_cities(db: Session, args: dict) -> list[Type[City]]:
+def get_cities(db: Session, args: dict):
     """Get cities from the database."""
     return db.query(City).filter_by(**args).all()
 
-def get_addresses(db: Session, args: dict) -> list[Type[Address]]:
+def get_addresses(db: Session, args: dict):
     """Get addresses from the database."""
     return db.query(Address).filter_by(**args).all()
 
-def get_city(db: Session, args: dict) -> Union[City, None]:
+def get_city(db: Session, args: dict):
     """Get a city"""
     return db.query(City).filter_by(**args).first()
 
-def get_address(db: Session, args: dict) -> Union[Address, None]:
+def get_address(db: Session, args: dict):
     """Get an address"""
     return db.query(Address).filter_by(**args).first()
 
 
-def get_printer_personal_addresses(db: Session, args: dict) -> list:
+def get_printer_personal_addresses(db: Session, args: dict):
     """Get a printer's personal addresses from the database."""
     pass
 
-def get_image(db: Session, args: dict) -> list:
+def get_image(db: Session, args: dict):
     """Get images from the database."""
     return db.query(Image).filter_by(**args).first()
 
-def get_patents(db: Session, args: dict) -> list:
+def get_patents(db: Session, args: dict):
     """Get patents from the database."""
     return db.query(Patent).filter_by(**args).all()
