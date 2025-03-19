@@ -23,7 +23,7 @@ SQLALCHEMY_DATABASE_TEST_URL = "sqlite://"
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_TEST_URL,
-    connect_args={"check_same_thread": False},
+    connect_args={"check_same_thread": True},
     poolclass=StaticPool,
     echo=True,
 )
