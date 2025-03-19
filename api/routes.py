@@ -113,7 +113,7 @@ def read_printers(db: Session = Depends(get_db),
                                                  description="Filtrer des personnes par la date de début des brevets. Forme requise : `YYYY`, `YYYY-MM`, `YYYY-MM-DD`"),
                   exact_patent_date_start: bool = Query(False,
                                                         description="Recherche exacte sur la date de début des brevets.")) -> \
-        JSONResponse | Page:
+        JSONResponse:
     """
        🔍 **Rechercher des personnes (imprimeurs et/ou lithographes) avec filtres**
 

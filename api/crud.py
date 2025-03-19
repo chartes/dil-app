@@ -10,7 +10,6 @@ from typing import (Union,
 import re
 
 from sqlalchemy.orm import (Session,
-                            InstrumentedAttribute,
                             declared_attr)
 
 import bleach
@@ -116,9 +115,7 @@ def enhance_printer_response(db: Session,
 
 
 
-def get_printer(db: Session, args: dict, enhance: bool = False) -> dict[str, InstrumentedAttribute |
-                                                                             InstrumentedAttribute[Any] | declared_attr[
-                                                                                 Any] | None] | Type[Person] | None:
+def get_printer(db: Session, args: dict, enhance: bool = False) -> Union[dict, None]:
     """Get a printer from the database."""
     html_markup = args.pop("html", False)
     printer = db.query(Person).filter_by(**args).first()
@@ -131,7 +128,7 @@ def get_printer(db: Session, args: dict, enhance: bool = False) -> dict[str, Ins
         return None
 
 
-def get_printers(db: Session, args: dict, enhance: bool = False) -> list[dict] | list[Type[Person]] | list[Any]:
+def get_printers(db: Session, args: dict, enhance: bool = False) -> list:
     """Get persons from the database."""
     printers = db.query(Person).filter_by(**args).all()
     if len(printers) > 0:
@@ -151,7 +148,7 @@ def get_printers(db: Session, args: dict, enhance: bool = False) -> list[dict] |
     else:
         return []
 
-def get_patent(db: Session, args: dict, enhance: bool = False) -> dict | Type[Patent] | None:
+def get_patent(db: Session, args: dict, enhance: bool = False) -> Union[dict, None]:
     """Get a patent"""
     html_markup = args.pop("html", False)
     patent = db.query(Patent).filter_by(**args).first()

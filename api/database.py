@@ -7,10 +7,9 @@ Database connection and session management.
 import os
 
 from sqlalchemy import create_engine
-#from sqlalchemy.or.declarative import declarative_base
+from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import (sessionmaker,
-                            scoped_session,
-                            declarative_base)
+                            scoped_session)
 
 #from whoosh import index
 
@@ -46,8 +45,5 @@ def get_db() -> scoped_session:
     db = session
     try:
         yield db
-    except Exception:
-        db.rollback()
-        raise
     finally:
         db.close()
