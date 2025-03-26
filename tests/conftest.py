@@ -14,15 +14,6 @@ from api.config import BASE_DIR, settings
 #                                       create_store)
 #from api.index_conf import st
 #from api.index_fts.schemas import PersonIdxSchema
-from api.models.models import (
-    Person,
-    Address,
-    City,
-    Patent,
-    Image,
-    PatentHasAddresses,
-    PatentHasImages,
-)
 
 # set up ENV var for testing
 os.environ["ENV"] = "test"
@@ -32,12 +23,12 @@ SQLALCHEMY_DATABASE_TEST_URL = "sqlite://"
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_TEST_URL,
-    connect_args={"check_same_thread": True},
+    connect_args={"check_same_thread": False},
     poolclass=StaticPool,
     echo=True,
 )
 
-TestingSessionLocal = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=engine))
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 BASE.metadata.create_all(bind=engine)
 # add manually the tables
