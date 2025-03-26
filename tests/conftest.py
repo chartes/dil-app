@@ -4,7 +4,7 @@ from fastapi.testclient import TestClient
 from fastapi_pagination import add_pagination
 from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
-from sqlalchemy.orm import sessionmaker, scoped_session
+from sqlalchemy.orm import sessionmaker, scoped_session, declarative_base
 
 from api.database import (get_db, BASE)
 from api.main import (app)
@@ -19,7 +19,22 @@ from api.config import BASE_DIR, settings
 os.environ["ENV"] = "test"
 
 WHOOSH_INDEX_DIR = os.path.join(BASE_DIR, settings.WHOOSH_INDEX_DIR)
-SQLALCHEMY_DATABASE_TEST_URL = "sqlite://"
+SQLALCHEMY_DATABASE_TEST_URL = f"sqlite:///{os.path.join(BASE_DIR, settings.DB_URI)}"
+
+
+from api.models.models import (
+    Person,
+    Address,
+    City,
+    Patent,
+    Image,
+    PatentHasAddresses,
+    PatentHasImages,
+    PatentRelationType,
+    PatentHasRelations,
+)
+
+
 
 engine = create_engine(
     SQLALCHEMY_DATABASE_TEST_URL,
@@ -28,9 +43,10 @@ engine = create_engine(
     echo=True,
 )
 
+BASE.metadata.create_all(bind=engine, checkfirst=True)
+
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-BASE.metadata.create_all(bind=engine)
 # add manually the tables
 
 def override_get_db():
