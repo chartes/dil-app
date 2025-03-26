@@ -2,13 +2,14 @@ from api.models.models import (City,
                             Address,
                             Person,
                             Patent,
-                            PatentHasAddresses,
-                               BASE)
-from tests.conftest import local_session
+                            PatentHasAddresses
+                            )
+from tests.conftest import local_session, engine, BASE
 
 def test_patent_address_relationship():
     """Test that patents can be correctly linked to addresses."""
     with local_session as session:
+        BASE.metadata.create_all(engine)
         city = City(label="Marseille", country_iso_code="FR")
         address = Address(label="Port", city_label="Marseille", city=city)
         session.add_all([city, address])
