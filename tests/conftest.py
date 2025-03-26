@@ -15,6 +15,8 @@ from api.config import BASE_DIR, settings
 #from api.index_conf import st
 #from api.index_fts.schemas import PersonIdxSchema
 
+from api.models import *
+
 # set up ENV var for testing
 os.environ["ENV"] = "test"
 
@@ -45,7 +47,7 @@ def override_get_db():
 app.dependency_overrides[get_db] = override_get_db
 
 
-local_session = TestingSessionLocal()
+
 # populate database from last migration
 #create_store(st, WHOOSH_INDEX_DIR)
 #create_index(st, PersonIdxSchema)
@@ -55,3 +57,5 @@ local_session = TestingSessionLocal()
 # populate_index(session=local_session, index_=ix, model=Person)
 add_pagination(app)
 client = TestClient(app)
+
+local_session = TestingSessionLocal()

@@ -35,7 +35,7 @@
     <script type="text/javascript" src="{{ url_for('static', filename='deps/quill/quill.min.js') }}"></script>
     <script type="text/javascript" src="{{ url_for('static', filename='js/printer.form.quill_config.js') }}"></script>
     <script type="text/javascript" src="{{ url_for('static', filename='js/printer.form.fields.js') }}"></script>
-    <script type="text/javascript" src="{{ url_for('static', filename='js/printer.form.fields.relations.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('static', filename='js/printer.form.fields.dynamicRows.js') }}"></script>
     <script type="text/javascript" src="{{ url_for('static', filename='js/printer.form.patents.inlineFields.js') }}"></script>
     <script type="text/javascript" src="{{ url_for('static', filename='js/image.form.loadImage.js') }}"></script>
     <script type="text/javascript">
@@ -43,6 +43,7 @@
         $(function () {
             $('[data-toggle="tooltip"]').tooltip()
         });
+
     </script>
     <!--<script>
         CKEDITOR.replaceAll('ckeditor');

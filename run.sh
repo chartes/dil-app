@@ -11,6 +11,9 @@ INSTANCE="/srv/webapp/api/dil-app/venv/bin/uvicorn"
 IMAGE_ORIGINAL_DIR="./data/assets/images/"
 IMAGE_API_DIR="./api/static/images_store/"
 
+# Valeur par défaut si non définie
+: "${WORKERS:=1}"
+
 # Afficher l'aide
 usage() {
   echo "Usage: ./run.sh <mode> [-db-re] [-db-back] [-images-back] [instance]"

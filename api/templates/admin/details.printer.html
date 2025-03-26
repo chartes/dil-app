@@ -10,10 +10,10 @@
 
 {% block details_table %}
     {{ super() }}
-    <h3><b>{{ printer.addresses_relations | length }}</b>  Adresse(s) personnelle(s) associée(s)</h3>
+    <h3><b>{{ printer.addresses_relations | length }}</b> Adresse(s) personnelle(s) associée(s)</h3>
     <ul>
         {% for rel in printer.addresses_relations %}
-            <li>{{ rel.address_persons  }}</li>
+            <li>{{ rel.address_persons }}</li>
         {% endfor %}
     </ul>
     <h3><b>{{ patents | length }}</b> Brevet(s) associé(s)</h3>
@@ -31,8 +31,8 @@
         {% set type_mapping = {
     'PREDECESSOR': 'Prédécesseur',
     'SUCCESSOR': 'Successeur',
-    'ASSOCIATE': 'Associé',
-    'SPONSOR': 'Parrain'
+    'SPONSOR': 'Parrain',
+    'PARTNER': 'Associé',
 } %}
         {% for id, patent in patents %}
             <tr>
@@ -43,7 +43,7 @@
                     <ul>
                         {% for type, relations in patent['patent_relations']|groupby('type') %}
                             <li>
-                                <strong>{{ type_mapping.get(type, type)  }}</strong>
+                                <strong>{{ type_mapping.get(type, type) }}</strong>
                                 <ul>
                                     {% for relation in relations %}
                                         <li>
@@ -60,12 +60,23 @@
                 </td>
                 <td>
                     <ul>
-                        {% for address in patent['addresses'] %}
+                        {% for address in patent['addresses_relations']|sort(attribute='date_occupation') %}
                             <li>
-                                {{ address }}
+                                {% if address.date_occupation %}
+                                    {% if address.date_occupation.startswith('~') %}
+                                        [Date approximative : {{ address.date_occupation }}]
+                                    {% else %}
+                                        [{{ address.date_occupation }}]
+                                    {% endif %}
+                                {% else %}
+                                    [Date inconnue]
+                                {% endif %}
+                                {{ address.address_patents.label }} - {{ address.address_patents.city.label }}
+                                ({{ address.address_patents.city.insee_fr_department_code }})
                             </li>
                         {% endfor %}
                     </ul>
+
                 </td>
 
             </tr>

@@ -33,7 +33,7 @@ from .validators import (is_valid_date,
                          validate_coordinates,
                          validate_address)
 from ..models.models import *
-from ..crud import get_user
+from ..crud import get_user, get_address
 from .forms import LoginForm
 from .widget import QuillWidget
 
@@ -320,7 +320,7 @@ class PrinterView(GlobalModelView):
                 "city",
                 "references",
                 "comment",
-                "addresses",
+                "addresses_container",
                 "relation_container",
                 "images",
             ],
@@ -340,14 +340,23 @@ class PrinterView(GlobalModelView):
 
             },
             "form_extra_fields": {
+                # place for inner form fields. These placeholder container are hidden in the form.
+                # They are used as a anchor for the js to attach the form fields.
                 "relation_container": StringField(
                     label="Relations avec imprimeurs",
-                    widget=TextArea(),  # Placeholding container
+                    widget=TextArea(),
                     render_kw={"id": "relation-container"}
-                )
+                ),
+                "addresses_container": StringField(
+                    label="Adresses professionnelles",
+                    widget=TextArea(),
+                    render_kw={"id": "addresses-container"}
+                ),
             },
             "form_widget_args": {
                 "images": {"onchange": "addPreview(this);", "class": "select2-image"},
+                # These containers are hidden in the form and used as anchor for the js to attach the form fields.
+                "addresses_container": {"onchange": "makeAddress(this)", "class": "addresses-container-attach"},
                 "relation_container": {"onchange": "makeRelation(this)", "class": "relation-container-attach"}
             },
             "form_ajax_refs": {
@@ -358,15 +367,6 @@ class PrinterView(GlobalModelView):
                     search_field="label",
                     page_size=10,
                     placeholder="Commencer la saisie puis sélectionner une ville...",
-                    allow_blank=True
-                ),
-                "addresses": GenericAjaxModelLoader(
-                    "addresses",
-                    session,
-                    Address,
-                    search_field="label",
-                    page_size=10,
-                    placeholder="Commencer la saisie puis sélectionner une ou plusieurs adresses...",
                     allow_blank=True
                 ),
                 "images": GenericAjaxModelLoader(
@@ -416,12 +416,6 @@ class PrinterView(GlobalModelView):
                                                              comment="Ville du brevet dans le référentiel."),
                     "description": _format_link_add_model(description="une nouvelle ville",
                                                           href='/dil/dil/admin/city/new/?url=/dil/dil/admin/city/')
-                },
-                "addresses": {
-                    "label": _format_label_form_with_tooltip(label="Adresses professionnelles",
-                                                             comment="Adresses professionnelles liées au brevet."),
-                    "description": _format_link_add_model(description="une nouvelle adresse",
-                                                          href='/dil/dil/admin/address/new/?url=/dil/dil/admin/address/')
                 },
                 "images": {
                     "label": _format_label_form_with_tooltip(label="Images",
@@ -564,9 +558,7 @@ class PrinterView(GlobalModelView):
             patent_id = request.args.get('patent_id')  # Récupère l'ID du brevet depuis les paramètres GET
             if not image_id:
                 return jsonify({'error': 'No ID provided'}), 400
-            # Cherchez l'image dans la base
             image = session.query(Image).filter_by(id=image_id).first()
-            # chercher si l'image est pinned à un brevet dans une relation
             try:
                 is_pinned = session.query(PatentHasImages).filter_by(image_id=image_id,
                                                                      patent_id=patent_id).first().is_pinned
@@ -591,7 +583,7 @@ class PrinterView(GlobalModelView):
     @expose('/get_printers', methods=['GET'])
     def ajax_printers(self):
         """Retrieves a list of printers for Select2."""
-        search = request.args.get('q', '')  # Récupère le terme de recherche
+        search = request.args.get('q', '')
         query = (
             session.query(Person)
             .filter(
@@ -600,11 +592,22 @@ class PrinterView(GlobalModelView):
                     Person.firstnames.ilike(f"%{search.lower()}%")
                 )
             )
-            .order_by(Person.lastname, Person.firstnames)  # Trier par nom et prénom
-        ).limit(20)  # Limiter les résultats
+            .order_by(Person.lastname, Person.firstnames)
+        ).limit(20)
 
         results = [{"id": person.id, "text": repr(person)} for person in query]
-        # Ajouter une clé "results" pour que Select2 comprenne le format
+        return jsonify(results)
+
+    @expose('/get_addresses', methods=['GET'])
+    def ajax_addresses(self):
+        """Retrieves a list of addresses for Select2."""
+        search = request.args.get('q', '')  # Récupère le terme de recherche
+        query = (
+            session.query(Address)
+            .filter(Address.label.ilike(f"%{search.lower()}%"))
+        ).limit(20)  # Limiter les résultats
+
+        results = [{"id": address.id, "text": repr(address)} for address in query]
         return jsonify(results)
 
     @expose('/get_printer/<int:person_id>', methods=['GET'])
@@ -613,27 +616,29 @@ class PrinterView(GlobalModelView):
         person = get_printer(session, {
             'id': person_id
         })
-
-        # (
-        # session.query(Person)
-        # .filter(Person.id == person_id)
-        # .first()
-        # )
         return jsonify({
             "id": person_id,
             "text": repr(person)
         })
 
+    @expose('/get_address/<int:address_id>', methods=['GET'])
+    def ajax_address(self, address_id):
+        """Retrieves details of a printer from the database."""
+        address = get_address(session, {
+            'id': address_id
+        })
+        return jsonify({
+            "id": address_id,
+            "text": repr(address)
+        })
+
     @expose('/get_patent_relations/<int:person_id>', methods=['GET'])
     def get_patent_relations(self, person_id):
         """Retrieves relations for a printer."""
-        # retrieve all patents for the printer
         patents = session.query(Patent).filter_by(person_id=person_id).all()
         patents_id = [p.id for p in patents]
-        # Grouper les relations par `patent_id`
         grouped_relations = {}
         for pid in patents_id:
-            # Récupère les relations de brevet pour l'imprimeur spécifié et son brevet
             relations = (
                 session.query(PatentHasRelations)
                 .filter(PatentHasRelations.person_id == person_id, PatentHasRelations.patent_id == pid)
@@ -642,14 +647,36 @@ class PrinterView(GlobalModelView):
             if pid not in grouped_relations:
                 grouped_relations[pid] = []
             for relation in relations:
-                # find key in type_patent_relations dictionary
                 relation_type = [k for k, v in type_patent_relations.items() if v == relation.type][0]
                 grouped_relations[pid].append({
-                    "person_related_id": relation.person_related_id,
-                    "relation_type": relation_type  # Convertir Enum en chaîne
+                    "id": relation.person_related_id,
+                    "data": relation_type
                 })
 
+
         return jsonify(grouped_relations)
+
+    @expose('/get_pro_addresses/<int:person_id>', methods=['GET'])
+    def get_pro_addresses(self, person_id):
+        """Retrieves professional addresses for a printer."""
+        patents = session.query(Patent).filter_by(person_id=person_id).all()
+        patents_id = [p.id for p in patents]
+        grouped_addresses = {}
+        for pid in patents_id:
+            addresses = (
+                session.query(PatentHasAddresses)
+                .filter(PatentHasAddresses.patent_id == pid)
+                .all()
+            )
+            if pid not in grouped_addresses:
+                grouped_addresses[pid] = []
+            for address in addresses:
+                grouped_addresses[pid].append({
+                    "id": address.address_id,
+                    "data": address.date_occupation
+                })
+
+        return jsonify(grouped_addresses)
 
 
 class ImageView(GlobalModelView):
@@ -718,8 +745,6 @@ class ImageView(GlobalModelView):
         }
     }
 
-    # Alternative way to contribute field is to override it completely.
-    # In this case, Flask-Admin won't attempt to merge various parameters for the field.
     form_extra_fields = {
         "img_name": ImageUploadField(
             "Charger une image", base_path=settings.IMAGE_STORE,
@@ -732,7 +757,6 @@ class ImageView(GlobalModelView):
     }
 
     def on_model_change(self, form, model, is_created):
-        # display form data
         data = form.data
         if data['img_name'] is None:
             model.img_name = "unknown.jpg"
@@ -903,7 +927,6 @@ class CityView(GlobalModelView):
 
     column_searchable_list = ["label"]
 
-    # Transformer la colonne `long_lat` pour afficher une carte
     column_formatters = {
         'long_lat': lambda v, c, m, p: (
             Markup(f'''
@@ -1047,6 +1070,7 @@ class CityView(GlobalModelView):
                            "Exemple : <a href='https://francearchives.gouv.fr/fr/location/217180640'><b>217180640</b></a> pour Port-Sainte-Marie (Lot-et-Garonne, France)."
         }
     }
+
 
     def on_model_change(self, form, model, is_created):
         model.last_editor = current_user.username

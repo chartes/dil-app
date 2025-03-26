@@ -1,8 +1,19 @@
-# dil-app
+# dil-app backend service
 
 ![Python versions](https://img.shields.io/badge/python-3.10-blue) [![DIL API CI](https://github.com/chartes/dil-app/actions/workflows/CI-tests.yml/badge.svg)](https://github.com/chartes/dil-app/actions/workflows/CI-tests.yml) ![Dil-Coverage](./tests/coverage.svg)
 
-Application du dictionnaire des imprimeurs lithographes du XIXe siècle en France (site, base de données, administration, API).
+[![FastAPI - API](https://img.shields.io/static/v1?label=FastAPI&message=API&color=%232E303E&style=for-the-badge&logo=fastapi&logoColor=%23009485)](https://fastapi.tiangolo.com/)
+[![SQLite - DB](https://img.shields.io/static/v1?label=SQLite&message=DB&color=%2374B8E4&style=for-the-badge&logo=sqlite&logoColor=white)](https://www.sqlite.org/index.html)
+[![Flask - admin](https://img.shields.io/static/v1?label=Flask&message=admin&color=black&style=for-the-badge&logo=flask&logoColor=white)](https://flask-admin.readthedocs.io/en/latest/#)
+[![SQLAlchemy -  orm](https://img.shields.io/badge/SQLAlchemy-_orm-red?style=for-the-badge)](https://www.sqlalchemy.org/)
+
+## Description
+
+Ce dépôt forme le *backend* de l'application dictionnaire des imprimeurs lithographes du XIXe siècle en France, qui se décline de la manière suivante :
+- le modèle et la base de données SQLite;
+- l'interface d'administration pour la BD;
+- l'API (+ documentation Swagger).
+
 
 
 ## Historique 

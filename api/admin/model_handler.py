@@ -1,8 +1,16 @@
+"""model_handler.py
+
+This module contains the ModelChangeHandler class and its subclasses,
+which are used to handle changes to models in the database.
+This is necessary to adapt if you add inner (depth) inline models in flask admin views.
+"""
+
+
 from typing import Dict, Any, List
 from sqlalchemy.orm import Session
 from flask import request
-from ..models.models import Patent, PatentHasImages, PatentHasRelations
-from .validators import is_circular_person_patent_relation
+from ..models.models import Patent, PatentHasImages, PatentHasRelations, PatentHasAddresses
+from .validators import is_circular_person_patent_relation, is_valid_date_format
 
 class ModelChangeHandler:
     def __init__(self, session: Session, model: Any, form):
@@ -55,6 +63,12 @@ class PrinterModelChangeHandler(ModelChangeHandler):
                 if printer_id.strip():
                     is_circular_person_patent_relation(self.model_id, int(printer_id), relation_type, data['patent_id'])
 
+
+            for address, address_date in zip(data.get("pro_addresses", []), data.get("pro_addresses_dates", [])):
+                if address.strip():
+                    if address_date.strip() != "":
+                        is_valid_date_format(address_date, "Voir le champ 'Date d'occupation' pour les adresses professionnelles.")
+
         #self.form.populate_obj(self.model)
 
     def after_model_change(self, is_created: bool) -> None:
@@ -63,6 +77,7 @@ class PrinterModelChangeHandler(ModelChangeHandler):
         """
         self._update_pinned_images()
         self._update_patent_relations()
+        self._update_pro_addresses()
 
     def prepare_grouped_data(self) -> None:
         """
@@ -93,7 +108,9 @@ class PrinterModelChangeHandler(ModelChangeHandler):
                         "patent_id": patent_id,
                         "pinned_images": form_data.get(f'patents-{i}-images-pinned-image', [None])[0],
                         "printer_relations": form_data.get(f'dynamic_printers[{i}][]', []),
-                        "relation_types": form_data.get(f'dynamic_relation_types[{i}][]', [])
+                        "relation_types": form_data.get(f'dynamic_relation_types[{i}][]', []),
+                        "pro_addresses": form_data.get(f'dynamic_pro_addresses[{i}][]', []),
+                        "pro_addresses_dates": form_data.get(f'dynamic_pro_addresses_date[{i}][]', [])
                     }
             except (ValueError, TypeError):
                 continue
@@ -135,6 +152,33 @@ class PrinterModelChangeHandler(ModelChangeHandler):
             if "printer_relations" in data and "relation_types" in data:
                 self._process_patent_relations(data)
 
+
+    def _update_pro_addresses(self) -> None:
+        for data in self.grouped_data.values():
+            if "pro_addresses" in data and "pro_addresses_dates" in data:
+                self._process_pro_addresses(data)
+
+
+    def _process_pro_addresses(self, data: Dict[str, Any]) -> None:
+        current_addresses = self.session.query(PatentHasAddresses).filter_by(
+            patent_id=data["patent_id"]
+        ).all()
+
+        current_addresses_id = [a.id for a in current_addresses]
+        final_addresses_id = []
+
+        for address_id, address_date in zip(data["pro_addresses"], data["pro_addresses_dates"]):
+            if address_id.strip():
+                self._add_or_update_pro_address(int(address_id), address_date, data["patent_id"], final_addresses_id)
+
+        # Remove obsolete addresses
+        for aid in current_addresses_id:
+            if aid not in final_addresses_id:
+                address_to_delete = self.session.query(PatentHasAddresses).filter_by(id=aid).first()
+                if address_to_delete:
+                    self.session.delete(address_to_delete)
+
+
     def _process_patent_relations(self, data: Dict[str, Any]) -> None:
         """Processes the patent relations by creating or deleting them based on the grouped data.
         """
@@ -157,22 +201,46 @@ class PrinterModelChangeHandler(ModelChangeHandler):
     def _add_or_update_relation(self, printer_id: int, relation_type: str, patent_id: int, final_relations_id: List[int]) -> None:
         """Adds or updates a relation between a patent and a printer.
         """
-        relation = self.session.query(PatentHasRelations).filter_by(
-            patent_id=patent_id,
-            person_id=self.model_id,
-            person_related_id=printer_id,
-            type=relation_type
-        ).first()
-
-        if not relation:
-            new_relation = PatentHasRelations(
+        if printer_id != 0:
+            relation = self.session.query(PatentHasRelations).filter_by(
+                patent_id=patent_id,
                 person_id=self.model_id,
                 person_related_id=printer_id,
-                patent_id=patent_id,
                 type=relation_type
-            )
-            self.session.add(new_relation)
-            self.session.commit()
-            final_relations_id.append(new_relation.id)
-        else:
-            final_relations_id.append(relation.id)
+            ).first()
+
+            if not relation:
+                new_relation = PatentHasRelations(
+                    person_id=self.model_id,
+                    person_related_id=printer_id,
+                    patent_id=patent_id,
+                    type=relation_type
+                )
+                self.session.add(new_relation)
+                self.session.commit()
+                final_relations_id.append(new_relation.id)
+            else:
+                final_relations_id.append(relation.id)
+
+
+    def _add_or_update_pro_address(self, address_id: int, address_date:str, patent_id: int, final_addresses_id: List[int]) -> None:
+        """Adds or updates a professional address for a patent.
+        """
+        if address_id != 0:
+            address = self.session.query(PatentHasAddresses).filter_by(
+                patent_id=patent_id,
+                address_id=address_id,
+                date_occupation=address_date
+            ).first()
+
+            if not address:
+                new_address = PatentHasAddresses(
+                    patent_id=patent_id,
+                    address_id=address_id,
+                    date_occupation=address_date
+                )
+                self.session.add(new_address)
+                self.session.commit()
+                final_addresses_id.append(new_address.id)
+            else:
+                final_addresses_id.append(address.id)

@@ -103,6 +103,10 @@ label.control-label {
 }
 
 
+.addresses-container-attach {
+    display: none;
+}
+
 /* relations printer */
 .relation-container-attach {
     display: none;
@@ -210,7 +214,8 @@ label.control-label {
     font-size: 14px;
     font-style: italic;
     color: #333; /* Couleur initiale du texte */
-    top: 5px;
+    margin-top: 6px;
+    margin-left: 10px;
 }
 
 
