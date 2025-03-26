@@ -26,6 +26,7 @@ jobs:
       - name: Test with pytest
         run: |
           ENV="test"
+          python -c "from tests.conftest import engine, BASE; BASE.metadata.create_all(bind=engine)"
           cd ./tests/
           pytest
           pytest --cov
