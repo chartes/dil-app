@@ -6,7 +6,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
 from sqlalchemy.orm import sessionmaker, scoped_session
 
-from api.database import (get_db)
+from api.database import (get_db, BASE)
 from api.main import (app)
 #from api.database_utils import populate_db_process
 from api.config import BASE_DIR, settings
@@ -14,8 +14,15 @@ from api.config import BASE_DIR, settings
 #                                       create_store)
 #from api.index_conf import st
 #from api.index_fts.schemas import PersonIdxSchema
-
-from api.models.models import *
+from api.models.models import (
+    Person,
+    Address,
+    City,
+    Patent,
+    Image,
+    PatentHasAddresses,
+    PatentHasImages,
+)
 
 # set up ENV var for testing
 os.environ["ENV"] = "test"
@@ -33,7 +40,7 @@ engine = create_engine(
 TestingSessionLocal = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=engine))
 
 BASE.metadata.create_all(bind=engine)
-
+# add manually the tables
 
 def override_get_db():
     """Override the get_db() dependency with a test database."""
