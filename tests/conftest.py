@@ -20,6 +20,7 @@ os.environ["ENV"] = "test"
 
 WHOOSH_INDEX_DIR = os.path.join(BASE_DIR, settings.WHOOSH_INDEX_DIR)
 SQLALCHEMY_DATABASE_TEST_URL = f"sqlite:///{os.path.join(BASE_DIR, settings.DB_URI)}"
+print(SQLALCHEMY_DATABASE_TEST_URL)
 
 
 from api.models.models import (
