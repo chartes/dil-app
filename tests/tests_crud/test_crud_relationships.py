@@ -9,6 +9,11 @@ from tests.conftest import local_session
 def test_patent_relation_constraints():
     """Test that a patent can correctly establish relationships with other entities."""
     with local_session as session:
+        # Drop all data in the tables
+        session.query(Patent).delete()
+        session.query(Person).delete()
+        session.query(PatentHasRelations).delete()
+        session.commit()
         person1 = Person(lastname="Inventeur1")
         person2 = Person(lastname="Inventeur2")
         session.add_all([person1, person2])

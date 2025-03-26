@@ -9,6 +9,13 @@ from tests.conftest import local_session
 def test_patent_address_relationship():
     """Test that patents can be correctly linked to addresses."""
     with local_session as session:
+        # drop all data in City, Address, Person, Patent, and PatentHasAddresses tables
+        session.query(City).delete()
+        session.query(Address).delete()
+        session.query(Person).delete()
+        session.query(Patent).delete()
+        session.query(PatentHasAddresses).delete()
+        session.commit()
         city = City(label="Marseille", country_iso_code="FR")
         address = Address(label="Port", city_label="Marseille", city=city)
         session.add_all([city, address])
