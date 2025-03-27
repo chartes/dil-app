@@ -100,4 +100,4 @@ La base de données constituée grâce aux crédits du Labex CAP est hébergée 
 
 **août 2024** : Début migration de l'application -> traitement des données
 
-**janvier 2025** : Données migrées en base -> création de la plateforme d'administration des données + réflexion sur le frontend
+**janvier 2025 - ** : Données migrées en base -> création de la plateforme d'administration des données + réflexion sur le frontend
