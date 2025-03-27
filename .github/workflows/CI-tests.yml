@@ -1,4 +1,4 @@
-name: eNDP API CI
+name: DIL API CI
 
 on:
   push:
