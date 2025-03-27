@@ -539,6 +539,15 @@ class PrinterView(GlobalModelView):
             patents = get_patents(session, {
                 'person_id': kwargs['model'].id
             })
+
+            # Tri sécurisé sur les addresses_relations
+            for patent in patents:
+                if hasattr(patent, 'addresses_relations') and patent.addresses_relations:
+                    patent.addresses_relations = sorted(
+                        patent.addresses_relations,
+                        key=lambda a: a.date_occupation or ""
+                    )
+
             id_patents = [evt.id for evt in get_printer(session, {'id': kwargs['model'].id}).patents]
             if len(patents) == len(id_patents):
                 return super(PrinterView, self).render(template, **kwargs, patents=list(zip(id_patents, patents)),

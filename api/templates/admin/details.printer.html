@@ -60,6 +60,7 @@
                 </td>
                 <td>
                     <ul>
+    {% if patent['addresses_relations'] is not none %}
                         {% for address in patent['addresses_relations']|sort(attribute='date_occupation') %}
                             <li>
                                 {% if address.date_occupation %}
@@ -75,6 +76,7 @@
                                 ({{ address.address_patents.city.insee_fr_department_code }})
                             </li>
                         {% endfor %}
+                    {% endif %}
                     </ul>
 
                 </td>
