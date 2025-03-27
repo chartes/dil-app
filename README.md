@@ -15,6 +15,78 @@ Ce dépôt forme le *backend* de l'application dictionnaire des imprimeurs litho
 - l'API (+ documentation Swagger).
 
 
+## Installation
+
+En local, cloner le dépôt GitHub :
+
+```bash
+git clone git@github.com:chartes/dil-app.git
+```
+
+Puis exécuter les commandes suivantes :
+
+```bash
+virualenv --python=python3.9 venv
+source venv/bin/activate
+pip install -r requirements.txt
+ ```
+
+## Lancer l'API
+
+Les tâches courantes sont réalisées avec le script `run.sh`.
+
+Pour une première initialisation de la base de données ou pour la recréer et lancer l'application :
+
+```bash
+   ./run.sh dev -db-re -images-back
+```
+
+- `-db-re` : recréer la base de données avec les données initiales (attention si la base de données existe déjà, elle sera écrasée ou si des données ont été ajoutées ou modifiées, elles seront perdues);
+- `-images-back` : copier les images intiales de la base de données dans le dossier `static` pour les rendre accessibles via l'API.
+
+Pour lancer l'application seule (ignorer l'argument `-db-re` et `-images-back`) :
+
+```bash
+   ./run.sh dev
+```
+
+Pour contrôler le bon fonctionnement de l'application :
+
+- la documentation de l'API se trouve à l'adresse : http://127.0.0.1:9090/dil/api/docs
+- l'interface d'administration se trouve à l'adresse : http://127.0.0.1:9090/dil/admin/
+
+Identifiants par défaut pour l'authentification à l'interface d'administration 
+pour le développement et les tests :
+
+- username : `admin`
+- password : `admin`
+
+> [!WARNING]  
+> Les identifiants par défaut ne sont pas sécurisés, il est recommandé de les modifier en dev ou en prod.
+
+## Gestion des utilisateurs
+
+- Ajouter ou supprimer un utilisateur 
+- Modifier un mot de passe
+
+Ces actions sont disponibles dans l'interface d'administration de l'application, si la connexion s'effectue
+avec un compte ayant les droits d'administration.
+
+
+## Contrôle de la qualité du code et tests unitaires
+
+La qualité du code et les tests unitaires sont réalisés via la CI GitHub Actions.
+Cependant, pour lancer les tests en local : 
+
+```bash
+cd tests/
+# 1. lancer le contrôle de la qualité du code
+# rendre le scripts exécutable (si nécessaire)
+chmod +x tests.sh
+./tests.sh
+# pour générer le badge de couverture de code
+coverage-badge -o coverage.svg
+```
 
 ## Historique 
 
