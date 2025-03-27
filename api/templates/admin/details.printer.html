@@ -61,7 +61,7 @@
                 <td>
                     <ul>
     {% if patent['addresses_relations'] is not none %}
-                        {% for address in patent['addresses_relations']|sort(attribute='date_occupation') %}
+                        {% for address in patent['addresses_relations'] %}
                             <li>
                                 {% if address.date_occupation %}
                                     {% if address.date_occupation.startswith('~') %}
