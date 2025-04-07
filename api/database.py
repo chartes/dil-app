@@ -22,6 +22,10 @@ engine = create_engine(
     SQLALCHEMY_DATABASE_URI,
     # needed for sqlite
     connect_args={'check_same_thread': False},
+    pool_size=20,
+    max_overflow=10,
+    pool_timeout=30,
+    pool_recycle=3600,
     echo=bool(settings.DB_ECHO)
 )
 

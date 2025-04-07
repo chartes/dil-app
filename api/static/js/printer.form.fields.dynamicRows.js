@@ -219,9 +219,7 @@ function loadExistingData(configName, entityId) {
     }, {});
 
     $.getJSON(config.relationUrl(entityId), groupedRelations => {
-        console.log(groupedRelations);
         Object.entries(groupedRelations).forEach(([pid, relations]) => {
-            console.log(pid, relations);
             const index = patentStruct[pid];
             const container = document.querySelector(`#${config.containerPrefix}-${index}-relation-container`);
             const addButton = document.querySelector(`#${container.id} ~ .add-relation-button`);

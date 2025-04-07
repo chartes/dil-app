@@ -28,7 +28,6 @@ async function fetchImageDetails(imageId, patentID) {
 
         const data = await response.json();
         if (data.error) {
-            console.error(data.error);
             return null;
         }
         return data;

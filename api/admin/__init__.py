@@ -12,13 +12,15 @@ from flask_mail import Mail
 
 # from ..crud import get_user
 from api.config import BASE_DIR
+from .midelware import init_app
 from .views import *
 
 # flask app #
 flask_app = Flask(__name__,
                   template_folder=BASE_DIR / 'api/templates',
                   static_folder=BASE_DIR / 'api/static')
-
+# add middleware
+init_app(flask_app)
 # flask configuration #
 flask_app.config['SECRET_KEY'] = str(settings.FLASK_SECRET_KEY)
 flask_app.config['BABEL_DEFAULT_LOCALE'] = str(settings.FLASK_BABEL_DEFAULT_LOCALE)
