@@ -580,7 +580,6 @@ class PrinterView(GlobalModelView):
         if request.method in ['GET', 'POST']:
             image_id = request.args.get('id')  # Récupère l'ID de l'image depuis les paramètres GET
             patent_id = request.args.get('patent_id')  # Récupère l'ID du brevet depuis les paramètres GET
-            print(image_id, patent_id)
             if not image_id:
                 return jsonify({'error': 'This patent has no image.'}), 200
             image = session.query(Image).filter_by(id=image_id).first()
