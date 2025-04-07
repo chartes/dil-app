@@ -32,8 +32,19 @@ from .validators import (is_valid_date,
                          is_ark_id,
                          validate_coordinates,
                          validate_address)
-from ..models.models import *
-from ..crud import get_user, get_address
+from ..models.models import (
+    User,
+    Person,
+    City,
+    Address,
+    Patent,
+    Image,
+    PersonHasAddresses,
+    PatentHasAddresses,
+    PatentHasImages,
+    PatentHasRelations,
+    type_patent_relations
+)
 from .forms import LoginForm
 from .widget import QuillWidget
 
@@ -43,7 +54,11 @@ from .formaters import (_format_label_form_with_tooltip,
 from .model_handler import PrinterModelChangeHandler
 
 from api.config import settings
-from api.crud import (get_patents, get_printer)
+from api.crud import (get_user,
+                      get_address,
+                      get_patents,
+                      get_printer)
+from api.database import session
 from api.admin.views_dir.utils import *
 from api.admin.views_dir.loaders import *
 

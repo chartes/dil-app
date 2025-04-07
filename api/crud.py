@@ -4,13 +4,10 @@ crud.py
 CRUD operations.
 Reusable functions to interact with the data in the database.
 """
-from typing import (Union,
-                    Type,
-                    Any)
+from typing import Type
 import re
 
-from sqlalchemy.orm import (Session,
-                            declared_attr)
+from sqlalchemy.orm import Session
 
 import bleach
 
@@ -29,8 +26,10 @@ inverted_type_relations = {v: k for k, v in type_patent_relations.items()}
 
 def get_user(db: Session, args: dict):
     """Get a user from the database."""
-    return db.query(User).filter_by(**args).first()
-
+    try:
+        return db.query(User).filter_by(**args).first()
+    except:
+        return None
 
 def clean_html_markup(html_markup: str):
     if html_markup:
@@ -172,7 +171,10 @@ def get_entities(db: Session, model, args: dict):
 
 def get_cities(db: Session, args: dict):
     """Get cities from the database."""
-    return db.query(City).filter_by(**args).all()
+    try:
+        return db.query(City).filter_by(**args).all()
+    except:
+        return None
 
 def get_addresses(db: Session, args: dict):
     """Get addresses from the database."""
