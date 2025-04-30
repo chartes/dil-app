@@ -19,6 +19,7 @@ usage() {
   echo "Usage: ./run.sh <mode> [-db-re] [-db-back] [-images-back] [instance]"
   echo "  <mode>       : dev | prod (Obligatoire)"
   echo "  -db-re       : Recreate and populate database from resources"
+  echo "  -create-index : Create the index for the database"
   echo "  -images-back : Restore original images from backup"
   #TODO: add command for index creation and populate
   echo "  instance     : Launch using the ENC server instance"
@@ -51,6 +52,7 @@ esac
 
 export ENV=$ENV
 
+source ./venv/bin/activate
 # Gérer les options supplémentaires
 for arg in "$@"; do
   case "$arg" in
@@ -59,6 +61,12 @@ for arg in "$@"; do
       [[ -f $DB ]] && rm $DB
       python3 -m scripts.create_db --db $DB
       echo "Database setup complete."
+      ;;
+    -create-index)
+      echo "Creating database index..."
+      [[ -f $DB ]] || { echo "Database not found. Please create it first."; exit 1; }
+      python3 -m scripts.create_index
+      echo "Index creation complete."
       ;;
     -images-back)
       echo "Restoring original images directory..."

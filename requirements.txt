@@ -73,7 +73,7 @@ watchfiles==0.19.0
 webencodings==0.5.1
 websockets==11.0.2
 Werkzeug==2.3.3
-Whoosh==2.7.4
+Whoosh-Reloaded==2.7.5
 wrapt==1.15.0
 WTForms==3.0.1
 zipp==3.15.0

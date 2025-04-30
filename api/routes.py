@@ -4,7 +4,8 @@ routes.py
 FastAPI routes for the DIL API.
 """
 
-from typing import Union
+from typing import Union, Optional, List
+import re
 
 from fastapi import (APIRouter,
                      Depends,
@@ -15,8 +16,13 @@ from fastapi_pagination import (Page,
 from fastapi_pagination.ext.sqlalchemy import (paginate)
 from fastapi_pagination.customization import CustomizedPage
 
+import bleach
+
 from sqlalchemy import (or_,
+                        and_,
+                        func,
                         asc,
+                        desc,
                         select)
 from sqlalchemy.orm import Session
 from starlette.responses import JSONResponse
@@ -33,14 +39,133 @@ from api.schemas import (Message,
                          CityOut,
                          AddressOut,
                          PrinterMinimalResponseOut,
+                         CityOutMinimal,
                          PrinterOut,
                          PatentOut)
 from api.models.models import (Person,
                                Patent,
                                City,
                                Address)
+from api.index_fts.search_utils import search_whoosh
 
 api_router = APIRouter()
+
+
+# -- infos routes -- #
+"""
+return 
+-> total persons
+-> total patents
+"""
+
+@api_router.get(
+    "/infos",
+    include_in_schema=True,
+    responses={500: {"model": Message}},
+    summary='Get API information',
+    tags=['Infos']
+)
+def get_infos(db: Session = Depends(get_db)):
+    try:
+        # Nombre total de personnes
+        total_persons = db.query(Person).count()
+
+        # Nombre total de brevets
+        total_patents = db.query(Patent).count()
+
+        # Nombre total de villes
+        total_cities = db.query(City).count()
+
+        # Nombre total d'adresses
+        total_addresses = db.query(Address).count()
+
+        return {
+            "total_persons": total_persons,
+            "total_patents": total_patents,
+            "total_cities": total_cities,
+            "total_addresses": total_addresses
+        }
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"message": f"It seems the server have trouble: {e}"})
+
+@api_router.get(
+    "/map/places",
+    include_in_schema=True,
+    responses={500: {"model": Message}},
+    summary='Get map data: cities with geolocation and linked printers',
+    tags=['Map']
+)
+def get_cities_with_printers(db: Session = Depends(get_db)):
+    try:
+        results = db.query(
+            City.id,
+            City.label,
+            City.long_lat,
+            City._id_dil,
+            Patent.person_id
+        ).join(
+            Patent, City.id == Patent.city_id
+        ).filter(
+            City.long_lat.isnot(None)
+        ).all()
+
+        # Organiser les résultats
+        cities_dict = {}
+        for city_id, city_label, city_long_lat, city_dil, person_id in results:
+            if city_id not in cities_dict:
+                cities_dict[city_id] = {
+                    "city_label": city_label,
+                    "city_long_lat": city_long_lat,
+                    "city_dil": city_dil,
+                    "printer_ids": set()
+                }
+            cities_dict[city_id]["printer_ids"].add(person_id)
+
+        # Transformer en liste pour l'API
+        cities_list = [
+            {
+                "city_label": data["city_label"],
+                "city_long_lat": data["city_long_lat"],
+                "city_dil": data["city_dil"],
+                "printer_ids": list(data["printer_ids"])
+            }
+            for data in cities_dict.values()
+        ]
+
+        return cities_list
+
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"message": f"It seems the server have trouble: {e}"})
+
+
+@api_router.get("/places/autocomplete", response_model=List[CityOutMinimal])
+def autocomplete_city(
+        q: Optional[str] = Query(None, description="Recherche partielle sur le nom de la ville"),
+        db: Session = Depends(get_db)
+):
+    query = db.query(Patent)
+
+    if q:
+        query = query.filter(Patent.city_label.ilike(f"%{q}%"))
+
+    results = query.order_by(Patent.city_label.asc()).limit(20).all()
+    results = [
+        {
+            "label": result.city_label
+        }
+        for result in results
+    ]
+    # deduplicate results dict
+    if len(results) > 0:
+        results = {result["label"]: result for result in results}
+        results = list(results.values())
+        # Sort results by label
+        results.sort(key=lambda x: x["label"])
+        # Limit results to 20
+        results = results[:20]
+
+    return results
+
 
 # routes utils
 
@@ -103,85 +228,156 @@ def read_images(id: str, db: Session = Depends(get_db)):
 
 # -- ROUTES PERSONS -- #
 
-@api_router.get("/persons",
-                response_model=Page[PrinterMinimalResponseOut],
-                include_in_schema=True,
-                responses={400: {"model": Message}, 500: {"model": Message}},
-                summary='Retrieve all persons (printers) with optional filters',
-                tags=['Persons'])
-def read_printers(db: Session = Depends(get_db),
-                  patent_city_query: str = Query(None,
-                                                 description="Filtrer des personnes par le nom de la ville des brevets."),
-                  patent_date_start: str = Query(None,
-                                                 description="Filtrer des personnes par la date de début des brevets. Forme requise : `YYYY`, `YYYY-MM`, `YYYY-MM-DD`"),
-                  exact_patent_date_start: bool = Query(False,
-                                                        description="Recherche exacte sur la date de début des brevets.")) -> \
-        Union[JSONResponse,Page]:
-    """
-       🔍 **Rechercher des personnes (imprimeurs et/ou lithographes) avec filtres**
 
-       Par défaut cette route retourne tous les personnes avec leur nom, prénoms et nombre de brevets associés par ordre alphabétique.
+@api_router.get(
+    "/persons",
+    response_model=Page[PrinterMinimalResponseOut],
+    include_in_schema=True,
+    responses={400: {"model": Message}, 500: {"model": Message}},
+    summary='Retrieve all persons (printers) with optional filters',
+    tags=['Persons']
+)
+def read_printers(
+    db: Session = Depends(get_db),
+    search: Optional[str] = Query(None),
 
-       - **Filtre sur la ville de l'enregistrement des brevets** (`patent_city_query`).
-       - **Filtre sur la date des brevets** : Recherche des brevets commençant à `patent_date_start` soit à l'année ou année et mois ou année, mois et jour. Forme requise : `YYYY`, `YYYY-MM`, `YYYY-MM-DD`.
-       - **Mode Exact** : Si `exact_patent_date_start=True`, recherche uniquement les brevets correspondant à l'année ou année et mois ou année, mois et jour.
-
-       📌 **Exemples :**
-       - `/persons?patent_city_query=Paris`
-       - `/persons?patent_date_start=1900`
-       - `/persons?patent_date_start=1900-10-01`
-       - `/persons?patent_date_start=1900&exact_patent_date_start=True`
-       """
+    mode: Optional[str] = Query("all", description="Mode de recherche : all / head_info / extra_info"),
+    patent_city_query: Optional[List[str]] = Query(None),
+    patent_date_start: Optional[str] = Query(None),
+    exact_patent_date_start: bool = Query(False),
+    sort: Optional[str] = Query("asc"),
+) -> Union[JSONResponse, Page]:
     try:
+        whoosh_hits = {}
+        filters = []
+        search_on_content = False
+
+        if search:
+            if mode not in ["all", "head_info", "extra_info"]:
+                return JSONResponse(status_code=400, content={"message": "Mode de recherche invalide"})
+
+            fields = {
+                "all": ["lastname", "firstnames", "content"],
+                "head_info": ["lastname", "firstnames"],
+                "extra_info": ["content"]
+            }[mode]
+
+            search_on_content = "content" in fields
+
+            sql_filters = []
+            whoosh_ids = []
+
+            if search_on_content:
+                # Recherche Whoosh
+                hits = search_whoosh(keyword=search, fields=fields)
+                if not hits:
+                    return Page(page=1, total=0, items=[], size=20, pages=0)
+
+                whoosh_hits = {hit["id_dil"]: hit["highlight"] for hit in hits}
+                whoosh_ids = list(whoosh_hits.keys())
+
+            if mode in ["all", "head_info"]:
+                # Recherche classique SQL sur lastname + firstnames
+                terms = search.strip().split()
+                for term in terms:
+                    pattern = f"%{term}%"
+                    sql_filters.append(
+                        or_(
+                            Person.lastname.ilike(pattern),
+                            Person.firstnames.ilike(pattern)
+                        )
+                    )
+
+
+            if whoosh_ids and sql_filters:
+                # filtrage restrictif sur ID obtenus via whoosh
+                filters.append(
+                    and_(
+                        Person._id_dil.in_(whoosh_ids),
+                        or_(*sql_filters)
+                    )
+                )
+            elif whoosh_ids:
+                filters.append(Person._id_dil.in_(whoosh_ids))
+            elif sql_filters:
+                filters.append(or_(*sql_filters))
+
+        # Requête SQL de base
         query = db.query(
-            Person
+            Person._id_dil,
+            Person.lastname,
+            Person.firstnames,
+            func.count(Patent.id).label("total_patents")
         ).join(
             Patent, Patent.person_id == Person.id
         ).join(
             City, City.id == Patent.city_id, isouter=True
+        ).group_by(
+            Person._id_dil, Person.lastname, Person.firstnames
         )
+
+
+
         if patent_city_query:
-            query = query.filter(
-                or_(
-                    City.label.like(f"%{patent_city_query}%"),
-                    Patent.city_label.like(f"%{patent_city_query}%")
-                )
-            )
+            selected_villes = list(set(patent_city_query))
+            ville_match = or_(*[Patent.city_label.ilike(q) for q in selected_villes])
+            query = query.filter(ville_match)
+            query = query.having(func.count(func.distinct(Patent.city_label)) >= len(selected_villes))
+
         if patent_date_start:
-            if len(patent_date_start) >= 4:
-                normalized_date = normalize_date(patent_date_start)
-                if exact_patent_date_start:
-                    query = query.filter(Patent.date_start == patent_date_start)
-                else:
-                    query = query.filter(or_(
+            normalized_date = normalize_date(patent_date_start)
+            if exact_patent_date_start:
+                query = query.filter(Patent.date_start == patent_date_start)
+            else:
+                query = query.filter(
+                    or_(
                         Patent.date_start.like(f"{patent_date_start}%"),
                         Patent.date_start >= normalized_date
-                    ))
-                query = query.order_by(asc(Patent.date_start))
-        paginated_printers = paginate(db, query)
-        transformed_items = [
-            PrinterMinimalResponseOut(
-                _id_dil=str(printer.id_dil) if printer.id_dil else None,
-                lastname=printer.lastname,
-                firstnames=printer.firstnames,
-                total_patents=int(len(get_printer(
-                    db, {"_id_dil": str(printer.id_dil)}, enhance=False).patents))
-                if printer.id_dil else 0
-            ) for printer in paginated_printers.items if printer.id_dil
-        ]
-        if not transformed_items:
-            return JSONResponse(status_code=200, content={"message": "No printers found"})
-        return Page(
-            page=paginated_printers.page,
-            total=paginated_printers.total,
-            items=transformed_items,
-            size=paginated_printers.size,
-            pages=paginated_printers.pages,
-        )
-    except Exception as e:
-        return JSONResponse(status_code=500,
-                            content={"message": f"It seems the server has trouble: {e}"})
+                    )
+                )
 
+        if search and whoosh_hits:
+            filters.append(Person._id_dil.in_(list(whoosh_hits.keys())))
+
+        if filters:
+            query = query.filter(or_(*filters))
+
+        if sort == "desc":
+            query = query.order_by(desc(func.replace(func.replace(Person.lastname, "É", "E"), "È", "E")))
+        else:
+            query = query.order_by(asc(func.replace(func.replace(Person.lastname, "É", "E"), "È", "E")))
+
+        paginated = paginate(db, query)
+
+        # Construction de la réponse
+        transformed_items = []
+        for p in paginated.items:
+            highlight = None
+            if search and str(p.id_dil) in whoosh_hits:
+                highlight = whoosh_hits.get(str(p.id_dil))
+
+            transformed_items.append(
+                PrinterMinimalResponseOut(
+                    _id_dil=str(p.id_dil),
+                    lastname=p.lastname,
+                    firstnames=p.firstnames,
+                    total_patents=p.total_patents,
+                    highlight=highlight
+                )
+            )
+
+        return Page(
+            page=paginated.page,
+            total=paginated.total,
+            items=transformed_items,
+            size=paginated.size,
+            pages=paginated.pages,
+        )
+
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        return JSONResponse(status_code=500, content={"message": f"Erreur serveur: {e}"})
 
 @api_router.get("/persons/person/{id}",
                 include_in_schema=True,
@@ -202,6 +398,7 @@ async def read_printer(id: str,
         return JSONResponse(status_code=500,
                             content={"message": "It seems the server have trouble: "
                                                 f"{e}"})
+
 
 # -- ROUTES PATENTS -- #
 
@@ -264,6 +461,7 @@ def read_cities(db: Session = Depends(get_db)):
         return JSONResponse(status_code=500,
                             content={"message": f"It seems the server have trouble: {e}"})
 
+
 @api_router.get("/referential/cities/city/{id}",
                 response_model=CityOut,
                 include_in_schema=True,
@@ -295,7 +493,6 @@ def read_city(db: Session = Depends(get_db), id: str = None):
     except Exception as e:
         return JSONResponse(status_code=500,
                             content={"message": f"It seems the server have trouble: {e}"})
-
 
 
 @api_router.get("/referential/addresses",

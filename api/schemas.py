@@ -32,6 +32,9 @@ class CityOut(BaseMeta):
     viaf_id: Optional[str] = Field(..., alias="viaf_id")
     siaf_id: Optional[str] = Field(..., alias="siaf_id")
 
+class CityOutMinimal(BaseModel):
+    label: Optional[str] = Field(..., alias="label")
+
 
 class AddressOut(BaseMeta):
     label: Optional[str] = Field(..., alias="label")
@@ -73,6 +76,7 @@ class PrinterMinimalOut(BaseMeta):
 
 class PrinterMinimalResponseOut(PrinterMinimalOut):
     total_patents: Optional[int] = 0
+    highlight: Optional[str] = None
 
 
 class PrinterOut(PrinterMinimalOut):

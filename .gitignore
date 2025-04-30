@@ -9,6 +9,7 @@ api/static/images_store/
 db/dil.dev.sqlite
 db/dil.test.sqlite
 .prod.env
+scripts/update_db.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
