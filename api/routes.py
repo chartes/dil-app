@@ -23,6 +23,7 @@ from sqlalchemy import (or_,
                         func,
                         asc,
                         desc,
+                        distinct,
                         select)
 from sqlalchemy.orm import Session
 from starlette.responses import JSONResponse
@@ -50,13 +51,13 @@ from api.index_fts.search_utils import search_whoosh
 
 api_router = APIRouter()
 
-
 # -- infos routes -- #
 """
 return 
 -> total persons
 -> total patents
 """
+
 
 @api_router.get(
     "/infos",
@@ -88,6 +89,7 @@ def get_infos(db: Session = Depends(get_db)):
     except Exception as e:
         return JSONResponse(status_code=500, content={"message": f"It seems the server have trouble: {e}"})
 
+
 @api_router.get(
     "/map/places",
     include_in_schema=True,
@@ -95,74 +97,154 @@ def get_infos(db: Session = Depends(get_db)):
     summary='Get map data: cities with geolocation and linked printers',
     tags=['Map']
 )
-def get_cities_with_printers(db: Session = Depends(get_db)):
+def get_cities_with_printers(
+    db: Session = Depends(get_db),
+    patent_city_query: Optional[List[str]] = Query(None),
+    patent_date_start: Optional[str] = Query(None),
+    exact_patent_date_start: Optional[str] = Query(None)
+):
     try:
-        results = db.query(
-            City.id,
-            City.label,
-            City.long_lat,
-            City._id_dil,
-            Patent.person_id
+        query = db.query(Patent.person_id).join(City)
+
+        if patent_city_query:
+            query = query.filter(City._id_dil.in_(patent_city_query))
+
+        if patent_date_start:
+            normalized_date = normalize_date(patent_date_start)
+            if bool(exact_patent_date_start):
+                query = query.filter(Patent.date_start == patent_date_start)
+            else:
+                query = query.filter(
+                    or_(
+                        Patent.date_start.like(f"{patent_date_start}%"),
+                        Patent.date_start >= normalized_date
+                    )
+                )
+
+        if patent_city_query:
+            query = query.group_by(Patent.person_id)
+            query = query.having(
+                func.count(distinct(City._id_dil)) == len(patent_city_query)
+            )
+
+        matching_person_ids = [row[0] for row in query.all()]
+        if not matching_person_ids:
+            return []
+
+        # 🔁 Requête des villes de ces personnes (uniquement brevets dans date + villes valides)
+        query2 = db.query(
+            City.id.label("city_id"),
+            City.label.label("city_label"),
+            City.insee_fr_department_label.label("city_dept_label"),
+            City.long_lat.label("city_long_lat"),
+            City._id_dil.label("city_dil"),
+            Patent.city_label.label("patent_city_label"),
+            Person.id.label("person_id"),
+            Person._id_dil.label("person_dil"),
+            Person.lastname,
+            Person.firstnames,
         ).join(
             Patent, City.id == Patent.city_id
+        ).join(
+            Person, Person.id == Patent.person_id
         ).filter(
-            City.long_lat.isnot(None)
-        ).all()
+            City.long_lat.isnot(None),
+            Person.id.in_(matching_person_ids)
+        )
 
-        # Organiser les résultats
-        cities_dict = {}
-        for city_id, city_label, city_long_lat, city_dil, person_id in results:
-            if city_id not in cities_dict:
-                cities_dict[city_id] = {
-                    "city_label": city_label,
-                    "city_long_lat": city_long_lat,
-                    "city_dil": city_dil,
-                    "printer_ids": set()
+        results = query2.all()
+
+        # Organiser par ville
+        city_map = {}
+        for row in results:
+            city_id = row.city_id
+            person_key = row.person_dil
+
+            if city_id not in city_map:
+                city_map[city_id] = {
+                    "city_id": city_id,
+                    "city_label": row.city_label,
+                    "city_dept_label": row.city_dept_label,
+                    "city_long_lat": row.city_long_lat,
+                    "city_dil": row.city_dil,
+                    "persons": {}
                 }
-            cities_dict[city_id]["printer_ids"].add(person_id)
 
-        # Transformer en liste pour l'API
-        cities_list = [
+            if person_key not in city_map[city_id]["persons"]:
+                city_map[city_id]["persons"][person_key] = {
+                    "id": person_key,
+                    "firstnames": row.firstnames,
+                    "lastname": row.lastname,
+                    "city_patent": row.patent_city_label
+                }
+
+        return [
             {
-                "city_label": data["city_label"],
-                "city_long_lat": data["city_long_lat"],
-                "city_dil": data["city_dil"],
-                "printer_ids": list(data["printer_ids"])
+                "city_id": c["city_id"],
+                "city_label": c["city_label"],
+                "city_dept_label": c["city_dept_label"],
+                "city_long_lat": c["city_long_lat"],
+                "city_dil": c["city_dil"],
+                "persons": list(c["persons"].values())
             }
-            for data in cities_dict.values()
+            for c in city_map.values()
         ]
 
-        return cities_list
-
     except Exception as e:
-        return JSONResponse(status_code=500, content={"message": f"It seems the server have trouble: {e}"})
+        return JSONResponse(status_code=500, content={"message": f"Erreur serveur: {e}"})
+
 
 
 @api_router.get("/places/autocomplete", response_model=List[CityOutMinimal])
 def autocomplete_city(
-        q: Optional[str] = Query(None, description="Recherche partielle sur le nom de la ville"),
+        q: Optional[str] = Query(None),
+        selected: Optional[List[str]] = Query(None),
         db: Session = Depends(get_db)
 ):
-    query = db.query(Patent)
+    selected = list(set(selected or []))
+
+    # Sous-requête pour les personnes ayant un brevet dans toutes les villes sélectionnées
+    person_query = db.query(Patent.person_id).join(City)
+    if selected:
+        person_query = person_query.filter(City._id_dil.in_(selected))
+        person_query = person_query.group_by(Patent.person_id)
+        person_query = person_query.having(func.count(distinct(City._id_dil)) == len(selected))
+
+    matching_person_ids = [row[0] for row in person_query.all()]
+    if not matching_person_ids:
+        return []
+
+    # Requête principale avec nombre de brevets et nombre d'imprimeurs
+    city_query = db.query(
+        City._id_dil.label("id_dil"),
+        City.label,
+        City.insee_fr_department_label.label("department_label_fr"),
+        func.count(Patent.id).label("total_patents_if_selected"),
+        func.count(distinct(Patent.person_id)).label("total_persons_if_selected")
+    ).join(Patent).filter(
+        Patent.person_id.in_(matching_person_ids)
+    ).group_by(
+        City._id_dil, City.label, City.insee_fr_department_label
+    )
 
     if q:
-        query = query.filter(Patent.city_label.ilike(f"%{q}%"))
+        city_query = city_query.filter(City.label.ilike(f"{q}%"))
 
-    results = query.order_by(Patent.city_label.asc()).limit(20).all()
-    results = [
-        {
-            "label": result.city_label
-        }
-        for result in results
-    ]
-    # deduplicate results dict
-    if len(results) > 0:
-        results = {result["label"]: result for result in results}
-        results = list(results.values())
-        # Sort results by label
-        results.sort(key=lambda x: x["label"])
-        # Limit results to 20
-        results = results[:20]
+    if selected:
+        city_query = city_query.filter(City._id_dil.notin_(selected))
+
+    city_query = city_query.order_by(desc("total_patents_if_selected")).limit(20)
+
+    results = []
+    for row in city_query.all():
+        results.append({
+            "id": row.id_dil,
+            "id_dil": row.id_dil,
+            "label": row.label,
+            "department_label_fr": row.department_label_fr,
+            "total_patents_if_selected": row.total_patents_if_selected,
+            "total_persons_if_selected": row.total_persons_if_selected
+        })
 
     return results
 
@@ -238,14 +320,14 @@ def read_images(id: str, db: Session = Depends(get_db)):
     tags=['Persons']
 )
 def read_printers(
-    db: Session = Depends(get_db),
-    search: Optional[str] = Query(None),
+        db: Session = Depends(get_db),
+        search: Optional[str] = Query(None),
 
-    mode: Optional[str] = Query("all", description="Mode de recherche : all / head_info / extra_info"),
-    patent_city_query: Optional[List[str]] = Query(None),
-    patent_date_start: Optional[str] = Query(None),
-    exact_patent_date_start: bool = Query(False),
-    sort: Optional[str] = Query("asc"),
+        mode: Optional[str] = Query("all", description="Mode de recherche : all / head_info / extra_info"),
+        patent_city_query: Optional[List[str]] = Query(None),
+        patent_date_start: Optional[str] = Query(None),
+        exact_patent_date_start: bool = Query(False),
+        sort: Optional[str] = Query("asc"),
 ) -> Union[JSONResponse, Page]:
     try:
         whoosh_hits = {}
@@ -288,7 +370,6 @@ def read_printers(
                         )
                     )
 
-
             if whoosh_ids and sql_filters:
                 # filtrage restrictif sur ID obtenus via whoosh
                 filters.append(
@@ -316,13 +397,14 @@ def read_printers(
             Person._id_dil, Person.lastname, Person.firstnames
         )
 
-
-
         if patent_city_query:
-            selected_villes = list(set(patent_city_query))
-            ville_match = or_(*[Patent.city_label.ilike(q) for q in selected_villes])
-            query = query.filter(ville_match)
-            query = query.having(func.count(func.distinct(Patent.city_label)) >= len(selected_villes))
+            selected_cities = list(set(patent_city_query))
+
+            # Filtre d'abord les brevets dans ces villes uniquement
+            query = query.filter(City._id_dil.in_(selected_cities))
+
+            # Assure que chaque personne est liée à toutes les villes sélectionnées
+            query = query.having(func.count(func.distinct(City._id_dil)) == len(selected_cities))
 
         if patent_date_start:
             normalized_date = normalize_date(patent_date_start)
@@ -378,6 +460,7 @@ def read_printers(
         import traceback
         print(traceback.format_exc())
         return JSONResponse(status_code=500, content={"message": f"Erreur serveur: {e}"})
+
 
 @api_router.get("/persons/person/{id}",
                 include_in_schema=True,

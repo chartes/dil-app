@@ -33,8 +33,12 @@ class CityOut(BaseMeta):
     siaf_id: Optional[str] = Field(..., alias="siaf_id")
 
 class CityOutMinimal(BaseModel):
+    id: Optional[str] = Field(..., alias="id")
+    id_dil: Optional[str] = Field(..., alias="id_dil")
     label: Optional[str] = Field(..., alias="label")
-
+    department_label_fr: Optional[str] = Field(..., alias="department_label_fr")
+    total_persons_if_selected: Optional[int] = Field(..., alias="total_persons_if_selected")
+    total_patents_if_selected: Optional[int] = Field(..., alias="total_patents_if_selected")
 
 class AddressOut(BaseMeta):
     label: Optional[str] = Field(..., alias="label")
