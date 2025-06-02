@@ -5,7 +5,6 @@ FastAPI routes for the DIL API.
 """
 
 from typing import Union, Optional, List
-import re
 
 from fastapi import (APIRouter,
                      Depends,
@@ -16,15 +15,13 @@ from fastapi_pagination import (Page,
 from fastapi_pagination.ext.sqlalchemy import (paginate)
 from fastapi_pagination.customization import CustomizedPage
 
-import bleach
 
 from sqlalchemy import (or_,
                         and_,
                         func,
                         asc,
                         desc,
-                        distinct,
-                        select)
+                        distinct)
 from sqlalchemy.orm import Session
 from starlette.responses import JSONResponse
 
@@ -61,10 +58,9 @@ return
 
 @api_router.get(
     "/infos",
-    include_in_schema=True,
+    include_in_schema=False,
     responses={500: {"model": Message}},
-    summary='Get API information',
-    tags=['Infos']
+    summary='Get generic API information about data (e.g. total)',
 )
 def get_infos(db: Session = Depends(get_db)):
     try:
@@ -92,7 +88,7 @@ def get_infos(db: Session = Depends(get_db)):
 
 @api_router.get(
     "/map/places",
-    include_in_schema=True,
+    include_in_schema=False,
     responses={500: {"model": Message}},
     summary='Get map data: cities with geolocation and linked printers',
     tags=['Map']
@@ -131,7 +127,6 @@ def get_cities_with_printers(
         if not matching_person_ids:
             return []
 
-        # 🔁 Requête des villes de ces personnes (uniquement brevets dans date + villes valides)
         query2 = db.query(
             City.id.label("city_id"),
             City.label.label("city_label"),
@@ -154,7 +149,6 @@ def get_cities_with_printers(
 
         results = query2.all()
 
-        # Organiser par ville
         city_map = {}
         for row in results:
             city_id = row.city_id
@@ -195,7 +189,9 @@ def get_cities_with_printers(
 
 
 
-@api_router.get("/places/autocomplete", response_model=List[CityOutMinimal])
+@api_router.get("/places/autocomplete",
+                response_model=List[CityOutMinimal],
+                include_in_schema=False)
 def autocomplete_city(
         q: Optional[str] = Query(None),
         selected: Optional[List[str]] = Query(None),
@@ -264,7 +260,7 @@ def normalize_date(date_str):
 # -- IMAGE ROUTES -- #
 @api_router.get(
     "/persons/person/{id}/images",
-    include_in_schema=True,
+    include_in_schema=False,
     response_model=PersonPatentsImages,
     responses={404: {"model": Message}, 500: {"model": Message}},
     summary='',
@@ -329,6 +325,19 @@ def read_printers(
         exact_patent_date_start: bool = Query(False),
         sort: Optional[str] = Query("asc"),
 ) -> Union[JSONResponse, Page]:
+    """
+    Retrieve all persons (printers) with optional filters.
+    - `search`: Keyword to search in lastname, firstnames, or content.
+    - `mode`: Search mode, can be "all", "head_info", or "extra_info". "all" searches all fields, "head_info" searches only lastname and firstnames, "extra_info" searches only content.
+    - `patent_city_query`: List of city dil IDs to filter patents by city.
+    - `patent_date_start`: Filter patents by start date (can be partial). e.g., "1854" or "1860-03".
+    - `exact_patent_date_start`: If True, filter patents by exact start date, otherwise filter by partial match.
+    - `sort`: Sort order for lastname, can be "asc" or "desc".
+
+    By default, it returns all persons with their total patents.
+
+    Returns a paginated response of persons with their total patents.
+    """
     try:
         whoosh_hits = {}
         filters = []
@@ -465,12 +474,16 @@ def read_printers(
 @api_router.get("/persons/person/{id}",
                 include_in_schema=True,
                 responses={404: {"model": Message}, 500: {"model": Message}},
-                summary='',
+                summary='Retrieve a specific person (printer) by ID',
                 tags=['Persons'],
                 response_model=PrinterOut)
 async def read_printer(id: str,
                        html: bool = False,
                        db: Session = Depends(get_db)):
+    """
+    Retrieve a specific person (printer) by DIL ID.
+    - `id`: The DIL ID of the person (printer). e.g., "person_dil_2QO3gEnU".
+    """
     try:
         printer = get_printer(db, {"_id_dil": id, "html": html}, enhance=True)
         if printer is None:
@@ -489,9 +502,12 @@ async def read_printer(id: str,
                 response_model=Page[PatentMinimalOut],
                 include_in_schema=True,
                 responses={404: {"model": Message}, 500: {"model": Message}},
-                summary='',
+                summary='Retrieve all patents with pagination',
                 tags=['Patents'])
 def read_patents(db: Session = Depends(get_db)):
+    """
+    Retrieve all patents with pagination.
+    """
     try:
         paginated_patents = paginate(db.query(Patent))
 
@@ -509,9 +525,12 @@ def read_patents(db: Session = Depends(get_db)):
                 response_model=PatentOut,
                 include_in_schema=True,
                 responses={404: {"model": Message}, 500: {"model": Message}},
-                summary='',
+                summary='Retrieve a specific patent by ID',
                 tags=['Patents'])
 def read_patent(id: str, db: Session = Depends(get_db), html: bool = False):
+    """
+    Retrieve a specific patent by DIL ID. e.g., "patent_dil_20XQCaDr".
+    """
     try:
         patent = get_patent(db, {"_id_dil": id, "html": html}, enhance=True)
         if patent is None:
@@ -529,9 +548,11 @@ def read_patent(id: str, db: Session = Depends(get_db), html: bool = False):
                 response_model=Page[CityOut],
                 include_in_schema=True,
                 responses={404: {"model": Message}, 500: {"model": Message}},
-                summary='',
+                summary='Retrieve all cities with pagination',
                 tags=['Referential'])
 def read_cities(db: Session = Depends(get_db)):
+    """Retrieve all cities with pagination.
+    """
     try:
         paginated_cities = paginate(db.query(City))
 
@@ -549,9 +570,11 @@ def read_cities(db: Session = Depends(get_db)):
                 response_model=CityOut,
                 include_in_schema=True,
                 responses={404: {"model": Message}, 500: {"model": Message}},
-                summary='',
+                summary='Retrieve a specific city by ID',
                 tags=['Referential'])
 def read_city(db: Session = Depends(get_db), id: str = None):
+    """Retrieve a specific city by DIL ID. e.g., "city_dil_I11CRwcK".
+    """
     try:
         city = get_city(db, {"_id_dil": id})
         if city is None:
@@ -582,9 +605,11 @@ def read_city(db: Session = Depends(get_db), id: str = None):
                 response_model=Page[AddressMinimalOut],
                 include_in_schema=True,
                 responses={404: {"model": Message}, 500: {"model": Message}},
-                summary='',
+                summary='Retrieve all addresses with pagination',
                 tags=['Referential'])
 def read_addresses(db: Session = Depends(get_db)):
+    """Retrieve all addresses with pagination.
+    """
     try:
         customPage = CustomizedPage[Page[AddressOut]]
         set_page(customPage)
@@ -620,9 +645,11 @@ def read_addresses(db: Session = Depends(get_db)):
                 response_model=AddressMinimalOut,
                 include_in_schema=True,
                 responses={404: {"model": Message}, 500: {"model": Message}},
-                summary='',
+                summary='Retrieve a specific address by ID',
                 tags=['Referential'])
 def read_address(db: Session = Depends(get_db), id: str = None):
+    """Retrieve a specific address by DIL ID. e.g., "address_dil_k5VNb151".
+    """
     try:
         address = get_address(db, {"_id_dil": id})
         if address is None:
