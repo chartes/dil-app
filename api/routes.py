@@ -398,10 +398,10 @@ def read_printers(
             Person.lastname,
             Person.firstnames,
             func.count(Patent.id).label("total_patents")
-        ).join(
+        ).outerjoin(
             Patent, Patent.person_id == Person.id
-        ).join(
-            City, City.id == Patent.city_id, isouter=True
+        ).outerjoin(
+            City, City.id == Patent.city_id
         ).group_by(
             Person._id_dil, Person.lastname, Person.firstnames
         )
@@ -467,7 +467,6 @@ def read_printers(
 
     except Exception as e:
         import traceback
-        print(traceback.format_exc())
         return JSONResponse(status_code=500, content={"message": f"Erreur serveur: {e}"})
 
 

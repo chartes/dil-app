@@ -8,6 +8,7 @@ import re
 import string
 import uuid
 import time
+from functools import wraps
 
 from sqlalchemy import (Column,
                         Integer,
@@ -32,6 +33,9 @@ from .constants import (countries_ISO_3166,
                         departments_INSEE_code,
                         type_patent_relations,
                         roles_user)
+from ..index_fts.index_conf import st
+from ..index_fts.index_utils import prepare_content
+
 from api.config import settings
 
 # DB models constants and utilities
@@ -42,6 +46,25 @@ params_default_relations = lambda bp, delete=True: {
     'cascade': "all, delete, delete-orphan" if delete else "",
     # 'passive_deletes': delete
 }
+
+def handle_index(method):
+    """
+    Decorator to handle the index during sqlalchemy events.
+    """
+
+    @wraps(method)
+    def wrapper(cls, mapper, connection, target):
+        """
+        Wrapper to handle the index.
+        """
+        try:
+            ix = st.open_index()
+            method(cls, mapper, connection, target, ix)
+            ix.close()
+        except Exception:
+            pass
+
+    return wrapper
 
 
 def generate_random_uuid(prefix: str, provider: str = "") -> str:
@@ -188,8 +211,52 @@ class AbstractBase(BASE):
         """Détruit l'image associée à l'objet."""
         if isinstance(target, Image):
             if target.img_name and target.img_name != "unknown.jpg":
-                print(f"Deleting image {target.img_name}")
                 os.remove(os.path.join(settings.IMAGE_STORE, target.img_name))
+
+    @classmethod
+    @handle_index
+    def update_person_fts_index_after_update(cls, mapper, connection, target, ix):
+        """Update the index after update a person"""
+        if cls.__tablename__ == "persons":
+            writer = ix.writer()
+            clean_text = prepare_content(target)
+            lastname = target.lastname or ""
+            firstnames = target.firstnames or ""
+            writer.update_document(
+                id_dil=str(target._id_dil).encode('utf-8').decode('utf-8'),
+                lastname=lastname.encode('utf-8').decode('utf-8'),
+                firstnames=firstnames.encode('utf-8').decode('utf-8'),
+                content=clean_text.encode('utf-8').decode('utf-8')
+            )
+            writer.commit()
+
+    @classmethod
+    @handle_index
+    def insert_person_fts_index_after_insert(cls, mapper, connection, target, ix):
+        """Insert a reference in the index"""
+        if cls.__tablename__ == "persons":
+            writer = ix.writer()
+            clean_text = prepare_content(target)
+            lastname = target.lastname or ""
+            firstnames = target.firstnames or ""
+            writer.add_document(
+                id_dil=str(target._id_dil).encode('utf-8').decode('utf-8'),
+                lastname=lastname.encode('utf-8').decode('utf-8'),
+                firstnames=firstnames.encode('utf-8').decode('utf-8'),
+                content=clean_text.encode('utf-8').decode('utf-8')
+            )
+
+            writer.commit()
+
+    @classmethod
+    @handle_index
+    def delete_person_fts_index_after_delete(cls, mapper, connection, target, ix):
+        """Delete a reference from the index"""
+        with sessionmaker(bind=connection)() as session:
+            if cls.__tablename__ == "persons":
+                writer = ix.writer()
+                writer.delete_by_term('id_dil', str(target._id_dil))
+                writer.commit()
 
 
 @event.listens_for(AbstractBase, "before_insert", propagate=True)
@@ -201,10 +268,22 @@ def before_insert_or_update(_, connection, target):
         target.set_img_name(target)
         target.check_img_patent_relations_pinned(target, session)
 
+
+@event.listens_for(AbstractBase, "after_insert", propagate=True)
+def after_insert(mapper, connection, target):
+    with sessionmaker(bind=connection)() as session:
+        target.insert_person_fts_index_after_insert(mapper, session, target)
+
+@event.listens_for(AbstractBase, "after_update", propagate=True)
+def after_update(mapper, connection, target):
+    with sessionmaker(bind=connection)() as session:
+        target.update_person_fts_index_after_update(mapper, session, target)
+
 @event.listens_for(AbstractBase, "after_delete", propagate=True)
-def after_delete(_, connection, target):
+def after_delete(mapper, connection, target):
     with sessionmaker(bind=connection)() as session:
         target.destroy_img(target)
+        target.delete_person_fts_index_after_delete(mapper, session, target)
 
 
 class AbstractVersion(AbstractBase):
