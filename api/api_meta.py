@@ -6,9 +6,9 @@ constant with API metadata.
 METADATA = {
     "title": "Dictionnaire des imprimeurs-lithographes du XIXe siècle - API",
     "version": "0.1.0",
-    "openapi_url": "/dil/api/openapi.json",
-    "docs_url": "/dil/api/docs",
-    "redoc_url": "/dil/api/redoc",
+    "openapi_url": "/dil-db/api/openapi.json",
+    "docs_url": "/dil-db/api/docs",
+    "redoc_url": "/dil-db/api/redoc",
     "license_info": {
         "name": "MIT",
         "identifier": "MIT",
