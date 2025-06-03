@@ -39,7 +39,7 @@ Babel(flask_app)
 admin = Admin(flask_app,
               name="DIL DB Administration",
               template_mode="bootstrap3",
-              url="/",
+              url="/dil/admin/",
               endpoint="admin",
               index_view=AdminView()
               )
