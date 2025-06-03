@@ -43,8 +43,9 @@ Pour une première initialisation de la base de données ou pour la recréer et 
 
 - `-db-re` : recréer la base de données avec les données initiales (attention si la base de données existe déjà, elle sera écrasée ou si des données ont été ajoutées ou modifiées, elles seront perdues);
 - `-images-back` : copier les images intiales de la base de données dans le dossier `static` pour les rendre accessibles via l'API.
+- `-create-index` : créer les index de la base de données (nécessaire pour les recherches sur les champs texte).
 
-Pour lancer l'application seule (ignorer l'argument `-db-re` et `-images-back`) :
+Pour lancer l'application seule (ignorer l'argument `-db-re`, `-create-index` et `-images-back`) :
 
 ```bash
    ./run.sh dev
