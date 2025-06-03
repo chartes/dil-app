@@ -48,10 +48,10 @@ def create_app():
     # extensions
     add_pagination(_app)
     # Add routes
-    _app.include_router(api_router, prefix="/dil/api")
+    _app.include_router(api_router, prefix="/dil-db/api")
     # Mount admin interface (flask app) into FastAPI app
     # use threaded=True to avoid blocking the event loop
-    _app.mount('/dil/', WSGIMiddleware(flask_app))
+    _app.mount('/dil-db/', WSGIMiddleware(flask_app))
     return _app
 
 
