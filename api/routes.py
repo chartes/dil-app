@@ -16,6 +16,7 @@ from fastapi_pagination.ext.sqlalchemy import (paginate)
 from fastapi_pagination.customization import CustomizedPage
 
 
+
 from sqlalchemy import (or_,
                         and_,
                         func,
@@ -24,6 +25,8 @@ from sqlalchemy import (or_,
                         distinct)
 from sqlalchemy.orm import Session
 from starlette.responses import JSONResponse
+from cachetools import TTLCache, cached
+import hashlib
 
 from api.database import get_db
 from api.crud import (get_printer,
@@ -54,7 +57,7 @@ return
 -> total persons
 -> total patents
 """
-
+cache = TTLCache(maxsize=1024, ttl=300)  # 5 minutes
 
 @api_router.get(
     "/infos",
@@ -94,10 +97,10 @@ def get_infos(db: Session = Depends(get_db)):
     tags=['Map']
 )
 def get_cities_with_printers(
-    db: Session = Depends(get_db),
-    patent_city_query: Optional[List[str]] = Query(None),
-    patent_date_start: Optional[str] = Query(None),
-    exact_patent_date_start: Optional[str] = Query(None)
+        db: Session = Depends(get_db),
+        patent_city_query: Optional[List[str]] = Query(None),
+        patent_date_start: Optional[str] = Query(None),
+        exact_patent_date_start: Optional[str] = Query(None)
 ):
     try:
         query = db.query(Patent.person_id).join(City)
@@ -186,7 +189,6 @@ def get_cities_with_printers(
 
     except Exception as e:
         return JSONResponse(status_code=500, content={"message": f"Erreur serveur: {e}"})
-
 
 
 @api_router.get("/places/autocomplete",
@@ -305,6 +307,13 @@ def read_images(id: str, db: Session = Depends(get_db)):
 
 
 # -- ROUTES PERSONS -- #
+def make_cache_key(name: str, content: str):
+    raw = f"{name or ''}|{content or ''}"
+    return hashlib.sha256(raw.encode()).hexdigest()
+
+@cached(cache=cache, key=lambda name, content: make_cache_key(name, content))
+def cached_search(name, content):
+    return search_whoosh(query_firstnames_lastname=name, query_content=content)
 
 
 @api_router.get(
@@ -317,82 +326,35 @@ def read_images(id: str, db: Session = Depends(get_db)):
 )
 def read_printers(
         db: Session = Depends(get_db),
-        search: Optional[str] = Query(None),
-
-        mode: Optional[str] = Query("all", description="Mode de recherche : all / head_info / extra_info"),
+        search_head_info: Optional[str] = Query(None),
+        search_extra_info: Optional[str] = Query(None),
         patent_city_query: Optional[List[str]] = Query(None),
         patent_date_start: Optional[str] = Query(None),
         exact_patent_date_start: bool = Query(False),
-        sort: Optional[str] = Query("asc"),
+        sort: Optional[str] = Query("asc")
 ) -> Union[JSONResponse, Page]:
     """
-    Retrieve all persons (printers) with optional filters.
-    - `search`: Keyword to search in lastname, firstnames, or content.
-    - `mode`: Search mode, can be "all", "head_info", or "extra_info". "all" searches all fields, "head_info" searches only lastname and firstnames, "extra_info" searches only content.
-    - `patent_city_query`: List of city dil IDs to filter patents by city.
-    - `patent_date_start`: Filter patents by start date (can be partial). e.g., "1854" or "1860-03".
-    - `exact_patent_date_start`: If True, filter patents by exact start date, otherwise filter by partial match.
-    - `sort`: Sort order for lastname, can be "asc" or "desc".
+    Recherche de personnes (imprimeurs), avec filtres facultatifs.
 
-    By default, it returns all persons with their total patents.
-
-    Returns a paginated response of persons with their total patents.
+    - `search`: Terme recherché
+    - `search_head_info`: Active la recherche sur nom/prénom
+    - `search_extra_info`: Active la recherche sur contenu (brevets, infos)
     """
     try:
-        whoosh_hits = {}
         filters = []
-        search_on_content = False
+        if not search_head_info and not search_extra_info:
+            whoosh_ids = None
+            whoosh_hits = {}
+        else:
+            whoosh_hits = cached_search(
+                name=search_head_info,
+                content=search_extra_info
+            )
+            if not whoosh_hits:
+                return Page(page=1, total=0, items=[], size=20, pages=0)
+            whoosh_ids = list(whoosh_hits.keys())
 
-        if search:
-            if mode not in ["all", "head_info", "extra_info"]:
-                return JSONResponse(status_code=400, content={"message": "Mode de recherche invalide"})
-
-            fields = {
-                "all": ["lastname", "firstnames", "content"],
-                "head_info": ["lastname", "firstnames"],
-                "extra_info": ["content"]
-            }[mode]
-
-            search_on_content = "content" in fields
-
-            sql_filters = []
-            whoosh_ids = []
-
-            if search_on_content:
-                # Recherche Whoosh
-                hits = search_whoosh(keyword=search, fields=fields)
-                if not hits:
-                    return Page(page=1, total=0, items=[], size=20, pages=0)
-
-                whoosh_hits = {hit["id_dil"]: hit["highlight"] for hit in hits}
-                whoosh_ids = list(whoosh_hits.keys())
-
-            if mode in ["all", "head_info"]:
-                # Recherche classique SQL sur lastname + firstnames
-                terms = search.strip().split()
-                for term in terms:
-                    pattern = f"%{term}%"
-                    sql_filters.append(
-                        or_(
-                            Person.lastname.ilike(pattern),
-                            Person.firstnames.ilike(pattern)
-                        )
-                    )
-
-            if whoosh_ids and sql_filters:
-                # filtrage restrictif sur ID obtenus via whoosh
-                filters.append(
-                    and_(
-                        Person._id_dil.in_(whoosh_ids),
-                        or_(*sql_filters)
-                    )
-                )
-            elif whoosh_ids:
-                filters.append(Person._id_dil.in_(whoosh_ids))
-            elif sql_filters:
-                filters.append(or_(*sql_filters))
-
-        # Requête SQL de base
+        # Construction de la requête principale
         query = db.query(
             Person._id_dil,
             Person.lastname,
@@ -406,15 +368,16 @@ def read_printers(
             Person._id_dil, Person.lastname, Person.firstnames
         )
 
+        # ⚠️ Le filtrage par Whoosh doit venir **après** la requête SQL
+        if whoosh_ids is not None:
+            query = query.filter(Person._id_dil.in_(whoosh_ids))
+
+        # Filtrage villes
         if patent_city_query:
-            selected_cities = list(set(patent_city_query))
+            query = query.filter(City._id_dil.in_(set(patent_city_query)))
+            query = query.having(func.count(func.distinct(City._id_dil)) == len(set(patent_city_query)))
 
-            # Filtre d'abord les brevets dans ces villes uniquement
-            query = query.filter(City._id_dil.in_(selected_cities))
-
-            # Assure que chaque personne est liée à toutes les villes sélectionnées
-            query = query.having(func.count(func.distinct(City._id_dil)) == len(selected_cities))
-
+        # Filtrage date
         if patent_date_start:
             normalized_date = normalize_date(patent_date_start)
             if exact_patent_date_start:
@@ -427,25 +390,23 @@ def read_printers(
                     )
                 )
 
-        if search and whoosh_hits:
-            filters.append(Person._id_dil.in_(list(whoosh_hits.keys())))
-
+        # Ajout filtres texte
         if filters:
-            query = query.filter(or_(*filters))
+            query = query.filter(and_(*filters))
 
+        # Tri alpha
         if sort == "desc":
             query = query.order_by(desc(func.replace(func.replace(Person.lastname, "É", "E"), "È", "E")))
         else:
             query = query.order_by(asc(func.replace(func.replace(Person.lastname, "É", "E"), "È", "E")))
 
+        # Pagination
         paginated = paginate(db, query)
 
-        # Construction de la réponse
+        # Format final avec highlight
         transformed_items = []
         for p in paginated.items:
-            highlight = None
-            if search and str(p.id_dil) in whoosh_hits:
-                highlight = whoosh_hits.get(str(p.id_dil))
+            highlight = whoosh_hits.get(str(p.id_dil), {}).get("highlight")
 
             transformed_items.append(
                 PrinterMinimalResponseOut(
@@ -664,3 +625,87 @@ def read_address(db: Session = Depends(get_db), id: str = None):
     except Exception as e:
         return JSONResponse(status_code=500,
                             content={"message": f"It seems the server have trouble: {e}"})
+
+@api_router.get("/graph", tags=["Graph"])
+def get_graph_data(year: int = Query(..., description="Filtrer les brevets dont date_start <= année"),
+                   db: Session = Depends(get_db)):
+
+    patents = db.query(Patent).all()
+
+
+
+    nodes = {}
+    edges = {}
+    edge_id = 0
+
+    for patent in patents:
+        patent_id = patent._id_dil
+        person = patent.person
+        city = patent.city
+
+        # -- Brevet node --
+        nodes[patent_id] = {
+            "name": f"Brevet {patent_id[-5:]}",
+            "type": "brevet",
+            "year": int(patent.date_start.split('-')[0]) if patent.date_start else None
+        }
+
+        # -- Imprimeur node --
+        if person:
+            person_id = person._id_dil
+            if person_id not in nodes:
+                nodes[person_id] = {
+                    "name": f"{person.lastname} {person.firstnames or ''}",
+                    "type": "imprimeur"
+                }
+
+            edges[f"e{edge_id}"] = {
+                "source": person_id,
+                "target": patent_id,
+                "type": "a_obtenu"
+            }
+            edge_id += 1
+
+        # -- Ville node --
+        if city:
+            city_id = city._id_dil
+            if city_id not in nodes:
+                nodes[city_id] = {
+                    "name": city.label,
+                    "type": "ville"
+                }
+
+            edges[f"e{edge_id}"] = {
+                "source": patent_id,
+                "target": city_id,
+                "type": "localise_a"
+            }
+            edge_id += 1
+
+        # -- Relations inter-imprimeurs via ce brevet --
+        for rel in patent.patent_relations:
+            src = rel.person
+            tgt = rel.person_related
+            if not (src and tgt):
+                continue
+
+            src_id = src._id_dil
+            tgt_id = tgt._id_dil
+
+            # Ajout des nœuds si manquants
+            for p in [src, tgt]:
+                if p._id_dil not in nodes:
+                    nodes[p._id_dil] = {
+                        "name": f"{p.lastname} {p.firstnames or ''}",
+                        "type": "imprimeur"
+                    }
+
+            edges[f"e{edge_id}"] = {
+                "source": src_id,
+                "target": tgt_id,
+                "type": rel.type  # parrain, successeur, etc.
+            }
+            edge_id += 1
+
+
+    return {"nodes": nodes, "edges": edges}

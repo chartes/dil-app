@@ -1,35 +1,55 @@
-from whoosh.qparser import MultifieldParser
+from unidecode import unidecode
+from whoosh.qparser import MultifieldParser, FuzzyTermPlugin
+from whoosh.query import Or, Term
 from whoosh import index
 from api.index_fts.index_conf import st
 
-def search_whoosh(keyword, fields=["content"], limit=50):
-    """
-    Recherche plein texte dans un ou plusieurs champs (Whoosh).
+from whoosh.qparser import QueryParser, OrGroup, AndGroup
+from whoosh.query import Or, Term, And
+from unidecode import unidecode
 
-    :param keyword: le terme recherché
-    :param fields: liste de champs sur lesquels faire la recherche (par défaut: ["content"])
-    :param limit: nombre maximum de résultats
-    :return: liste de dicts avec id_dil et highlights
-    """
+
+
+
+def search_whoosh(query_firstnames_lastname: str = "",
+                  query_content: str = "",
+                  limit=10000000):
     ix = st.open_index()
+    hits = {}
+
+    # Normalisation
+    def remove_first_joker(query):
+        """Remove the first joker character if present."""
+        if query.strip().startswith("*"):
+            return query[1:]
+        return query
+
+    query_firstnames_lastname = remove_first_joker(unidecode(query_firstnames_lastname.lower().strip())) if query_firstnames_lastname else ""
+    query_content = remove_first_joker(query_content.strip()) if query_content else ""
+
+    if not query_firstnames_lastname and not query_content:
+        return {}
+
     with ix.searcher() as searcher:
-        parser = MultifieldParser(fields, ix.schema)
-        q = parser.parse(keyword)
-        results = searcher.search(q, limit=limit)
+        # Choix de la requête
+        if query_firstnames_lastname and query_content:
+            # Requête AND
+            parser1 = QueryParser('firstnames_lastname', schema=ix.schema)
+            parser2 = QueryParser('content', schema=ix.schema)
+            query = And([
+                parser1.parse(query_firstnames_lastname),
+                parser2.parse(query_content)
+            ])
+        elif query_firstnames_lastname:
+            parser = QueryParser('firstnames_lastname', schema=ix.schema, group=AndGroup)
+            query = parser.parse(query_firstnames_lastname)
+        elif query_content:
+            parser = MultifieldParser(['content'], schema=ix.schema, group=AndGroup)
+            query = parser.parse(query_content)
 
-        hits = []
+        results = searcher.search(query, limit=limit)
         for r in results:
-            # Try to highlight the first matching field (fallback on 'content')
-            highlight = None
-            for field in fields:
-                if field in r:
-                    highlight = r.highlights(field)
-                    if highlight:
-                        break
-
-            hits.append({
-                "id_dil": r["id_dil"],
-                "highlight": highlight or ""  # fallback to empty if nothing
-            })
+            highlight = r.highlights("content") if "content" in r else None
+            hits[r["id_dil"]] = {"highlight": highlight}
 
         return hits

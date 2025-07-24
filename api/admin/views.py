@@ -3,6 +3,7 @@ views.py
 
 Model views for the admin interface.
 """
+from unidecode import unidecode
 
 from flask import (url_for,
                    jsonify,
@@ -122,6 +123,10 @@ class GlobalModelView(ModelView):
             self.can_create = False
         self.can_export = True
         return True
+
+
+
+
 
 
 class UserView(ModelView):
@@ -570,6 +575,41 @@ class PrinterView(GlobalModelView):
             else:
                 return super(PrinterView, self).render(template, **kwargs)
         return super(PrinterView, self).render(template, **kwargs)
+
+    def get_list(self, page, sort_field, sort_desc, search, filters, page_size=None):
+        query = self.session.query(self.model)
+        all_rows = query.all()
+
+        if search:
+            normalized_search = unidecode(search).lower().strip()
+            search_tokens = normalized_search.split()
+
+            def match(row):
+                combined = f"{row.lastname or ''} {row.firstnames or ''}"
+                normalized_combined = unidecode(combined).lower()
+                return all(token in normalized_combined for token in search_tokens)
+
+            filtered_rows = list(filter(match, all_rows))
+        else:
+            filtered_rows = all_rows
+
+        count = len(filtered_rows)
+
+        # Tri optionnel
+        if sort_field:
+            reverse = sort_desc
+            filtered_rows.sort(
+                key=lambda x: getattr(x, sort_field, '').lower() if getattr(x, sort_field) else '',
+                reverse=reverse
+            )
+
+        # Pagination Python
+        if page_size:
+            start = page * page_size
+            end = start + page_size
+            filtered_rows = filtered_rows[start:end]
+
+        return count, filtered_rows
 
     # Expose custom routes for printer view
     # for Ajax requests
@@ -1100,6 +1140,41 @@ class CityView(GlobalModelView):
     def on_model_change(self, form, model, is_created):
         model.last_editor = current_user.username
         session.commit()
+
+    def get_list(self, page, sort_field, sort_desc, search, filters, page_size=None):
+        query = self.session.query(self.model)
+        all_rows = query.all()
+
+        if search:
+            normalized_search = unidecode(search).lower().strip()
+            search_tokens = normalized_search.split()
+
+            def match(row):
+                combined = f"{row.label or ''}"
+                normalized_combined = unidecode(combined).lower()
+                return all(token in normalized_combined for token in search_tokens)
+
+            filtered_rows = list(filter(match, all_rows))
+        else:
+            filtered_rows = all_rows
+
+        count = len(filtered_rows)
+
+        # Tri optionnel
+        if sort_field:
+            reverse = sort_desc
+            filtered_rows.sort(
+                key=lambda x: getattr(x, sort_field, '').lower() if getattr(x, sort_field) else '',
+                reverse=reverse
+            )
+
+        # Pagination Python
+        if page_size:
+            start = page * page_size
+            end = start + page_size
+            filtered_rows = filtered_rows[start:end]
+
+        return count, filtered_rows
 
 
 class AboutView(BaseView):

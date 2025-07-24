@@ -80,6 +80,7 @@ class PrinterMinimalOut(BaseMeta):
 
 class PrinterMinimalResponseOut(PrinterMinimalOut):
     total_patents: Optional[int] = 0
+    highlight_text: Optional[str] = None
     highlight: Optional[str] = None
 
 
