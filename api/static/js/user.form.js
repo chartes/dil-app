@@ -66,7 +66,7 @@ generatePasswordBtn.addEventListener('click', async () => {
 function generatePassword() {
     return new Promise((resolve, reject) => {
         $.ajax({
-            url: '/dil/dil/admin/user/generate_password',
+            url: '/dil-db/dil-db/admin/user/generate_password',
             method: 'GET',
             success: function (response) {
                 resolve(response.password);  // Retourne le mot de passe

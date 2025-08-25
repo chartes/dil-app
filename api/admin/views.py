@@ -68,6 +68,8 @@ can_edit_roles = ['ADMIN', 'EDITOR', 'CONTRIBUTOR']
 can_delete_roles = ['ADMIN', 'EDITOR']
 can_create_roles = ['ADMIN', 'EDITOR', 'CONTRIBUTOR']
 
+BASE_PREFIX_ADD_MODEL = '/dil-db/dil-db/admin/'
+
 version_metadata = {
     "created_at": "Date de création",
     "updated_at": "Date de modification",
@@ -304,7 +306,7 @@ class PrinterView(GlobalModelView):
                     "label": _format_label_form_with_tooltip(label="Adresse",
                                                              comment="Adresses personnelles de l'imprimeur."),
                     "description": _format_link_add_model(description="une nouvelle adresse",
-                                                          href='/dil/dil/admin/address/new/?url=/dil/dil/admin/address/')
+                                                          href=f'{BASE_PREFIX_ADD_MODEL}address/new/?url={BASE_PREFIX_ADD_MODEL}address/')
                 },
                 "date_occupation": {
                     "validators": [is_valid_date],
@@ -435,13 +437,13 @@ class PrinterView(GlobalModelView):
                     "label": _format_label_form_with_tooltip(label="Ville (référentiel)",
                                                              comment="Ville du brevet dans le référentiel."),
                     "description": _format_link_add_model(description="une nouvelle ville",
-                                                          href='/dil/dil/admin/city/new/?url=/dil/dil/admin/city/')
+                                                          href=f'{BASE_PREFIX_ADD_MODEL}city/new/?url={BASE_PREFIX_ADD_MODEL}city/')
                 },
                 "images": {
                     "label": _format_label_form_with_tooltip(label="Images",
                                                              comment="Images liées au brevet."),
                     "description": _format_link_add_model(description="une nouvelle image",
-                                                          href='/dil/dil/admin/image/new/?url=/dil/dil/admin/image/')
+                                                          href=f'{BASE_PREFIX_ADD_MODEL}image/new/?url={BASE_PREFIX_ADD_MODEL}image/')
                 }
 
             },
@@ -494,7 +496,7 @@ class PrinterView(GlobalModelView):
                                                      comment="Ville de naissance de l'imprimeur. "
                                                              "Peut correspondre au toponyme ancien."),
             "description": _format_link_add_model(description="une nouvelle ville",
-                                                  href='/dil/dil/admin/city/new/?url=/dil/dil/admin/city/')
+                                                  href=f'{BASE_PREFIX_ADD_MODEL}city/new/?url={BASE_PREFIX_ADD_MODEL}city/')
         },
         "firstnames": {
             "label": _format_label_form_with_tooltip(label="Prénom(s)",

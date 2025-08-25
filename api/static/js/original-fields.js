@@ -7,7 +7,7 @@
  */
 
 $(document).ready(function () {
-    const BASE_URL = "/dil/dil/admin/person/"
+    const BASE_URL = "/dil-db/dil-db/admin/person/"
 
     let selectFirstnames = $('.input-select-tag-form-1');
 
@@ -33,7 +33,7 @@ $(document).ready(function () {
 // Fonction pour récupérer les détails d'une image
 async function fetchImageDetails(imageId, patentID) {
     try {
-        const response = await fetch(`/dil/dil/admin/person/get_image_details/?id=${imageId}&patent_id=${patentID}`);
+        const response = await fetch(`/dil-db/dil-db/admin/person/get_image_details/?id=${imageId}&patent_id=${patentID}`);
         if (!response.ok) {
             throw new Error(`Erreur ${response.status}: ${response.statusText}`);
         }

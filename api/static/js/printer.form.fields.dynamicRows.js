@@ -16,13 +16,15 @@
 */
 
 // ======================= CONFIGURATION ==========================
+const BASE_URL = "/dil-db/dil-db/admin/";
+
 const formConfigs = {
     patentRelations: {
         containerPrefix: "patents",
         containerSelectorAttach: ".relation-container-attach",
-        relationUrl: (id) => `/dil/dil/admin/person/get_patent_relations/${id}`,
-        ajaxUrl: "/dil/dil/admin/person/get_printers",
-        fetchSingleUrl: (id) => `/dil/dil/admin/person/get_printer/${id}`,
+        relationUrl: (id) => `${BASE_URL}person/get_patent_relations/${id}`,
+        ajaxUrl: `${BASE_URL}person/get_printers`,
+        fetchSingleUrl: (id) => `${BASE_URL}person/get_printer/${id}`,
         fieldNames: {
             select: (index) => `dynamic_printers[${index}][]`,
             type: (index) => `dynamic_relation_types[${index}][]`
@@ -37,11 +39,11 @@ const formConfigs = {
     addressesProRelations: {
         containerPrefix: "addresses",
         containerSelectorAttach: ".addresses-container-attach",
-        relationUrl: (id) => `/dil/dil/admin/person/get_pro_addresses/${id}`,
-        ajaxUrl: "/dil/dil/admin/person/get_addresses",
-        fetchSingleUrl: (id) => `/dil/dil/admin/person/get_address/${id}`,
+        relationUrl: (id) => `${BASE_URL}person/get_pro_addresses/${id}`,
+        ajaxUrl: `${BASE_URL}person/get_addresses`,
+        fetchSingleUrl: (id) => `${BASE_URL}person/get_address/${id}`,
         toCreate: {
-          url: "/dil/dil/admin/address/new/?url=/dil/dil/admin/address/",
+          url: `${BASE_URL}address/new/?url=${BASE_URL}address/`,
             description: "une nouvelle adresse",
         },
         fieldNames: {
