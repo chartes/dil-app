@@ -274,7 +274,7 @@ class PrinterView(GlobalModelView):
                      **version_metadata
                      }
     column_searchable_list = ["lastname",
-                              "firstnames",
+                              #"firstnames",
                               # "birth_city_label",
                               # "personal_information",
                               # "professional_information"
@@ -587,7 +587,7 @@ class PrinterView(GlobalModelView):
             search_tokens = normalized_search.split()
 
             def match(row):
-                combined = f"{row.lastname or ''} {row.firstnames or ''}"
+                combined = f"{row.lastname or ''}"
                 normalized_combined = unidecode(combined).lower()
                 return all(token in normalized_combined for token in search_tokens)
 
