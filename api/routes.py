@@ -48,7 +48,8 @@ from api.models.models import (Person,
                                City,
                                Address)
 from api.index_fts.search_utils import search_whoosh
-from api.api_utils import normalize_firstnames
+from api.api_utils import (normalize_firstnames,
+                           normalize_date)
 
 api_router = APIRouter()
 
@@ -246,19 +247,6 @@ def autocomplete_city(
         })
 
     return results
-
-
-# routes utils
-
-def normalize_date(date_str):
-    date_str = date_str.replace("~", "")
-    parts = date_str.split("-")
-    if len(parts) == 1:
-        return f"{parts[0]}-01-01"
-    elif len(parts) == 2:
-        return f"{parts[0]}-{parts[1]}-01"
-    return date_str
-
 
 # -- IMAGE ROUTES -- #
 @api_router.get(

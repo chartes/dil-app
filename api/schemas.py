@@ -49,6 +49,7 @@ class AddressOut(BaseMeta):
 class AddressMinimalOut(BaseMeta):
     label: Optional[str] = Field(..., alias="label")
     city_label: Optional[str]  = Field(..., alias="city_label")
+    date_occupation: Optional[str] = Field(..., alias="date_occupation")
     city_id: Optional[str]  = Field(..., alias="city_id")
 
 class AddressPersonalOut(AddressMinimalOut):
