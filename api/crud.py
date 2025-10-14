@@ -19,6 +19,7 @@ from .models.models import (User,
                             Address,
                             Image)
 from .models.constants import type_patent_relations
+from api.api_utils import normalize_firstnames
 
 MARKUP_HTML_FIELDS = {'personal_information', 'professional_information'}
 inverted_type_relations = {v: k for k, v in type_patent_relations.items()}
@@ -67,7 +68,7 @@ def enhance_patent_response(db: Session,
                 'patent_relations': [{
                     '_id_dil': str(patent_relation.person_related._id_dil) if patent_relation.person_related._id_dil else None,
                     'lastname': patent_relation.person_related.lastname,
-                    'firstnames': patent_relation.person_related.firstnames,
+                    'firstnames': normalize_firstnames(patent_relation.person_related.firstnames),
                     'type': inverted_type_relations.get(patent_relation.type)
 
                 } for patent_relation in patent.patent_relations if len(patent.patent_relations) > 0]
@@ -88,7 +89,7 @@ def enhance_printer_response(db: Session,
     return {
         "_id_dil": str(printer._id_dil) if printer._id_dil else None,
         "lastname": printer.lastname,
-        "firstnames": printer.firstnames,
+        "firstnames": normalize_firstnames(printer.firstnames),
         "birth_date": printer.birth_date,
         "birth_city_label": printer.birth_city_label,
         "birth_city_id": str(get_city(db, {
@@ -135,7 +136,7 @@ def get_printers(db: Session, args: dict, enhance: bool = False):
                 {
                     "_id_dil": str(printer._id_dil) if printer._id_dil else None,
                     "lastname": printer.lastname,
-                    "firstnames": printer.firstnames,
+                    "firstnames": normalize_firstnames(printer.firstnames),
                     "total_patents": len(printer.patents),
                 }
                 for printer in printers

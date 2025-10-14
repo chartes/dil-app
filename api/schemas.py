@@ -8,6 +8,7 @@ Use for validation and serialization.
 from typing import Union, List, Optional
 from pydantic import BaseModel, Field
 
+
 class BaseMeta(BaseModel):
     """An abstract base class for meta schemas."""
     id_dil: str = Field(..., alias="_id_dil")

@@ -48,6 +48,7 @@ from api.models.models import (Person,
                                City,
                                Address)
 from api.index_fts.search_utils import search_whoosh
+from api.api_utils import normalize_firstnames
 
 api_router = APIRouter()
 
@@ -170,7 +171,7 @@ def get_cities_with_printers(
             if person_key not in city_map[city_id]["persons"]:
                 city_map[city_id]["persons"][person_key] = {
                     "id": person_key,
-                    "firstnames": row.firstnames,
+                    "firstnames": normalize_firstnames(row.firstnames),
                     "lastname": row.lastname,
                     "city_patent": row.patent_city_label
                 }
@@ -311,6 +312,7 @@ def make_cache_key(name: str, content: str):
     raw = f"{name or ''}|{content or ''}"
     return hashlib.sha256(raw.encode()).hexdigest()
 
+
 @cached(cache=cache, key=lambda name, content: make_cache_key(name, content))
 def cached_search(name, content):
     return search_whoosh(query_firstnames_lastname=name, query_content=content)
@@ -407,12 +409,13 @@ def read_printers(
         transformed_items = []
         for p in paginated.items:
             highlight = whoosh_hits.get(str(p.id_dil), {}).get("highlight")
+            firstnames = normalize_firstnames(p.firstnames)
 
             transformed_items.append(
                 PrinterMinimalResponseOut(
                     _id_dil=str(p.id_dil),
                     lastname=p.lastname,
-                    firstnames=p.firstnames,
+                    firstnames=firstnames,
                     total_patents=p.total_patents,
                     highlight=highlight
                 )
@@ -427,6 +430,7 @@ def read_printers(
         )
 
     except Exception as e:
+        print(e)
         import traceback
         return JSONResponse(status_code=500, content={"message": f"Erreur serveur: {e}"})
 
