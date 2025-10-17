@@ -99,6 +99,13 @@ La base de données constituée grâce aux crédits du Labex CAP est hébergée 
 
 **janvier 2014** : Début du projet et création de l'application (PHP-Drupal+MySQL+Apache) hébergé sur http://elec.enc.sorbonne.fr/imprimeurs/ 
 
-**août 2024** : Début migration de l'application -> traitement des données
+**août 2024 - janvier 2025** : Début migration de l'application -> traitement des données
 
-**janvier 2025 -** : Données migrées en base -> création de la plateforme d'administration des données + réflexion sur le frontend
+**janvier 2025 - octobre 2025** :
+   - Création des de la plateforme d'admin + API + frontend utilisateur : 
+      - stack backend : Flask-Admin + SQLITE/SQLALCHEMY + FastAPI (API arch)
+      - stack frontend : VueJS + JS + store VueX 
+   - données migrées et début de la reprise par E.P.
+   - ajustements CSS + reprise des contenus éditoriaux avec E.P.
+
+**?** : déploiement en production
