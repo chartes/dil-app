@@ -49,16 +49,13 @@ from api.models.models import (Person,
                                Address)
 from api.index_fts.search_utils import search_whoosh
 from api.api_utils import (normalize_firstnames,
-                           normalize_date)
+                           normalize_date,
+                           year_bounds,
+                           period_bounds)
 
 api_router = APIRouter()
 
 # -- infos routes -- #
-"""
-return 
--> total persons
--> total patents
-"""
 cache = TTLCache(maxsize=1024, ttl=300)  # 5 minutes
 
 @api_router.get(
@@ -68,24 +65,13 @@ cache = TTLCache(maxsize=1024, ttl=300)  # 5 minutes
     summary='Get generic API information about data (e.g. total)',
 )
 def get_infos(db: Session = Depends(get_db)):
+    """Retrieve generic information about the API data."""
     try:
-        # Nombre total de personnes
-        total_persons = db.query(Person).count()
-
-        # Nombre total de brevets
-        total_patents = db.query(Patent).count()
-
-        # Nombre total de villes
-        total_cities = db.query(City).count()
-
-        # Nombre total d'adresses
-        total_addresses = db.query(Address).count()
-
         return {
-            "total_persons": total_persons,
-            "total_patents": total_patents,
-            "total_cities": total_cities,
-            "total_addresses": total_addresses
+            "total_persons": db.query(Person).count(),
+            "total_patents": db.query(Patent).count(),
+            "total_cities": db.query(City).count(),
+            "total_addresses": db.query(Address).count()
         }
     except Exception as e:
         return JSONResponse(status_code=500, content={"message": f"It seems the server have trouble: {e}"})
@@ -111,16 +97,27 @@ def get_cities_with_printers(
             query = query.filter(City._id_dil.in_(patent_city_query))
 
         if patent_date_start:
-            normalized_date = normalize_date(patent_date_start)
-            if bool(exact_patent_date_start):
-                query = query.filter(Patent.date_start == patent_date_start)
-            else:
-                query = query.filter(
-                    or_(
-                        Patent.date_start.like(f"{patent_date_start}%"),
-                        Patent.date_start >= normalized_date
+            pstart, pend = period_bounds(patent_date_start)
+            if pstart and pend:
+                if bool(exact_patent_date_start):
+                    query = query.filter(
+                        and_(Patent.date_start >= pstart, Patent.date_start <= pend)
                     )
-                )
+                else:
+                    query = query.filter(
+                        or_(
+                            and_(
+                                Patent.date_end.is_(None),
+                                Patent.date_start >= pstart,
+                                Patent.date_start <= pend
+                            ),
+                            and_(
+                                Patent.date_end.is_not(None),
+                                Patent.date_start <= pend,
+                                Patent.date_end >= pstart
+                            )
+                        )
+                    )
 
         if patent_city_query:
             query = query.group_by(Patent.person_id)
@@ -203,7 +200,6 @@ def autocomplete_city(
 ):
     selected = list(set(selected or []))
 
-    # Sous-requête pour les personnes ayant un brevet dans toutes les villes sélectionnées
     person_query = db.query(Patent.person_id).join(City)
     if selected:
         person_query = person_query.filter(City._id_dil.in_(selected))
@@ -214,7 +210,6 @@ def autocomplete_city(
     if not matching_person_ids:
         return []
 
-    # Requête principale avec nombre de brevets et nombre d'imprimeurs
     city_query = db.query(
         City._id_dil.label("id_dil"),
         City.label,
@@ -344,7 +339,6 @@ def read_printers(
                 return Page(page=1, total=0, items=[], size=20, pages=0)
             whoosh_ids = list(whoosh_hits.keys())
 
-        # Construction de la requête principale
         query = db.query(
             Person._id_dil,
             Person.lastname,
@@ -358,42 +352,49 @@ def read_printers(
             Person._id_dil, Person.lastname, Person.firstnames
         )
 
-        # ⚠️ Le filtrage par Whoosh doit venir **après** la requête SQL
         if whoosh_ids is not None:
             query = query.filter(Person._id_dil.in_(whoosh_ids))
 
-        # Filtrage villes
         if patent_city_query:
             query = query.filter(City._id_dil.in_(set(patent_city_query)))
             query = query.having(func.count(func.distinct(City._id_dil)) == len(set(patent_city_query)))
 
-        # Filtrage date
         if patent_date_start:
-            normalized_date = normalize_date(patent_date_start)
-            if exact_patent_date_start:
-                query = query.filter(Patent.date_start == patent_date_start)
-            else:
-                query = query.filter(
-                    or_(
-                        Patent.date_start.like(f"{patent_date_start}%"),
-                        Patent.date_start >= normalized_date
+            pstart, pend = period_bounds(patent_date_start)
+            if pstart and pend:
+                if exact_patent_date_start:
+                    query = query.filter(
+                        and_(Patent.date_start >= pstart, Patent.date_start <= pend)
                     )
-                )
+                else:
+                    # Argument :
+                    # - if NULL -> start inside the interval
+                    # - if not NULL -> overlaps the interval
+                    query = query.filter(
+                        or_(
+                            and_(
+                                Patent.date_end.is_(None),
+                                Patent.date_start >= pstart,
+                                Patent.date_start <= pend
+                            ),
+                            and_(
+                                Patent.date_end.is_not(None),
+                                Patent.date_start <= pend,
+                                Patent.date_end >= pstart
+                            )
+                        )
+                    )
 
-        # Ajout filtres texte
         if filters:
             query = query.filter(and_(*filters))
 
-        # Tri alpha
         if sort == "desc":
             query = query.order_by(desc(func.replace(func.replace(Person.lastname, "É", "E"), "È", "E")))
         else:
             query = query.order_by(asc(func.replace(func.replace(Person.lastname, "É", "E"), "È", "E")))
 
-        # Pagination
         paginated = paginate(db, query)
 
-        # Format final avec highlight
         transformed_items = []
         for p in paginated.items:
             highlight = whoosh_hits.get(str(p.id_dil), {}).get("highlight")
@@ -674,7 +675,7 @@ def get_graph_data(year: int = Query(..., description="Filtrer les brevets dont 
             }
             edge_id += 1
 
-        # -- Relations inter-imprimeurs via ce brevet --
+        # -- printer relations via patent --
         for rel in patent.patent_relations:
             src = rel.person
             tgt = rel.person_related
@@ -684,7 +685,6 @@ def get_graph_data(year: int = Query(..., description="Filtrer les brevets dont 
             src_id = src._id_dil
             tgt_id = tgt._id_dil
 
-            # Ajout des nœuds si manquants
             for p in [src, tgt]:
                 if p._id_dil not in nodes:
                     nodes[p._id_dil] = {
