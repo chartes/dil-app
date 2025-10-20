@@ -3,7 +3,7 @@ routes.py
 
 FastAPI routes for the DIL API.
 """
-
+from bdb import effective
 from typing import Union, Optional, List
 
 from fastapi import (APIRouter,
@@ -67,9 +67,15 @@ cache = TTLCache(maxsize=1024, ttl=300)  # 5 minutes
 def get_infos(db: Session = Depends(get_db)):
     """Retrieve generic information about the API data."""
     try:
+        # filter only patents with date start between 1817–1870
+        effective_patents_subquery = db.query(Patent).filter(
+            Patent.date_start >= normalize_date("1817-01-01"),
+            Patent.date_start <= normalize_date("1870-12-31")
+        ).subquery()
         return {
             "total_persons": db.query(Person).count(),
             "total_patents": db.query(Patent).count(),
+            "total_effective_patents": db.query(effective_patents_subquery).count(),
             "total_cities": db.query(City).count(),
             "total_addresses": db.query(Address).count()
         }
