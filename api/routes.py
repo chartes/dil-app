@@ -316,97 +316,116 @@ def cached_search(name, content):
     tags=['Persons']
 )
 def read_printers(
-        db: Session = Depends(get_db),
-        search_head_info: Optional[str] = Query(None),
-        search_extra_info: Optional[str] = Query(None),
-        patent_city_query: Optional[List[str]] = Query(None),
-        patent_date_start: Optional[str] = Query(None),
-        exact_patent_date_start: bool = Query(False),
-        sort: Optional[str] = Query("asc")
+    db: Session = Depends(get_db),
+    search_head_info: Optional[str] = Query(None),
+    search_extra_info: Optional[str] = Query(None),
+    patent_city_query: Optional[List[str]] = Query(None),
+    patent_date_start: Optional[str] = Query(None),
+    exact_patent_date_start: bool = Query(False),
+    sort: Optional[str] = Query("asc"),
 ) -> Union[JSONResponse, Page]:
-    """
-    Recherche de personnes (imprimeurs), avec filtres facultatifs.
-
-    - `search`: Terme recherché
-    - `search_head_info`: Active la recherche sur nom/prénom
-    - `search_extra_info`: Active la recherche sur contenu (brevets, infos)
-    """
     try:
-        filters = []
+        # -- 0) Whoosh (opt.) --
         if not search_head_info and not search_extra_info:
-            whoosh_ids = None
-            whoosh_hits = {}
+            whoosh_ids, whoosh_hits = None, {}
         else:
             whoosh_hits = cached_search(
                 name=search_head_info,
                 content=search_extra_info
-            )
+            ) or {}
             if not whoosh_hits:
                 return Page(page=1, total=0, items=[], size=20, pages=0)
             whoosh_ids = list(whoosh_hits.keys())
 
-        query = db.query(
-            Person._id_dil,
-            Person.lastname,
-            Person.firstnames,
-            func.count(Patent.id).label("total_patents")
-        ).outerjoin(
-            Patent, Patent.person_id == Person.id
-        ).outerjoin(
-            City, City.id == Patent.city_id
-        ).group_by(
-            Person._id_dil, Person.lastname, Person.firstnames
+        # -- 1) sub-request : total patents--
+        patent_count_subq = (
+            db.query(
+                Patent.person_id.label("pid"),
+                func.count(Patent.id).label("total_patents")
+            )
+            .group_by(Patent.person_id)
+            .subquery()
         )
 
+        # -- 2) base request --
+        q = (
+            db.query(
+                Person._id_dil.label("id_dil"),
+                Person.lastname,
+                Person.firstnames,
+                func.coalesce(patent_count_subq.c.total_patents, 0).label("total_patents"),
+                Person.id.label("person_pk"),
+            )
+            .outerjoin(patent_count_subq, patent_count_subq.c.pid == Person.id)
+        )
+
+        # Whoosh
         if whoosh_ids is not None:
-            query = query.filter(Person._id_dil.in_(whoosh_ids))
+            q = q.filter(Person._id_dil.in_(whoosh_ids))
 
+        # -- 3) City filter: EXISTS with all selected cities --
         if patent_city_query:
-            query = query.filter(City._id_dil.in_(set(patent_city_query)))
-            query = query.having(func.count(func.distinct(City._id_dil)) == len(set(patent_city_query)))
+            selected = list(set(patent_city_query))
+            city_match_subq = (
+                db.query(Patent.person_id.label("pid"))
+                  .join(City, City.id == Patent.city_id)
+                  .filter(City._id_dil.in_(selected))
+                  .group_by(Patent.person_id)
+                  .having(func.count(distinct(City._id_dil)) == len(selected))
+                  .subquery()
+            )
+            q = q.join(city_match_subq, city_match_subq.c.pid == Person.id)
 
+        # -- 4) Period filter: EXISTS on patent date_start --
         if patent_date_start:
             pstart, pend = period_bounds(patent_date_start)
             if pstart and pend:
                 if exact_patent_date_start:
-                    query = query.filter(
-                        and_(Patent.date_start >= pstart, Patent.date_start <= pend)
+                    active_exists = (
+                        db.query(Patent.id)
+                          .filter(
+                              Patent.person_id == Person.id,
+                              Patent.date_start >= pstart,
+                              Patent.date_start <= pend,
+                          )
+                          .exists()
                     )
                 else:
-                    # Argument :
-                    # - if NULL -> start inside the interval
-                    # - if not NULL -> overlaps the interval
-                    query = query.filter(
-                        or_(
-                            and_(
-                                Patent.date_end.is_(None),
-                                Patent.date_start >= pstart,
-                                Patent.date_start <= pend
-                            ),
-                            and_(
-                                Patent.date_end.is_not(None),
-                                Patent.date_start <= pend,
-                                Patent.date_end >= pstart
-                            )
-                        )
+                    active_exists = (
+                        db.query(Patent.id)
+                          .filter(
+                              Patent.person_id == Person.id,
+                              or_(
+                                  and_(
+                                      Patent.date_end.is_(None),
+                                      Patent.date_start >= pstart,
+                                      Patent.date_start <= pend
+                                  ),
+                                  and_(
+                                      Patent.date_end.is_not(None),
+                                      Patent.date_start <= pend,
+                                      Patent.date_end >= pstart
+                                  ),
+                              )
+                          )
+                          .exists()
                     )
+                q = q.filter(active_exists)
 
-        if filters:
-            query = query.filter(and_(*filters))
+        # -- 5) Sorting --
+        order_expr = func.replace(func.replace(Person.lastname, "É", "E"), "È", "E")
+        q = q.order_by(desc(order_expr) if sort == "desc" else asc(order_expr))
 
-        if sort == "desc":
-            query = query.order_by(desc(func.replace(func.replace(Person.lastname, "É", "E"), "È", "E")))
-        else:
-            query = query.order_by(asc(func.replace(func.replace(Person.lastname, "É", "E"), "È", "E")))
+        # -- 6) Pagination --
+        paginated = paginate(db, q)
 
-        paginated = paginate(db, query)
-
-        transformed_items = []
+        # -- 7) Output transformation --
+        items = []
         for p in paginated.items:
             highlight = whoosh_hits.get(str(p.id_dil), {}).get("highlight")
             firstnames = normalize_firstnames(p.firstnames)
 
-            transformed_items.append(
+            items.append(
                 PrinterMinimalResponseOut(
                     _id_dil=str(p.id_dil),
                     lastname=p.lastname,
@@ -419,16 +438,14 @@ def read_printers(
         return Page(
             page=paginated.page,
             total=paginated.total,
-            items=transformed_items,
+            items=items,
             size=paginated.size,
             pages=paginated.pages,
         )
 
     except Exception as e:
         print(e)
-        import traceback
         return JSONResponse(status_code=500, content={"message": f"Erreur serveur: {e}"})
-
 
 @api_router.get("/persons/person/{id}",
                 include_in_schema=True,

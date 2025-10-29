@@ -15,6 +15,7 @@ class BaseMeta(BaseModel):
 
     class Config:
         orm_mode = True
+        allow_population_by_field_name = True
 
 class Message(BaseModel):
     message: str = Field(alias="message")
