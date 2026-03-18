@@ -222,16 +222,12 @@ class AbstractBase(BASE):
             writer = ix.writer()
             clean_text = prepare_content(target)
             lastname = target.lastname or ""
-            firstnames = target.firstnames or ""
             lastname = unidecode(lastname or "").lower().encode('utf-8').decode('utf-8')
-            firstnames = unidecode(firstnames or "").lower().encode('utf-8').decode('utf-8')
-            writer.add_document(
+            writer.update_document(
                 id_dil=str(target._id_dil).encode('utf-8').decode('utf-8'),
                 lastname=lastname,
-                firstnames=firstnames,
+                lastname_exact=lastname,
                 content=clean_text.encode('utf-8').decode('utf-8'),
-                content_ngram=unidecode(clean_text).lower().encode('utf-8').decode('utf-8'),
-                firstnames_lastname=f"{' '.join(firstnames.split(','))} {lastname}"
             )
 
             writer.commit()
@@ -244,16 +240,11 @@ class AbstractBase(BASE):
             writer = ix.writer()
             clean_text = prepare_content(target)
             lastname = target.lastname or ""
-            firstnames = target.firstnames or ""
             lastname = unidecode(lastname or "").lower().encode('utf-8').decode('utf-8')
-            firstnames = unidecode(firstnames or "").lower().encode('utf-8').decode('utf-8')
             writer.add_document(
                 id_dil=str(target._id_dil).encode('utf-8').decode('utf-8'),
                 lastname=lastname,
-                firstnames=firstnames,
                 content=clean_text.encode('utf-8').decode('utf-8'),
-                content_ngram=unidecode(clean_text).lower().encode('utf-8').decode('utf-8'),
-                firstnames_lastname=f"{' '.join(firstnames.split(','))} {lastname}"
             )
 
             writer.commit()

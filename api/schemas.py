@@ -81,10 +81,19 @@ class PrinterMinimalOut(BaseMeta):
     lastname: str
     firstnames: Optional[str]
 
+
+class ExercisePlaceSummaryOut(BaseModel):
+    city_label: str
+    date_start: Optional[str] = None
+    date_end: Optional[str] = None
+
 class PrinterMinimalResponseOut(PrinterMinimalOut):
+    person_pk: Optional[int] = None
     total_patents: Optional[int] = 0
     highlight_text: Optional[str] = None
     highlight: Optional[str] = None
+    exercise_places_summary: List[ExercisePlaceSummaryOut] = []
+
 
 
 class PrinterOut(PrinterMinimalOut):

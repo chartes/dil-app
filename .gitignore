@@ -1,5 +1,6 @@
 # autres
 data/prepared/
+dump_project.py
 # app/api/templates/tests/
 data/assets/
 app_old/

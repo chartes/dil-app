@@ -56,7 +56,7 @@ from api.api_utils import (normalize_firstnames,
 api_router = APIRouter()
 
 # -- infos routes -- #
-cache = TTLCache(maxsize=1024, ttl=300)  # 5 minutes
+cache = TTLCache(maxsize=2048, ttl=120)
 
 @api_router.get(
     "/infos",
@@ -297,15 +297,13 @@ def read_images(id: str, db: Session = Depends(get_db)):
 
 
 # -- ROUTES PERSONS -- #
-def make_cache_key(name: str, content: str):
-    raw = f"{name or ''}|{content or ''}"
+def make_cache_key(lastname: str, content: str):
+    raw = f"{(lastname or '').strip().lower()}|{(content or '').strip().lower()}"
     return hashlib.sha256(raw.encode()).hexdigest()
 
-
-@cached(cache=cache, key=lambda name, content: make_cache_key(name, content))
-def cached_search(name, content):
-    return search_whoosh(query_firstnames_lastname=name, query_content=content)
-
+@cached(cache=cache, key=lambda lastname, content: make_cache_key(lastname, content))
+def cached_search(lastname, content):
+    return search_whoosh(query_lastname=lastname, query_content=content)
 
 @api_router.get(
     "/persons",
@@ -326,16 +324,18 @@ def read_printers(
 ) -> Union[JSONResponse, Page]:
     try:
         # -- 0) Whoosh (opt.) --
-        if not search_head_info and not search_extra_info:
-            whoosh_ids, whoosh_hits = None, {}
-        else:
+        whoosh_ids = None
+        whoosh_hits = {}
+
+        if search_head_info or search_extra_info:
             whoosh_hits = cached_search(
-                name=search_head_info,
+                lastname=search_head_info,
                 content=search_extra_info
             ) or {}
-            if not whoosh_hits:
-                return Page(page=1, total=0, items=[], size=20, pages=0)
             whoosh_ids = list(whoosh_hits.keys())
+
+            if not whoosh_ids:
+                return Page(page=1, total=0, items=[], size=20, pages=0)
 
         # -- 1) sub-request : total patents--
         patent_count_subq = (
@@ -359,11 +359,11 @@ def read_printers(
             .outerjoin(patent_count_subq, patent_count_subq.c.pid == Person.id)
         )
 
-        # Whoosh
+        # -- 3) Whoosh filter --
         if whoosh_ids is not None:
             q = q.filter(Person._id_dil.in_(whoosh_ids))
 
-        # -- 3) City filter: EXISTS with all selected cities --
+        # -- 4) City filter: EXISTS with all selected cities --
         if patent_city_query:
             selected = list(set(patent_city_query))
             city_match_subq = (
@@ -376,7 +376,7 @@ def read_printers(
             )
             q = q.join(city_match_subq, city_match_subq.c.pid == Person.id)
 
-        # -- 4) Period filter: EXISTS on patent date_start --
+        # -- 5) Period filter: EXISTS on patent date_start --
         if patent_date_start:
             pstart, pend = period_bounds(patent_date_start)
             if pstart and pend:
@@ -412,26 +412,56 @@ def read_printers(
                     )
                 q = q.filter(active_exists)
 
-        # -- 5) Sorting --
+        # -- 6) Sorting --
         order_expr = func.replace(func.replace(Person.lastname, "É", "E"), "È", "E")
         q = q.order_by(desc(order_expr) if sort == "desc" else asc(order_expr))
 
-        # -- 6) Pagination --
+        # -- 7) Pagination --
         paginated = paginate(db, q)
 
-        # -- 7) Output transformation --
+        person_pks = [p.person_pk for p in paginated.items]
+
+        patents_rows = (
+            db.query(
+                Patent.person_id,
+                Patent.city_label,
+                Patent.date_start,
+                Patent.date_end,
+            )
+            .filter(Patent.person_id.in_(person_pks))
+            .order_by(Patent.person_id, Patent.date_start.asc())
+            .all()
+        )
+
+        patents_by_person = {}
+        for row in patents_rows:
+            patents_by_person.setdefault(row.person_id, []).append({
+                "city_label": row.city_label,
+                "date_start": row.date_start,
+                "date_end": row.date_end,
+            })
+
+        # -- 8) Output transformation --
         items = []
+
         for p in paginated.items:
-            highlight = whoosh_hits.get(str(p.id_dil), {}).get("highlight")
-            firstnames = normalize_firstnames(p.firstnames)
+            exercise_places_summary = []
+
+            for patent in patents_by_person.get(p.person_pk, []):
+                exercise_places_summary.append({
+                    "city_label": patent["city_label"] or "Ville inconnue",
+                    "date_start": patent["date_start"],
+                    "date_end": patent["date_end"],
+                })
 
             items.append(
                 PrinterMinimalResponseOut(
                     _id_dil=str(p.id_dil),
                     lastname=p.lastname,
-                    firstnames=firstnames,
+                    firstnames=normalize_firstnames(p.firstnames),
                     total_patents=p.total_patents,
-                    highlight=highlight
+                    highlight=whoosh_hits.get(str(p.id_dil), {}).get("highlight"),
+                    exercise_places_summary=exercise_places_summary
                 )
             )
 
