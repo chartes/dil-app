@@ -141,6 +141,7 @@ def get_cities_with_printers(
             City.insee_fr_department_label.label("city_dept_label"),
             City.long_lat.label("city_long_lat"),
             City._id_dil.label("city_dil"),
+            City.dicotopo_item_id.label("dicotopo_item_id"),
             Patent.city_label.label("patent_city_label"),
             Person.id.label("person_id"),
             Person._id_dil.label("person_dil"),
@@ -169,6 +170,7 @@ def get_cities_with_printers(
                     "city_dept_label": row.city_dept_label,
                     "city_long_lat": row.city_long_lat,
                     "city_dil": row.city_dil,
+                    "city_dicotopo_item_id": row.dicotopo_item_id if hasattr(row, "dicotopo_item_id") else None,
                     "persons": {}
                 }
 
@@ -187,6 +189,7 @@ def get_cities_with_printers(
                 "city_dept_label": c["city_dept_label"],
                 "city_long_lat": c["city_long_lat"],
                 "city_dil": c["city_dil"],
+                "city_dicotopo_item_id": c["city_dicotopo_item_id"],
                 "persons": list(c["persons"].values())
             }
             for c in city_map.values()
@@ -363,54 +366,50 @@ def read_printers(
         if whoosh_ids is not None:
             q = q.filter(Person._id_dil.in_(whoosh_ids))
 
-        # -- 4) City filter: EXISTS with all selected cities --
+        # -- 4) City filter --
         if patent_city_query:
             selected = list(set(patent_city_query))
             city_match_subq = (
                 db.query(Patent.person_id.label("pid"))
-                  .join(City, City.id == Patent.city_id)
-                  .filter(City._id_dil.in_(selected))
-                  .group_by(Patent.person_id)
-                  .having(func.count(distinct(City._id_dil)) == len(selected))
-                  .subquery()
+                .join(City, City.id == Patent.city_id)
+                .filter(City._id_dil.in_(selected))
+                .group_by(Patent.person_id)
+                .having(func.count(distinct(City._id_dil)) == len(selected))
+                .subquery()
             )
             q = q.join(city_match_subq, city_match_subq.c.pid == Person.id)
 
-        # -- 5) Period filter: EXISTS on patent date_start --
+        # -- 5) Period filter --
         if patent_date_start:
             pstart, pend = period_bounds(patent_date_start)
             if pstart and pend:
+                period_subq = db.query(
+                    Patent.person_id.label("pid")
+                )
+
                 if exact_patent_date_start:
-                    active_exists = (
-                        db.query(Patent.id)
-                          .filter(
-                              Patent.person_id == Person.id,
-                              Patent.date_start >= pstart,
-                              Patent.date_start <= pend,
-                          )
-                          .exists()
+                    period_subq = period_subq.filter(
+                        Patent.date_start >= pstart,
+                        Patent.date_start <= pend
                     )
                 else:
-                    active_exists = (
-                        db.query(Patent.id)
-                          .filter(
-                              Patent.person_id == Person.id,
-                              or_(
-                                  and_(
-                                      Patent.date_end.is_(None),
-                                      Patent.date_start >= pstart,
-                                      Patent.date_start <= pend
-                                  ),
-                                  and_(
-                                      Patent.date_end.is_not(None),
-                                      Patent.date_start <= pend,
-                                      Patent.date_end >= pstart
-                                  ),
-                              )
-                          )
-                          .exists()
+                    period_subq = period_subq.filter(
+                        or_(
+                            and_(
+                                Patent.date_end.is_(None),
+                                Patent.date_start >= pstart,
+                                Patent.date_start <= pend
+                            ),
+                            and_(
+                                Patent.date_end.is_not(None),
+                                Patent.date_start <= pend,
+                                Patent.date_end >= pstart
+                            )
+                        )
                     )
-                q = q.filter(active_exists)
+
+                period_subq = period_subq.group_by(Patent.person_id).subquery()
+                q = q.join(period_subq, period_subq.c.pid == Person.id)
 
         # -- 6) Sorting --
         order_expr = func.replace(func.replace(Person.lastname, "É", "E"), "È", "E")
@@ -474,7 +473,6 @@ def read_printers(
         )
 
     except Exception as e:
-        print(e)
         return JSONResponse(status_code=500, content={"message": f"Erreur serveur: {e}"})
 
 @api_router.get("/persons/person/{id}",
