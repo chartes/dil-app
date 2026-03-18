@@ -5,6 +5,7 @@ dump_project.py
 images_store/
 data/assets/
 app_old/
+*.sqlite
 scripts_help/
 db/DIL.db
 api/static/images_store/
