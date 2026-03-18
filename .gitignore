@@ -2,6 +2,7 @@
 data/prepared/
 dump_project.py
 # app/api/templates/tests/
+images_store/
 data/assets/
 app_old/
 scripts_help/
