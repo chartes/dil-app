@@ -15,8 +15,6 @@ from fastapi_pagination import (Page,
 from fastapi_pagination.ext.sqlalchemy import (paginate)
 from fastapi_pagination.customization import CustomizedPage
 
-
-
 from sqlalchemy import (or_,
                         and_,
                         func,
@@ -58,6 +56,7 @@ api_router = APIRouter()
 # -- infos routes -- #
 cache = TTLCache(maxsize=2048, ttl=120)
 
+
 @api_router.get(
     "/infos",
     include_in_schema=False,
@@ -94,20 +93,44 @@ def get_cities_with_printers(
         db: Session = Depends(get_db),
         patent_city_query: Optional[List[str]] = Query(None),
         patent_date_start: Optional[str] = Query(None),
-        exact_patent_date_start: Optional[str] = Query(None)
+        exact_patent_date_start: Optional[str] = Query(None),
+        search_head_info: Optional[str] = Query(None),
+        search_extra_info: Optional[str] = Query(None),
 ):
     try:
-        query = db.query(Patent.person_id).join(City)
+        selected_cities = list(set(patent_city_query or []))
+        exact_date = str(exact_patent_date_start).lower() == "true"
 
-        if patent_city_query:
-            query = query.filter(City._id_dil.in_(patent_city_query))
+        whoosh_ids = None
+        if search_head_info or search_extra_info:
+            whoosh_hits = cached_search(
+                lastname=search_head_info,
+                content=search_extra_info
+            ) or {}
+            whoosh_ids = list(whoosh_hits.keys())
+
+            if not whoosh_ids:
+                return []
+
+        query = (
+            db.query(Patent.person_id)
+            .join(City, City.id == Patent.city_id)
+            .join(Person, Person.id == Patent.person_id)
+        )
+
+        if whoosh_ids is not None:
+            query = query.filter(Person._id_dil.in_(whoosh_ids))
+
+        if selected_cities:
+            query = query.filter(City._id_dil.in_(selected_cities))
 
         if patent_date_start:
             pstart, pend = period_bounds(patent_date_start)
             if pstart and pend:
-                if bool(exact_patent_date_start):
+                if exact_date:
                     query = query.filter(
-                        and_(Patent.date_start >= pstart, Patent.date_start <= pend)
+                        Patent.date_start >= pstart,
+                        Patent.date_start <= pend
                     )
                 else:
                     query = query.filter(
@@ -125,36 +148,40 @@ def get_cities_with_printers(
                         )
                     )
 
-        if patent_city_query:
-            query = query.group_by(Patent.person_id)
-            query = query.having(
-                func.count(distinct(City._id_dil)) == len(patent_city_query)
+        if selected_cities:
+            query = (
+                query.group_by(Patent.person_id)
+                .having(func.count(distinct(City._id_dil)) == len(selected_cities))
             )
 
         matching_person_ids = [row[0] for row in query.all()]
         if not matching_person_ids:
             return []
 
-        query2 = db.query(
-            City.id.label("city_id"),
-            City.label.label("city_label"),
-            City.insee_fr_department_label.label("city_dept_label"),
-            City.long_lat.label("city_long_lat"),
-            City._id_dil.label("city_dil"),
-            City.dicotopo_item_id.label("dicotopo_item_id"),
-            Patent.city_label.label("patent_city_label"),
-            Person.id.label("person_id"),
-            Person._id_dil.label("person_dil"),
-            Person.lastname,
-            Person.firstnames,
-        ).join(
-            Patent, City.id == Patent.city_id
-        ).join(
-            Person, Person.id == Patent.person_id
-        ).filter(
-            City.long_lat.isnot(None),
-            Person.id.in_(matching_person_ids)
+        query2 = (
+            db.query(
+                City.id.label("city_id"),
+                City.label.label("city_label"),
+                City.insee_fr_department_label.label("city_dept_label"),
+                City.long_lat.label("city_long_lat"),
+                City._id_dil.label("city_dil"),
+                City.dicotopo_item_id.label("dicotopo_item_id"),
+                Patent.city_label.label("patent_city_label"),
+                Person.id.label("person_id"),
+                Person._id_dil.label("person_dil"),
+                Person.lastname,
+                Person.firstnames,
+            )
+            .join(Patent, City.id == Patent.city_id)
+            .join(Person, Person.id == Patent.person_id)
+            .filter(
+                City.long_lat.isnot(None),
+                Person.id.in_(matching_person_ids)
+            )
         )
+
+        if whoosh_ids is not None:
+            query2 = query2.filter(Person._id_dil.in_(whoosh_ids))
 
         results = query2.all()
 
@@ -170,7 +197,7 @@ def get_cities_with_printers(
                     "city_dept_label": row.city_dept_label,
                     "city_long_lat": row.city_long_lat,
                     "city_dil": row.city_dil,
-                    "city_dicotopo_item_id": row.dicotopo_item_id if hasattr(row, "dicotopo_item_id") else None,
+                    "city_dicotopo_item_id": row.dicotopo_item_id,
                     "persons": {}
                 }
 
@@ -197,7 +224,6 @@ def get_cities_with_printers(
 
     except Exception as e:
         return JSONResponse(status_code=500, content={"message": f"Erreur serveur: {e}"})
-
 
 @api_router.get("/places/autocomplete",
                 response_model=List[CityOutMinimal],
@@ -252,6 +278,7 @@ def autocomplete_city(
 
     return results
 
+
 # -- IMAGE ROUTES -- #
 @api_router.get(
     "/persons/person/{id}/images",
@@ -304,9 +331,11 @@ def make_cache_key(lastname: str, content: str):
     raw = f"{(lastname or '').strip().lower()}|{(content or '').strip().lower()}"
     return hashlib.sha256(raw.encode()).hexdigest()
 
+
 @cached(cache=cache, key=lambda lastname, content: make_cache_key(lastname, content))
 def cached_search(lastname, content):
     return search_whoosh(query_lastname=lastname, query_content=content)
+
 
 @api_router.get(
     "/persons",
@@ -317,13 +346,13 @@ def cached_search(lastname, content):
     tags=['Persons']
 )
 def read_printers(
-    db: Session = Depends(get_db),
-    search_head_info: Optional[str] = Query(None),
-    search_extra_info: Optional[str] = Query(None),
-    patent_city_query: Optional[List[str]] = Query(None),
-    patent_date_start: Optional[str] = Query(None),
-    exact_patent_date_start: bool = Query(False),
-    sort: Optional[str] = Query("asc"),
+        db: Session = Depends(get_db),
+        search_head_info: Optional[str] = Query(None),
+        search_extra_info: Optional[str] = Query(None),
+        patent_city_query: Optional[List[str]] = Query(None),
+        patent_date_start: Optional[str] = Query(None),
+        exact_patent_date_start: bool = Query(False),
+        sort: Optional[str] = Query("asc"),
 ) -> Union[JSONResponse, Page]:
     try:
         # -- 0) Whoosh (opt.) --
@@ -474,6 +503,7 @@ def read_printers(
 
     except Exception as e:
         return JSONResponse(status_code=500, content={"message": f"Erreur serveur: {e}"})
+
 
 @api_router.get("/persons/person/{id}",
                 include_in_schema=True,
@@ -670,13 +700,11 @@ def read_address(db: Session = Depends(get_db), id: str = None):
         return JSONResponse(status_code=500,
                             content={"message": f"It seems the server have trouble: {e}"})
 
+
 @api_router.get("/graph", tags=["Graph"])
 def get_graph_data(year: int = Query(..., description="Filtrer les brevets dont date_start <= année"),
                    db: Session = Depends(get_db)):
-
     patents = db.query(Patent).all()
-
-
 
     nodes = {}
     edges = {}
@@ -749,6 +777,5 @@ def get_graph_data(year: int = Query(..., description="Filtrer les brevets dont 
                 "type": rel.type  # parrain, successeur, etc.
             }
             edge_id += 1
-
 
     return {"nodes": nodes, "edges": edges}
