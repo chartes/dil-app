@@ -1,5 +1,6 @@
 # autres
 data/prepared/
+project_dump.txt
 dump_project.py
 # app/api/templates/tests/
 images_store/

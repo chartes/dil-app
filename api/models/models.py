@@ -1,3 +1,13 @@
+# -*- coding: utf-8 -*-
+
+"""models.py
+
+DB models for the application, including main entities (Person, Patent, City, Address, Image) and association tables (PatentHasRelations, PatentHasAddresses, PatentHasImages). Also includes utility functions and event listeners for handling indexing and image management.
+
+N.B. : Docstrings for models are in French
+to reflect the original data and the context, futhermore is easy to maintain this codebase for the team.
+"""
+
 import os
 import base64
 import datetime
@@ -44,6 +54,15 @@ ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".tiff"}
 
 
 def params_default_relations(bp: str, delete: bool = True) -> dict:
+    """Utility function to generate default parameters for SQLAlchemy relationships.
+
+    :param bp: The name of the back_populates relationship.
+    :type bp: str
+    :param delete: Whether to cascade deletes to related objects. Defaults to True.
+    :type delete: bool, optional
+    :returns: A dictionary of parameters to be used in SQLAlchemy relationship definitions.
+    :rtype: dict
+    """
     return {
         "back_populates": bp,
         "cascade": "all, delete, delete-orphan" if delete else "",
@@ -52,15 +71,28 @@ def params_default_relations(bp: str, delete: bool = True) -> dict:
     }
 
 
-def handle_index(method):
-    """
-    Decorator to handle the index during sqlalchemy events.
+def handle_index(method: any) -> any:
+    """Decorator to handle the index during sqlalchemy events.
+
+    :param method: The method to wrap, which should be a SQLAlchemy event listener method that takes (cls, mapper, connection, target, ix) as parameters.
+    :type method: any
+    :returns: A wrapped method that manages the Whoosh index context for the given SQLAlchemy event listener.
+    :rtype: any
+    :raises Exception: Any exceptions raised during index handling are caught and ignored to prevent disruption of the main database operations.
     """
 
     @wraps(method)
-    def wrapper(cls, mapper, connection, target):
-        """
-        Wrapper to handle the index.
+    def wrapper(cls: any, mapper: any, connection: any, target: any) -> None:
+        """Wrapper to handle the index.
+
+        :param cls: The class of the target object being processed in the SQLAlchemy event.
+        :type cls: any
+        :param mapper: The SQLAlchemy mapper involved in the event.
+        :type mapper: any
+        :param connection: The database connection being used in the event.
+        :type connection: any
+        :param target: The target object being processed in the event (e.g., an instance of Person or Patent).
+        :type target: any
         """
         try:
             ix = st.open_index()
@@ -75,6 +107,13 @@ def handle_index(method):
 def generate_random_uuid(prefix: str, provider: str = "") -> str:
     """Generates a random UUID and converts it to a URL-safe Base64 encoded
     bytes string and decoded to a Unicode string.
+
+    :param prefix: The prefix to use for the generated ID (e.g., "person" or "patent").
+    :type prefix: str
+    :param provider: An optional provider string to include in the generated ID (e.g., "dil"), defaults to an empty string.
+    :type provider: str, optional
+    :returns: A unique identifier string combining the prefix, provider, and a random component derived from a UUID.
+    :rtype: str
     """
     uuid_bytes = uuid.uuid4().bytes
     base64_encoded = base64.urlsafe_b64encode(uuid_bytes).decode("utf-8").rstrip("=")
@@ -92,8 +131,14 @@ def generate_random_uuid(prefix: str, provider: str = "") -> str:
     )
 
 
-def correct_br_markup_quill(old_html: str):
-    """replace <p><br><p> in quill default by <br />"""
+def correct_br_markup_quill(old_html: str) -> str:
+    """replace <p><br><p> in quill default by <br />
+
+    :param old_html: The original HTML string that may contain <p><br></p> tags.
+    :type old_html: str
+    :returns: A modified HTML string where all occurrences of <p><br></p> have been replaced with <br />.
+    :rtype: str
+    """
     return re.sub(r"<p><br></p>", "<br />", str(old_html))
 
 
@@ -104,17 +149,19 @@ def correct_br_markup_quill(old_html: str):
 class BaseEnum(enum.Enum):
     @classmethod
     def values(cls):
-        """Renvoie une liste des valeurs de l'énumération."""
+        """Returns a list of the values of the enum members."""
         return [item.value for item in cls]
 
     @classmethod
-    def create_enum(cls, name, data):
-        """
-        Méthode de classe pour créer dynamiquement un Enum basé sur un dictionnaire.
+    def create_enum(cls, name: str, data: dict) -> enum.Enum:
+        """Class method to create an enum class from a dictionary of key-value pairs, where keys are transformed to valid Python identifiers and values are the corresponding enum values.
 
-        :param name: Nom de l'énumération
-        :param data: Dictionnaire contenant les clés et valeurs
-        :return: Une sous-classe dynamique de BaseEnum
+        :param name: The name of the enum class to create.
+        :type name: str
+        :param data: A dictionary where keys are the original enum member names (which may contain spaces, hyphens, or apostrophes) and values are the corresponding enum values.
+        :type data: dict
+        :returns: A new enum class with members defined according to the provided data, where member names are sanitized to be valid Python identifiers.
+        :rtype: enum.Enum
         """
         enum_members = {
             key.replace(" ", "_").replace("-", "_").replace("'", ""): value
@@ -129,7 +176,14 @@ class BaseEnum(enum.Enum):
         return self.value
 
 
-def _get_enum_values(enum_class):
+def _get_enum_values(enum_class: enum.Enum) -> list:
+    """Utility function to extract the values from an enum class as a list of strings.
+
+    :param enum_class: The enum class from which to extract values.
+    :type enum_class: enum.Enum
+    :returns: A list of the values of the enum members.
+    :rtype: list
+    """
     return (item.value for item in enum_class)
 
 
@@ -147,6 +201,8 @@ RolesUserEnum = BaseEnum.create_enum("RolesUserEnum", roles_user)
 
 
 class AbstractBase(BASE):
+    """Abstract base class for all models, providing common fields and utility methods."""
+
     __abstract__ = True
     id = Column(
         Integer, primary_key=True, autoincrement=True, nullable=False, unique=True
@@ -162,8 +218,18 @@ class AbstractBase(BASE):
         )
 
     @staticmethod
-    def generate_unique_id(session, cls, prefix):
-        """Génère un ID unique et vérifie l'absence de doublons."""
+    def generate_unique_id(session: any, cls: any, prefix: str) -> str:
+        """Generate a unique identifier for a given class by creating random UUIDs and checking for uniqueness in the database session.
+
+        :param session: The database session to use for checking uniqueness.
+        :type session: any
+        :param cls: The class for which to generate the unique identifier (e.g., Person or Patent).
+        :type cls: any
+        :param prefix: The prefix to use for the generated identifier (e.g., "person" or "patent").
+        :type prefix: str
+        :returns: A unique identifier string that does not already exist in the database for the specified class.
+        :rtype: str
+        """
         while True:
             new_id = generate_random_uuid(prefix=prefix, provider="dil")
             if not session.query(cls).filter(cls._id_dil == new_id).first():
@@ -171,7 +237,14 @@ class AbstractBase(BASE):
 
     @staticmethod
     def generate_img_name(file_path: str) -> str:
-        """Génère le nom de fichier de l'image avec l'extension correcte."""
+        """Generate a valid image file name by checking the MIME type of the provided file path and ensuring it has an allowed extension.
+
+        :param file_path: The file path of the image for which to generate a valid name.
+        :type file_path: str
+        :returns: The file extension of the image if it is valid and allowed.
+        :rtype: str
+        :raises ValueError: If the MIME type cannot be detected or if the file extension is not allowed.
+        """
         mime_type, _ = mimetypes.guess_type(file_path)
         if not mime_type:
             raise ValueError(
@@ -187,8 +260,12 @@ class AbstractBase(BASE):
         return extension
 
     @classmethod
-    def correct_markup(cls, target):
-        """Corrige les balises HTML pour les champs textuels des objets Person."""
+    def correct_markup(cls, target: any) -> None:
+        """Corrects the markup of certain fields for Person and Patent instances by replacing specific HTML tags with alternatives suitable for Quill editor.
+
+        :param target: The object instance (e.g., Person or Patent) for which to correct the markup.
+        :type target: any
+        """
         if isinstance(target, Person):
             target.personal_information = correct_br_markup_quill(
                 target.personal_information or ""
@@ -201,8 +278,15 @@ class AbstractBase(BASE):
             target.references = correct_br_markup_quill(target.references or "")
 
     @classmethod
-    def check_person_exists(cls, session, target):
-        """Vérifie qu'un brevet ne peut être créé que si la personne associée existe."""
+    def check_person_exists(cls, session: any, target: any) -> None:
+        """Checks if the associated person exists in the database when creating or updating a Patent instance, and raises an IntegrityError if the person does not exist.
+
+        :param session: The database session to use for querying the Person table.
+        :type session: any
+        :param target: The object instance (e.g., Patent) for which to check the associated person.
+        :type target: any
+        :raises IntegrityError: If the target is a Patent and the associated person does not exist in the database.
+        """
         if (
             isinstance(target, Patent)
             and not session.query(Person).filter_by(id=target.person_id).first()
@@ -212,8 +296,12 @@ class AbstractBase(BASE):
             )
 
     @classmethod
-    def set_img_name(cls, target):
-        """Attribue le nom de l'image si un fichier est fourni."""
+    def set_img_name(cls, target: any) -> None:
+        """Sets a unique image name for an Image instance based on its file path, and renames the file in the storage directory accordingly.
+
+        :param target: The object instance (e.g., Image) for which to set the image name.
+        :type target: any
+        """
         if isinstance(target, Image):
             image_name = getattr(target, "img_name", None)
             # detect extension from file path
@@ -229,28 +317,54 @@ class AbstractBase(BASE):
                 )
 
     @classmethod
-    def check_img_patent_relations_pinned(cls, target, session):
-        """S'assure qu'une seule image d'un brevet est `pinned`."""
+    def check_img_patent_relations_pinned(cls, target: any, session: any) -> None:
+        """Ensures that only one image can be pinned for a given patent by checking the is_pinned flag of PatentHasImages instances and updating other related instances accordingly.
+
+        :param target: The object instance (e.g., PatentHasImages) for which to check the pinned image relations.
+        :type target: any
+        :param session: The database session to use for querying and updating PatentHasImages instances.
+        :type session: any
+        """
         if isinstance(target, PatentHasImages):
-            if target.is_pinned:  # Si la nouvelle relation est `pinned`
-                # Récupérer toutes les autres relations liées au même brevet
+            if target.is_pinned:  # if new relation is `pinned`
+                # retrieve all other relations for the same patent and set `is_pinned` to False
                 session.query(PatentHasImages).filter(
                     PatentHasImages.patent_id == target.patent_id,
-                    PatentHasImages.id != target.id,  # Exclure l'image actuelle
-                ).update({"is_pinned": False})  # Désactiver le flag `pinned`
+                    PatentHasImages.id != target.id,  # Exclude the current relation
+                ).update(
+                    {"is_pinned": False}
+                )  # Deactivate is_pinned for other relations of the same patent
                 session.commit()
 
     @classmethod
-    def destroy_img(cls, target):
-        """Détruit l'image associée à l'objet."""
+    def destroy_img(cls, target: any) -> None:
+        """Destroy the image file associated with an Image instance when the instance is deleted, by removing the file from the storage directory if it exists and is not a placeholder.
+
+        :param target: The object instance (e.g., Image) for which to destroy the associated image file.
+        :type target: any
+        """
         if isinstance(target, Image):
             if target.img_name and target.img_name != "unknown.jpg":
                 os.remove(os.path.join(settings.IMAGE_STORE, target.img_name))
 
     @classmethod
     @handle_index
-    def update_person_fts_index_after_update(cls, mapper, connection, target, ix):
-        """Update the index after update a person"""
+    def update_person_fts_index_after_update(
+        cls: any, mapper: any, connection: any, target: any, ix: any
+    ) -> None:
+        """Update the index after update a person.
+
+        :param cls: The class of the target object being processed in the SQLAlchemy event.
+        :type cls: any
+        :param mapper: The SQLAlchemy mapper involved in the event.
+        :type mapper: any
+        :param connection: The database connection being used in the event.
+        :type connection: any
+        :param target: The target object being processed in the event (e.g., an instance of Person).
+        :type target: any
+        :param ix: The Whoosh index object to use for updating the index.
+        :type ix: any
+        """
         if cls.__tablename__ == "persons":
             writer = ix.writer()
             clean_text = prepare_content(target)
@@ -267,8 +381,22 @@ class AbstractBase(BASE):
 
     @classmethod
     @handle_index
-    def insert_person_fts_index_after_insert(cls, mapper, connection, target, ix):
-        """Insert a reference in the index"""
+    def insert_person_fts_index_after_insert(
+        cls, mapper: any, connection: any, target: any, ix: any
+    ) -> None:
+        """Insert a reference in the index
+
+        :param cls: The class of the target object being processed in the SQLAlchemy event.
+        :type cls: any
+        :param mapper: The SQLAlchemy mapper involved in the event.
+        :type mapper: any
+        :param connection: The database connection being used in the event.
+        :type connection: any
+        :param target: The target object being processed in the event (e.g., an instance of Person).
+        :type target: any
+        :param ix: The Whoosh index object to use for inserting the reference in the index.
+        :type ix: any
+        """
         if cls.__tablename__ == "persons":
             writer = ix.writer()
             clean_text = prepare_content(target)
@@ -284,8 +412,22 @@ class AbstractBase(BASE):
 
     @classmethod
     @handle_index
-    def delete_person_fts_index_after_delete(cls, mapper, connection, target, ix):
-        """Delete a reference from the index"""
+    def delete_person_fts_index_after_delete(
+        cls, mapper: any, connection: any, target: any, ix: any
+    ) -> None:
+        """Delete a reference from the index
+
+        :param cls: The class of the target object being processed in the SQLAlchemy event.
+        :type cls: any
+        :param mapper: The SQLAlchemy mapper involved in the event.
+        :type mapper: any
+        :param connection: The database connection being used in the event.
+        :type connection: any
+        :param target: The target object being processed in the event (e.g., an instance of Person).
+        :type target: any
+        :param ix: The Whoosh index object to use for deleting the reference from the index.
+        :type ix: any
+        """
         with sessionmaker(bind=connection)():
             if cls.__tablename__ == "persons":
                 writer = ix.writer()
@@ -296,6 +438,7 @@ class AbstractBase(BASE):
 @event.listens_for(AbstractBase, "before_insert", propagate=True)
 @event.listens_for(AbstractBase, "before_update", propagate=True)
 def before_insert_or_update(_, connection, target):
+    """Event listener for before insert or update events on AbstractBase, which performs various checks and updates on the target object (e.g., correcting markup, checking associated person existence, setting image names, and ensuring pinned image relations) before the database operation is executed."""
     with sessionmaker(bind=connection)() as session:
         target.correct_markup(target)
         target.check_person_exists(session, target)
@@ -305,38 +448,46 @@ def before_insert_or_update(_, connection, target):
 
 @event.listens_for(AbstractBase, "after_insert", propagate=True)
 def after_insert(mapper, connection, target):
+    """Event listener for after insert events on AbstractBase, which inserts a reference in the index for the target object (e.g., a Person instance) after it has been inserted into the database."""
     with sessionmaker(bind=connection)() as session:
         target.insert_person_fts_index_after_insert(mapper, session, target)
 
 
 @event.listens_for(AbstractBase, "after_update", propagate=True)
 def after_update(mapper, connection, target):
+    """Event listener for after update events on AbstractBase, which updates the index for the target object (e.g., a Person instance) after it has been updated in the database."""
     with sessionmaker(bind=connection)() as session:
         target.update_person_fts_index_after_update(mapper, session, target)
 
 
 @event.listens_for(AbstractBase, "after_delete", propagate=True)
 def after_delete(mapper, connection, target):
+    """Event listener for after delete events on AbstractBase, which destroys the associated image file and deletes the reference from the index for the target object (e.g., a Person instance) after it has been deleted from the database."""
     with sessionmaker(bind=connection)() as session:
         target.destroy_img(target)
         target.delete_person_fts_index_after_delete(mapper, session, target)
 
 
 class AbstractVersion(AbstractBase):
+    """Abstract base class for versioned models, providing common fields for tracking creation and update timestamps, as well as the last editor of the record."""
+
     __abstract__ = True
 
     @declared_attr
     def created_at(cls):
+        """Creation timestamp column with a default value of the current datetime when a new record is created."""
         return Column(DateTime, default=datetime.datetime.now())
 
     @declared_attr
     def updated_at(cls):
+        """Update timestamp column with a default value of the current datetime when a new record is created, and automatically updated to the current datetime whenever the record is updated."""
         return Column(
             DateTime, default=datetime.datetime.now(), onupdate=datetime.datetime.now()
         )
 
     @declared_attr
     def last_editor(cls):
+        """Last editor column to track the username of the last person who edited the record, with a default value of "admin" and allowing null values."""
         return Column(String, nullable=True, default="admin")
 
 
@@ -365,20 +516,39 @@ class User(UserMixin, BASE):
 
     @staticmethod
     def generate_password():
+        """Generate a random password."""
         from .models_utils import pwd_generator
 
         return pwd_generator()
 
-    def set_password(self, password):
-        """Set a password hashed"""
+    def set_password(self, password: str) -> None:
+        """Set a password hashed.
+
+        :param password: The plaintext password to be hashed and stored for the user.
+        :type password: str
+        """
         self.password_hash = generate_password_hash(password)
 
-    def check_password(self, password):
-        """Check if password is correct"""
+    def check_password(self, password: str) -> bool:
+        """Check if password is correct.
+
+        :param password: The plaintext password to check against the stored password hash.
+        :type password: str
+        :returns: True if the password is correct, False otherwise.
+        :rtype: bool
+        """
         return check_password_hash(self.password_hash, password)
 
-    def get_reset_password_token(self, expires_in=600):
-        """Generate a token for reset password"""
+    def get_reset_password_token(self, expires_in: int = 600) -> str:
+        """Generate a token for reset password
+
+        :param expires_in: The number of seconds until the token expires. Defaults to 600 seconds (10 minutes).
+        :type expires_in: int, optional
+        :returns: A JWT token containing the user's ID and an expiration time, encoded with the
+                    application's secret key and using the HS256 algorithm.
+
+        :rtype: str
+        """
         return jwt.encode(
             {"reset_password": self.id, "exp": time() + expires_in},
             settings.FLASK_SECRET_KEY,
@@ -386,8 +556,15 @@ class User(UserMixin, BASE):
         )
 
     @staticmethod
-    def verify_reset_password_token(token):
-        """Verify if token is valid"""
+    def verify_reset_password_token(token: str) -> any:
+        """Verify if token is valid
+
+        :param token: The JWT token to verify, which should contain the user's ID and an expiration time.
+        :type token: str
+        :returns: The User instance corresponding to the user ID encoded in the token if the token
+                    is valid and has not expired, or None if the token is invalid or has expired.
+        :rtype: User | None
+        """
         try:
             id_tok = jwt.decode(token, settings.FLASK_SECRET_KEY, algorithms=["HS256"])[
                 "reset_password"
@@ -397,8 +574,12 @@ class User(UserMixin, BASE):
         return session.query(User).get(id_tok)
 
     @staticmethod
-    def add_default_user(in_session):
-        """Add default user to database"""
+    def add_default_user(in_session: any) -> None:
+        """Add default user to database
+
+        :param in_session: The database session to use for adding the default user.
+        :type in_session: any
+        """
         admin = User()
         admin.username = settings.FLASK_ADMIN_NAME
         admin.email = settings.FLASK_ADMIN_MAIL

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """api_utils.py
 
 Utility functions for the API.

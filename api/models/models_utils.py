@@ -1,5 +1,9 @@
-#!/usr/bin/env python3
 # -*- encoding: utf-8 -*-
+
+"""models_utils.py
+
+Utility functions for models, including password generation and hashing.
+"""
 
 import random
 import string

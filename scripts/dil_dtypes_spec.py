@@ -1,3 +1,9 @@
+# --*- coding: utf-8 -*-
+"""dil_dtypes_spec.py
+
+Data type specifications for the DIL project, defining the expected data types for various fields in the database tables.
+"""
+
 DTYPE_SPEC = {
     "cities": {
         "insee_fr_department_code": "string",

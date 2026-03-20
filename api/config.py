@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 config.py
 
@@ -26,6 +27,8 @@ dotenv.load_dotenv(env_file)
 
 
 class Settings(BaseSettings):
+    """Settings for the application, including general settings, Flask configuration, database settings, and more."""
+
     # ~ General settings ~
     DEBUG: bool = bool(os.environ.get("DEBUG", True))
     PORT: int = int(os.environ.get("PORT", 8000))

@@ -37,6 +37,7 @@ __version__ = "1.0.0"
 
 @contextmanager
 def get_session():
+    """Context manager to get a database session."""
     session = Session()
     try:
         yield session
@@ -48,7 +49,13 @@ def get_session():
         session.close()
 
 
-def load_tsv_to_db(file_path, table_model):
+def load_tsv_to_db(file_path: str, table_model: object) -> None:
+    """Load data from a TSV file into the specified database table.
+    :param file_path: The path to the TSV file containing the data to be loaded.
+    :type file_path: str
+    :param table_model: The SQLAlchemy model representing the database table to load data into.
+    :type table_model: object
+    """
     try:
         with get_session() as session:
             print(

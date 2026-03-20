@@ -1,5 +1,6 @@
-"""
-views.py
+# -*- coding: utf-8 -*-
+
+"""views.py
 
 Model views for the admin interface.
 """
@@ -113,6 +114,7 @@ class GlobalModelView(ModelView):
 
     # list_template = 'admin/list.html'
     def is_accessible(self):
+        """Check if the user has access to the view."""
         if current_user.is_authenticated:
             self.can_edit = current_user.role in can_edit_roles
             self.can_delete = current_user.role in can_delete_roles
@@ -126,6 +128,8 @@ class GlobalModelView(ModelView):
 
 
 class UserView(ModelView):
+    """View for the user model."""
+
     edit_template = "admin/edit.user.html"
     create_template = "admin/edit.user.html"
     list_template = "admin/list.user.html"
@@ -150,13 +154,18 @@ class UserView(ModelView):
 
     @expose("/generate_password/", methods=["GET", "POST"])
     def new_password(self):
+        """Generate a new password."""
         if request.method in ["GET", "POST"]:
             password = User.generate_password()
-
             return jsonify({"password": password}), 200
         return jsonify({"error": "No password provided"}), 400
 
-    def on_model_change(self, form, model, is_created):
+    def on_model_change(self, form: object, model: object, is_created: bool) -> object:
+        """Handle password change on user model change.
+
+        If a new password is provided in the form, it updates the user's password.
+        For the user with ID 1 (super admin), only allows password change if the current user is also the super admin.
+        """
         if form.new_password.data:
             if model.id == 1:
                 if current_user.id != 1:
@@ -554,7 +563,8 @@ class PrinterView(GlobalModelView):
         },
     }
 
-    def on_model_change(self, form, model, is_created):
+    def on_model_change(self, form: object, model: object, is_created: bool) -> object:
+        """Handle model changes for the printer view."""
         # overrides classical on_model_change and after_model_change
         # of Flask-Admin because we need to handle the form data with
         # custom elements that come from the js.
@@ -586,7 +596,7 @@ class PrinterView(GlobalModelView):
             printer = get_printer(session, {"id": kwargs["model"].id})
             patents = get_patents(session, {"person_id": kwargs["model"].id})
 
-            # Tri sécurisé sur les addresses_relations
+            # Secure the sorting of addresses by date of occupation, handling missing or malformed dates gracefully
             for patent in patents:
                 if (
                     hasattr(patent, "addresses_relations")
@@ -631,7 +641,7 @@ class PrinterView(GlobalModelView):
 
         count = len(filtered_rows)
 
-        # Tri optionnel
+        # Optional sorting
         if sort_field:
             reverse = sort_desc
             filtered_rows.sort(
@@ -641,7 +651,7 @@ class PrinterView(GlobalModelView):
                 reverse=reverse,
             )
 
-        # Pagination Python
+        # Pagination
         if page_size:
             start = page * page_size
             end = start + page_size
@@ -880,7 +890,8 @@ class ImageView(GlobalModelView):
         )
     }
 
-    def on_model_change(self, form, model, is_created):
+    def on_model_change(self, form: object, model: object, is_created: bool) -> None:
+        """Handle model changes for the image view."""
         data = form.data
         if data["img_name"] is None:
             model.img_name = "unknown.jpg"
@@ -890,6 +901,8 @@ class ImageView(GlobalModelView):
 
 
 class PatentHasRelationsView(GlobalModelView):
+    """View for the patent relations model."""
+
     column_list = [
         "id",
         "_id_dil",
@@ -940,6 +953,8 @@ class PatentHasRelationsView(GlobalModelView):
 
 
 class AddressView(GlobalModelView):
+    """View for the address model."""
+
     column_list = [
         "id",
         "_id_dil",
@@ -1018,6 +1033,8 @@ class AddressView(GlobalModelView):
 
 
 class CityView(GlobalModelView):
+    """View for the city model."""
+
     list_template = "admin/list.city.html"
     column_list = [
         "id",
@@ -1197,11 +1214,38 @@ class CityView(GlobalModelView):
         },
     }
 
-    def on_model_change(self, form, model, is_created):
+    def on_model_change(self, form: object, model: object, is_created: bool) -> None:
+        """Handle model changes for the city view."""
         model.last_editor = current_user.username
         session.commit()
 
-    def get_list(self, page, sort_field, sort_desc, search, filters, page_size=None):
+    def get_list(
+        self,
+        page: int,
+        sort_field: str,
+        sort_desc: bool,
+        search: str,
+        filters: list,
+        page_size: int = None,
+    ) -> tuple[int, list]:
+        """Return a list of cities with optional search, sorting and pagination.
+
+        :param page: The page number for pagination.
+        :type page: int
+        :param sort_field: The field to sort by.
+        :type sort_field: str
+        :param sort_desc: Whether to sort in descending order.
+        :type sort_desc: bool
+        :param search: The search term to filter cities by label.
+        :type search: str
+        :param filters: List of filters to apply (not implemented in this method).
+        :type filters: list
+        :param page_size: The number of items per page for pagination (optional).
+        :type page_size: int, optional
+        :return: A tuple containing the total count of filtered cities and the list of cities for
+                    the current page.
+        :rtype: tuple[int, list]
+        """
         query = self.session.query(self.model)
         all_rows = query.all()
 
@@ -1220,7 +1264,7 @@ class CityView(GlobalModelView):
 
         count = len(filtered_rows)
 
-        # Tri optionnel
+        # Optional sorting
         if sort_field:
             reverse = sort_desc
             filtered_rows.sort(
@@ -1230,7 +1274,7 @@ class CityView(GlobalModelView):
                 reverse=reverse,
             )
 
-        # Pagination Python
+        # Pagination
         if page_size:
             start = page * page_size
             end = start + page_size

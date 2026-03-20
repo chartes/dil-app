@@ -1,3 +1,9 @@
+# -*- coding: utf-8 -*-
+"""create_index.py
+
+Script to create and populate the Whoosh index for full-text search.
+"""
+
 import os
 import sys
 
@@ -14,6 +20,7 @@ st = FileStorage(WHOOSH_INDEX_DIR)
 
 
 def index_create():
+    """Create the Whoosh index directory and initialize the index schema."""
     print("Creating the index dir to manage full-text search...")
     try:
         create_store(st, WHOOSH_INDEX_DIR)
@@ -26,6 +33,7 @@ def index_create():
 
 
 def index_populate():
+    """Populate the Whoosh index with data from the database."""
     try:
         ix = st.open_index()
         populate_index(session, ix, Person)

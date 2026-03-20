@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 main.py
 
@@ -15,7 +16,7 @@ from api.routes import api_router
 from api.api_meta import METADATA
 
 
-def create_app():
+def create_app() -> FastAPI:
     """Create FastAPI application.
     :return: FastAPI application
     :rtype: FastAPI

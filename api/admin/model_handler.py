@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 """model_handler.py
 
 This module contains the ModelChangeHandler class and its subclasses,
@@ -18,7 +20,18 @@ from .validators import is_circular_person_patent_relation, is_valid_date_format
 
 
 class ModelChangeHandler:
-    def __init__(self, session: Session, model: Any, form):
+    """Base class for handling changes to models in the database."""
+
+    def __init__(self, session: Session, model: Any, form: Any):
+        """Initialize the ModelChangeHandler with the given session, model, and form.
+
+        :param session: The SQLAlchemy session to use for database operations.
+        :type session: Session
+        :param model: The model instance that is being changed.
+        :type model: Any
+        :param form: The form instance containing the submitted data.
+        :type form: Any
+        """
         self.session = session
         self.model = model
         self.model_id = model.id
@@ -53,7 +66,18 @@ class ModelChangeHandler:
 
 
 class PrinterModelChangeHandler(ModelChangeHandler):
-    def __init__(self, session: Session, model: Any, form):
+    """ModelChangeHandler subclass for handling changes to printer-related models, including validation and updates for pinned images, patent relations, and professional addresses."""
+
+    def __init__(self, session: Session, model: Any, form: Any):
+        """Initialize the PrinterModelChangeHandler with the given session, model, and form.
+
+        :param session: The SQLAlchemy session to use for database operations.
+        :type session: Session
+        :param model: The model instance that is being changed.
+        :type model: Any
+        :param form: The form instance containing the submitted data.
+        :type form: Any
+        """
         super().__init__(session, model, form)
         self.grouped_data = {}
 
@@ -87,6 +111,9 @@ class PrinterModelChangeHandler(ModelChangeHandler):
     def after_model_change(self, is_created: bool) -> None:
         """
         Handles changes to the model after form submission.
+
+        :param is_created: A boolean indicating whether the model was created (True) or updated (False).
+        :type is_created: bool
         """
         self._update_pinned_images()
         self._update_patent_relations()
@@ -107,12 +134,13 @@ class PrinterModelChangeHandler(ModelChangeHandler):
         """
         Groups form data related to pinned images and patent relations by patent.
 
-        Args:
-            form_data (Dict[str, List[str]]): The submitted form data.
-            patents_id (List[int]): List of valid patent IDs.
-
-        Returns:
-            Dict[int, Dict[str, Any]]: Grouped data mapping index to relevant fields.
+        :param form_data: A dictionary containing the form data, where keys are form field names and values are lists of submitted values.
+        :type form_data: Dict[str, List[str]]
+        :param patents_id: A list of patent IDs that are relevant to the current model.
+        :type patents_id: List[int]
+        :return: A dictionary where each key is an index corresponding to a patent, and each
+                    value is another dictionary containing the grouped data for that patent, including pinned images, printer relations, relation types, professional addresses, and their dates.
+        :rtype: Dict[int, Dict[str, Any]]
         """
         grouped_data = {}
         for i, _ in enumerate(patents_id):
@@ -190,6 +218,7 @@ class PrinterModelChangeHandler(ModelChangeHandler):
                 self._process_pro_addresses(data)
 
     def _process_pro_addresses(self, data: Dict[str, Any]) -> None:
+        """Processes the professional addresses for a patent by creating or deleting them based on the grouped data."""
         current_addresses = (
             self.session.query(PatentHasAddresses)
             .filter_by(patent_id=data["patent_id"])
@@ -217,7 +246,11 @@ class PrinterModelChangeHandler(ModelChangeHandler):
                     self.session.delete(address_to_delete)
 
     def _process_patent_relations(self, data: Dict[str, Any]) -> None:
-        """Processes the patent relations by creating or deleting them based on the grouped data."""
+        """Processes the patent relations by creating or deleting them based on the grouped data.
+
+        :param data: A dictionary containing the grouped data for a patent, including printer relations and their types.
+        :type data: Dict[str, Any]
+        """
         relations = (
             self.session.query(PatentHasRelations)
             .filter_by(patent_id=data["patent_id"])

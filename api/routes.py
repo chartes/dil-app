@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 routes.py
 
@@ -36,19 +37,25 @@ from api.index_fts.search_utils import search_whoosh
 from api.api_utils import normalize_firstnames, normalize_date, period_bounds
 
 api_router = APIRouter()
-
-# -- infos routes -- #
+# cache for whoosh search results, with a TTL of 120 seconds and max size of 2048 entries
 cache = TTLCache(maxsize=2048, ttl=120)
 
 
+# -- infos routes -- #
 @api_router.get(
     "/infos",
     include_in_schema=False,
     responses={500: {"model": Message}},
     summary="Get generic API information about data (e.g. total)",
 )
-def get_infos(db: Session = Depends(get_db)):
-    """Retrieve generic information about the API data."""
+def get_infos(db: Session = Depends(get_db)) -> Union[JSONResponse, dict]:
+    """Retrieve generic information about the API data.
+
+    :param db: Database session dependency
+    :type db: Session
+    :return: A dictionary containing total counts of persons, patents, effective patents, cities, and addresses, or a JSONResponse with an error message in case of failure.
+    :rtype: Union[JSONResponse, dict]
+    """
     try:
         # filter only patents with date start between 1817–1870
         effective_patents_subquery = (
@@ -87,7 +94,24 @@ def get_cities_with_printers(
     exact_patent_date_start: Optional[str] = Query(None),
     search_head_info: Optional[str] = Query(None),
     search_extra_info: Optional[str] = Query(None),
-):
+) -> Union[JSONResponse, List[dict]]:
+    """Retrieve cities with geolocation and linked printers based on optional filters.
+
+    :param db: Database session dependency
+    :type db: Session
+    :param patent_city_query: Optional list of city DIL IDs to filter patents by their exercise places.
+    :type patent_city_query: Optional[List[str]]
+    :param patent_date_start: Optional date string to filter patents by their start date (e.g., '1855' or '1855-..').
+    :type patent_date_start: Optional[str]
+    :param exact_patent_date_start: Optional boolean string to indicate if the patent date filter should be exact (True) or inclusive (False).
+    :type exact_patent_date_start: Optional[str]
+    :param search_head_info: Optional string to search in the person's lastname.
+    :type search_head_info: Optional[str]
+    :param search_extra_info: Optional string to search in the person's patents content.
+    :type search_extra_info: Optional[str]
+    :return: A list of cities with their geolocation and linked printers that match the provided filters, or a JSONResponse with an error message in case of failure.
+    :rtype: Union[JSONResponse, List[dict]]
+    """
     try:
         selected_cities = list(set(patent_city_query or []))
         exact_date = str(exact_patent_date_start).lower() == "true"
@@ -221,7 +245,18 @@ def autocomplete_city(
     q: Optional[str] = Query(None),
     selected: Optional[List[str]] = Query(None),
     db: Session = Depends(get_db),
-):
+) -> List[dict]:
+    """Autocomplete cities based on a query string and optional selected city filters.
+
+    :param q: Optional query string to filter city labels for autocomplete suggestions.
+    :type q: Optional[str]
+    :param selected: Optional list of city DIL IDs to filter patents by their exercise places.
+    :type selected: Optional[List[str]]
+    :param db: Database session dependency
+    :type db: Session
+    :return: A list of cities matching the autocomplete query and filters, each containing its DIL ID, label, department label, and counts of linked patents and persons if selected.
+    :rtype: List[dict]
+    """
     selected = list(set(selected or []))
 
     person_query = db.query(Patent.person_id).join(City)
@@ -282,7 +317,18 @@ def autocomplete_city(
     summary="",
     tags=["Images"],
 )
-def read_images(id: str, db: Session = Depends(get_db)):
+def read_images(
+    id: str, db: Session = Depends(get_db)
+) -> Union[JSONResponse, PersonPatentsImages]:
+    """Retrieve all images related to a specific person (printer) by their DIL ID, including patent associations and pinned status.
+
+    :param id: The DIL ID of the person (printer) to retrieve images for. e.g., "person_dil_2QO3gEnU".
+    :type id: str
+    :param db: Database session dependency
+    :type db: Session
+    :return: A structured response containing the person's DIL ID, a list of their patents with associated images and pinned status, total image counts, and a list of pinned images. If the person is not found, returns a JSONResponse with a 404 status code and an error message. If any other error occurs, returns a JSONResponse with a 500 status code and the error message.
+    :rtype: Union[JSONResponse, PersonPatentsImages]
+    """
     try:
         printer = get_printer(db, {"_id_dil": id})
         if not printer:
@@ -324,13 +370,34 @@ def read_images(id: str, db: Session = Depends(get_db)):
 
 
 # -- ROUTES PERSONS -- #
-def make_cache_key(lastname: str, content: str):
+def make_cache_key(lastname: str, content: str) -> str:
+    """Create a cache key for Whoosh search results based on the lastname and content parameters.
+
+    The key is generated by concatenating the normalized (stripped and lowercased) lastname and content, separated by a pipe character, and then hashing the resulting string using SHA-256 to ensure a consistent and unique key format.
+
+    :param lastname: The lastname parameter used in the Whoosh search.
+    :type lastname: str
+    :param content: The content parameter used in the Whoosh search.
+    :type content: str
+    :return: A SHA-256 hash string representing the cache key for the given lastname and content.
+    :rtype: str
+    """
     raw = f"{(lastname or '').strip().lower()}|{(content or '').strip().lower()}"
     return hashlib.sha256(raw.encode()).hexdigest()
 
 
 @cached(cache=cache, key=lambda lastname, content: make_cache_key(lastname, content))
-def cached_search(lastname, content):
+def cached_search(lastname: str, content: str) -> dict:
+    """Perform a Whoosh search for printers based on the provided lastname and content parameters, with caching to optimize performance.
+    The search results are cached using a TTLCache with a time-to-live of 120 seconds and a maximum size of 2048 entries. The cache key is generated by normalizing the lastname and content parameters and hashing them to ensure uniqueness.
+
+    :param lastname: The lastname parameter to search for in the Whoosh index.
+    :type lastname: str
+    :param content: The content parameter to search for in the Whoosh index.
+    :type content: str
+    :return: A dictionary containing the search results from Whoosh, which may include matched printer IDs and highlighted snippets based on the search criteria.
+    :rtype: dict
+    """
     return search_whoosh(query_lastname=lastname, query_content=content)
 
 
@@ -351,6 +418,25 @@ def read_printers(
     exact_patent_date_start: bool = Query(False),
     sort: Optional[str] = Query("asc"),
 ) -> Union[JSONResponse, Page]:
+    """Retrieve all persons (printers) with optional filters for search, city, and patent date, along with pagination and sorting.
+
+    :param db: Database session dependency
+    :type db: Session
+    :param search_head_info: Optional string to search in the person's lastname.
+    :type search_head_info: Optional[str]
+    :param search_extra_info: Optional string to search in the person's patents content.
+    :type search_extra_info: Optional[str]
+    :param patent_city_query: Optional list of city DIL IDs to filter patents by their exercise places.
+    :type patent_city_query: Optional[List[str]]
+    :param patent_date_start: Optional date string to filter patents by their start date (e.g., '1855' or '1855-..').
+    :type patent_date_start: Optional[str]
+    :param exact_patent_date_start: Optional boolean to indicate if the patent date filter should be exact (True) or inclusive (False).
+    :type exact_patent_date_start: bool
+    :param sort: Optional string to specify sorting order by lastname ('asc' or 'desc'), defaults to 'asc'.
+    :type sort: Optional[str]
+    :return: A paginated response containing a list of printers that match the provided filters, along with their total patent counts and exercise places summary. If any error occurs during processing, returns a JSONResponse with a 500 status code and the error message.
+    :rtype: Union[JSONResponse, Page]
+    """
     try:
         # -- 0) Whoosh (opt.) --
         whoosh_ids = None
@@ -510,10 +596,23 @@ def read_printers(
     tags=["Persons"],
     response_model=PrinterOut,
 )
-async def read_printer(id: str, html: bool = False, db: Session = Depends(get_db)):
+async def read_printer(
+    id: str, html: bool = False, db: Session = Depends(get_db)
+) -> Union[JSONResponse, PrinterOut]:
     """
     Retrieve a specific person (printer) by DIL ID.
     - `id`: The DIL ID of the person (printer). e.g., "person_dil_2QO3gEnU".
+    - `html`: Optional boolean query parameter to indicate if the response should include HTML content. Defaults to False.
+
+    :param id: The DIL ID of the person (printer) to retrieve.
+    :type id: str
+    :param html: Optional boolean to indicate if the response should include HTML content.
+    :type html: bool
+    :param db: Database session dependency
+    :type db: Session
+    :return: A PrinterOut object containing detailed information about the person (printer) if found
+                or a JSONResponse with a 404 status code and an error message if the person is not found, or a JSONResponse with a 500 status code and an error message if any other error occurs.
+    :rtype: Union[JSONResponse, PrinterOut]
     """
     try:
         printer = get_printer(db, {"_id_dil": id, "html": html}, enhance=True)
@@ -540,9 +639,14 @@ async def read_printer(id: str, html: bool = False, db: Session = Depends(get_db
     summary="Retrieve all patents with pagination",
     tags=["Patents"],
 )
-def read_patents(db: Session = Depends(get_db)):
-    """
-    Retrieve all patents with pagination.
+def read_patents(db: Session = Depends(get_db)) -> Union[JSONResponse, Page]:
+    """Retrieve all patents with pagination.
+
+    :param db: Database session dependency
+    :type db: Session
+    :return: A paginated response containing a list of patents with their DIL ID,
+                    label, date start, date end, and city label. If no patents are found, returns a JSONResponse with a 404 status code and an error message. If any other error occurs, returns a JSONResponse with a 500 status code and the error message.
+    :rtype: Union[JSONResponse, Page]
     """
     try:
         paginated_patents = paginate(db.query(Patent))
@@ -568,9 +672,22 @@ def read_patents(db: Session = Depends(get_db)):
     summary="Retrieve a specific patent by ID",
     tags=["Patents"],
 )
-def read_patent(id: str, db: Session = Depends(get_db), html: bool = False):
+def read_patent(
+    id: str, db: Session = Depends(get_db), html: bool = False
+) -> Union[JSONResponse, PatentOut]:
     """
     Retrieve a specific patent by DIL ID. e.g., "patent_dil_20XQCaDr".
+
+    :param id: The DIL ID of the patent to retrieve.
+    :type id: str
+    :param db: Database session dependency
+    :type db: Session
+    :param html: Optional boolean to indicate if the response should include HTML content.
+    :type html: bool
+    :return: A PatentOut object containing detailed information about the patent if found
+                or a JSONResponse with a 404 status code and an error message if the patent is
+                not found, or a JSONResponse with a 500 status code and an error message if any other error occurs.
+    :rtype: Union[JSONResponse, PatentOut]
     """
     try:
         patent = get_patent(db, {"_id_dil": id, "html": html}, enhance=True)
@@ -597,8 +714,15 @@ def read_patent(id: str, db: Session = Depends(get_db), html: bool = False):
     summary="Retrieve all cities with pagination",
     tags=["Referential"],
 )
-def read_cities(db: Session = Depends(get_db)):
-    """Retrieve all cities with pagination."""
+def read_cities(db: Session = Depends(get_db)) -> Union[JSONResponse, Page]:
+    """Retrieve all cities with pagination.
+
+    :param db: Database session dependency
+    :type db: Session
+    :return: A paginated response containing a list of cities with their DIL ID,
+                    label, country ISO code, geolocation, INSEE codes, and linked identifiers. If no cities are found, returns a JSONResponse with a 404 status code and an error message. If any other error occurs, returns a JSONResponse with a 500 status code and the error message.
+    :rtype: Union[JSONResponse, Page]
+    """
     try:
         paginated_cities = paginate(db.query(City))
 
@@ -621,8 +745,20 @@ def read_cities(db: Session = Depends(get_db)):
     summary="Retrieve a specific city by ID",
     tags=["Referential"],
 )
-def read_city(db: Session = Depends(get_db), id: str = None):
-    """Retrieve a specific city by DIL ID. e.g., "city_dil_I11CRwcK"."""
+def read_city(
+    db: Session = Depends(get_db), id: str = None
+) -> Union[JSONResponse, CityOut]:
+    """Retrieve a specific city by DIL ID. e.g., "city_dil_I11CRwcK".
+
+    :param db: Database session dependency
+    :type db: Session
+    :param id: The DIL ID of the city to retrieve.
+    :type id: str
+    :return: A CityOut object containing detailed information about the city if found
+                or a JSONResponse with a 404 status code and an error message if the city is
+                not found, or a JSONResponse with a 500 status code and an error message if any other error occurs.
+    :rtype: Union[JSONResponse, CityOut]
+    """
     try:
         city = get_city(db, {"_id_dil": id})
         if city is None:
@@ -660,8 +796,15 @@ def read_city(db: Session = Depends(get_db), id: str = None):
     summary="Retrieve all addresses with pagination",
     tags=["Referential"],
 )
-def read_addresses(db: Session = Depends(get_db)):
-    """Retrieve all addresses with pagination."""
+def read_addresses(db: Session = Depends(get_db)) -> Union[JSONResponse, Page]:
+    """Retrieve all addresses with pagination.
+
+    :param db: Database session dependency
+    :type db: Session
+    :return: A paginated response containing a list of addresses with their DIL ID,
+                    label, city label, and city DIL ID. If no addresses are found, returns a JSONResponse with a 404 status code and an error message. If any other error occurs, returns a JSONResponse with a 500 status code and the error message.
+    :rtype: Union[JSONResponse, Page]
+    """
     try:
         customPage = CustomizedPage[Page[AddressOut]]
         set_page(customPage)
@@ -707,8 +850,20 @@ def read_addresses(db: Session = Depends(get_db)):
     summary="Retrieve a specific address by ID",
     tags=["Referential"],
 )
-def read_address(db: Session = Depends(get_db), id: str = None):
-    """Retrieve a specific address by DIL ID. e.g., "address_dil_k5VNb151"."""
+def read_address(
+    db: Session = Depends(get_db), id: str = None
+) -> Union[JSONResponse, AddressMinimalOut]:
+    """Retrieve a specific address by DIL ID. e.g., "address_dil_k5VNb151".
+
+    :param db: Database session dependency
+    :type db: Session
+    :param id: The DIL ID of the address to retrieve.
+    :type id: str
+    :return: An AddressMinimalOut object containing detailed information about the address if found
+                or a JSONResponse with a 404 status code and an error message if the address is
+                not found, or a JSONResponse with a 500 status code and an error message if any other error occurs.
+    :rtype: Union[JSONResponse, AddressMinimalOut]
+    """
     try:
         address = get_address(db, {"_id_dil": id})
         if address is None:
@@ -731,6 +886,7 @@ def read_address(db: Session = Depends(get_db), id: str = None):
         )
 
 
+"""Experiment/Future:
 @api_router.get("/graph", tags=["Graph"])
 def get_graph_data(
     year: int = Query(..., description="Filtrer les brevets dont date_start <= année"),
@@ -808,3 +964,4 @@ def get_graph_data(
             edge_id += 1
 
     return {"nodes": nodes, "edges": edges}
+ """

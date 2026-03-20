@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 """
 This main module contains the admin interface generation
 with flask-admin to manage the database.

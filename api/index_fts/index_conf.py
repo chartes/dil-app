@@ -1,3 +1,9 @@
+# -*- coding: utf-8 -*-
+"""index_conf.py
+
+Configuration for Whoosh full-text search indexing, including the index directory and storage initialization.
+"""
+
 import os
 from whoosh.filedb.filestore import FileStorage
 

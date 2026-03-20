@@ -16,7 +16,13 @@ from api.index_fts.index_conf import st
 
 
 def extract_quoted_phrases(query: str) -> list[str]:
-    """Extrait les phrases entre guillemets doubles."""
+    """Extracts quoted phrases from the query string for exact phrase highlighting.
+
+    :param query: The raw query string potentially containing quoted phrases.
+    :type query: str
+    :returns: A list of quoted phrases extracted from the query.
+    :rtype: list[str]
+    """
     if not query:
         return []
     return [m.strip() for m in re.findall(r'"([^"]+)"', query) if m.strip()]
@@ -25,13 +31,23 @@ def extract_quoted_phrases(query: str) -> list[str]:
 def build_phrase_only_highlight(
     content: str, phrases: list[str], context: int = 90
 ) -> str:
-    """Construit un extrait avec highlight exact des phrases, sans surligner les mots isolés."""
+    """Build a highlighted snippet containing only the exact phrases, with a specified amount of context around the first match.
+
+    :param content: The original content to search within.
+    :type content: str
+    :param phrases: A list of exact phrases to highlight in the content.
+    :type phrases: list[str]
+    :param context: The number of characters to include before and after the first matched phrase in the snippet.
+    :type context: int
+    :returns: An HTML string with the matched phrases highlighted, or None if no matches are found.
+    :rtype: str or None
+    """
     if not content or not phrases:
         return None
 
     lower_content = content.lower()
 
-    # trouver la première occurrence de n'importe quelle phrase
+    # find the earliest occurrence of any of the phrases in the content
     first_match = None
     first_phrase = None
     for phrase in phrases:
@@ -52,7 +68,7 @@ def build_phrase_only_highlight(
     if end < len(content):
         snippet = snippet + "..."
 
-    # échapper HTML puis surligner uniquement les phrases exactes
+    # escape HTML special characters in the snippet before highlighting
     snippet_escaped = escape(snippet)
 
     for phrase in sorted(phrases, key=len, reverse=True):
@@ -64,7 +80,21 @@ def build_phrase_only_highlight(
     return snippet_escaped
 
 
-def search_whoosh(query_lastname: str = "", query_content: str = "", limit: int = 5000):
+def search_whoosh(
+    query_lastname: str = "", query_content: str = "", limit: int = 5000
+) -> dict[str, dict]:
+    """Search the Whoosh index for documents matching the given last name and content queries, returning
+    a dictionary of hits with highlighted snippets.
+
+    :param query_lastname: The last name query string to search for, defaults to an empty string.
+    :type query_lastname: str
+    :param query_content: The content query string to search for, defaults to an empty string.
+    :type query_content: str
+    :param limit: The maximum number of search results to return, defaults to 5000.
+    :type limit: int
+    :returns: A dictionary mapping document IDs to their corresponding highlighted snippets.
+    :rtype: dict[str, dict]
+    """
     ix = st.open_index()
     hits = {}
 

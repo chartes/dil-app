@@ -1,3 +1,10 @@
+# -*- coding: utf-8 -*-
+
+"""constants.py
+
+Constants for the API, including user roles, patent relation types, country codes, and department codes.
+"""
+
 roles_user = {
     "Administrateur": "ADMIN",  # Admin (all rights : can create, edit, delete, read and manage users)
     "Éditeur": "EDITOR",  # Editor (can create, edit and delete, validate except manage users)

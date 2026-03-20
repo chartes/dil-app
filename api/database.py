@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 database.py
 
@@ -9,8 +10,6 @@ import os
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, scoped_session
-
-# from whoosh import index
 
 from api.config import BASE_DIR, settings
 

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 crud.py
 
@@ -5,7 +6,7 @@ CRUD operations.
 Reusable functions to interact with the data in the database.
 """
 
-from typing import Type
+from typing import Type, Union
 import re
 
 from sqlalchemy.orm import Session
@@ -21,15 +22,31 @@ MARKUP_HTML_FIELDS = {"personal_information", "professional_information"}
 inverted_type_relations = {v: k for k, v in type_patent_relations.items()}
 
 
-def get_user(db: Session, args: dict):
-    """Get a user from the database."""
+def get_user(db: Session, args: dict) -> Union[User, None]:
+    """Get a user from the database.
+
+    :param db: The database session to use for the query.
+    :type db: Session
+    :param args: A dictionary of filter arguments to apply to the query.
+    :type args: dict
+    :return: The first User object that matches the filter criteria, or None if no match
+                is found or if an exception occurs during the query.
+    :rtype: User | None
+    """
     try:
         return db.query(User).filter_by(**args).first()
     except Exception:
         return None
 
 
-def clean_html_markup(html_markup: str):
+def clean_html_markup(html_markup: str) -> Union[str, None]:
+    """Clean HTML markup from a string, allowing only <br> tags and stripping all others.
+
+    :param html_markup: The input string containing HTML markup to clean.
+    :type html_markup: str
+    :return: A cleaned string with only <br> tags preserved, or None if the input is None.
+    :rtype: str | None
+    """
     if html_markup:
         return bleach.clean(re.sub(r"<br>", " <br>", html_markup), strip=True, tags=[])
     else:
@@ -38,8 +55,18 @@ def clean_html_markup(html_markup: str):
 
 def enhance_patent_response(
     db: Session, patent: Type[Patent], html_markup: bool = False
-):
-    """Enhance patent response."""
+) -> dict:
+    """Enhance patent response.
+
+    :param db: The database session to use for the query.
+    :type db: Session
+    :param patent: The Patent object to enhance.
+    :type patent: Type[Patent]
+    :param html_markup: A boolean indicating whether to preserve HTML markup in the references field.
+    :type html_markup: bool
+    :return: A dictionary containing the enhanced patent information, including cleaned references and related entities.
+    :rtype: dict
+    """
     return {
         "_id_dil": str(patent._id_dil) if patent._id_dil else None,
         "city_label": patent.city_label,
@@ -83,8 +110,22 @@ def enhance_patent_response(
     }
 
 
-def enhance_printer_response(db: Session, printer: Type[Person], html_markup):
-    """Enhance printer response with cleaner html."""
+def enhance_printer_response(
+    db: Session, printer: Type[Person], html_markup: bool = False
+) -> dict:
+    """Enhance printer response with cleaner html.
+
+    :param db: The database session to use for the query.
+    :type db: Session
+    :param printer: The Person object representing the printer to enhance.
+    :type printer: Type[Person]
+    :param html_markup: A boolean indicating whether to preserve HTML markup in the personal and professional
+                        information fields.
+    :type html_markup: bool
+    :return: A dictionary containing the enhanced printer information, including cleaned personal and professional
+                information, as well as related patents and addresses.
+    :rtype: dict
+    """
     if not html_markup:
         for field in MARKUP_HTML_FIELDS:
             value = printer.__dict__[field]
@@ -128,8 +169,22 @@ def enhance_printer_response(db: Session, printer: Type[Person], html_markup):
     }
 
 
-def get_printer(db: Session, args: dict, enhance: bool = False):
-    """Get a printer from the database."""
+def get_printer(
+    db: Session, args: dict, enhance: bool = False
+) -> Union[dict, Type[Person], None]:
+    """Get a printer from the database.
+
+    :param db: The database session to use for the query.
+    :type db: Session
+    :param args: A dictionary of filter arguments to apply to the query.
+    :type args: dict
+    :param enhance: A boolean indicating whether to enhance the printer response with cleaner HTML and related
+                    entities.
+    :type enhance: bool
+    :return: A dictionary containing the enhanced printer information if enhance is True, the Person object
+                if enhance is False, or None if no matching printer is found.
+    :rtype: dict | Type[Person] | None
+    """
     html_markup = args.pop("html", False)
     printer = db.query(Person).filter_by(**args).first()
     if printer:
@@ -141,8 +196,20 @@ def get_printer(db: Session, args: dict, enhance: bool = False):
         return None
 
 
-def get_printers(db: Session, args: dict, enhance: bool = False):
-    """Get persons from the database."""
+def get_printers(db: Session, args: dict, enhance: bool = False) -> list:
+    """Get persons from the database.
+
+    :param db: The database session to use for the query.
+    :type db: Session
+    :param args: A dictionary of filter arguments to apply to the query.
+    :type args: dict
+    :param enhance: A boolean indicating whether to enhance the printer responses with cleaner HTML and related
+                    entities.
+    :type enhance: bool
+    :return: A list of dictionaries containing the enhanced printer information if enhance is True, or
+                a list of Person objects if enhance is False. Returns an empty list if no matching printers are found.
+    :rtype: list
+    """
     printers = db.query(Person).filter_by(**args).all()
     if len(printers) > 0:
         if enhance:
@@ -162,8 +229,22 @@ def get_printers(db: Session, args: dict, enhance: bool = False):
         return []
 
 
-def get_patent(db: Session, args: dict, enhance: bool = False):
-    """Get a patent"""
+def get_patent(
+    db: Session, args: dict, enhance: bool = False
+) -> Union[dict, Type[Patent], None]:
+    """Get a patent.
+
+    :param db: The database session to use for the query.
+    :type db: Session
+    :param args: A dictionary of filter arguments to apply to the query.
+    :type args: dict
+    :param enhance: A boolean indicating whether to enhance the patent response with cleaner HTML and related
+                    entities.
+    :type enhance: bool
+    :return: A dictionary containing the enhanced patent information if enhance is True, the Patent object
+                if enhance is False, or None if no matching patent is found.
+    :rtype: dict | Type[Patent] | None
+    """
     html_markup = args.pop("html", False)
     patent = db.query(Patent).filter_by(**args).first()
     if patent:
@@ -175,51 +256,87 @@ def get_patent(db: Session, args: dict, enhance: bool = False):
         return None
 
 
-# TODO: refactor with this below :
-"""
-def get_entity(db: Session, model, args: dict):
-    # Get an entity from the database.
-    return db.query(model).filter_by(**args).first()
+def get_cities(db: Session, args: dict) -> Union[list, None]:
+    """Get cities from the database.
 
-def get_entities(db: Session, model, args: dict):
-    # Get entities from the database.
-    return db.query(model).filter_by(**args).all()
-"""
-
-
-def get_cities(db: Session, args: dict):
-    """Get cities from the database."""
+    :param db: The database session to use for the query.
+    :type db: Session
+    :param args: A dictionary of filter arguments to apply to the query.
+    :type args: dict
+    :return: A list of City objects that match the filter criteria, or None if an
+                exception occurs during the query.
+    :rtype: list | None
+    """
     try:
         return db.query(City).filter_by(**args).all()
     except Exception:
         return None
 
 
-def get_addresses(db: Session, args: dict):
-    """Get addresses from the database."""
+def get_addresses(db: Session, args: dict) -> Union[list, None]:
+    """Get addresses from the database.
+
+    :param db: The database session to use for the query.
+    :type db: Session
+    :param args: A dictionary of filter arguments to apply to the query.
+    :type args: dict
+    :return: A list of Address objects that match the filter criteria, or None if an
+                exception occurs during the query.
+    :rtype: list | None
+    """
     return db.query(Address).filter_by(**args).all()
 
 
-def get_city(db: Session, args: dict):
-    """Get a city"""
+def get_city(db: Session, args: dict) -> Union[City, None]:
+    """Get a city
+
+    :param db: The database session to use for the query.
+    :type db: Session
+    :param args: A dictionary of filter arguments to apply to the query.
+    :type args: dict
+    :return: The first City object that matches the filter criteria, or None if no match
+                is found or if an exception occurs during the query.
+    :rtype: City | None
+    """
     return db.query(City).filter_by(**args).first()
 
 
-def get_address(db: Session, args: dict):
-    """Get an address"""
+def get_address(db: Session, args: dict) -> Union[Address, None]:
+    """Get an address.
+
+    :param db: The database session to use for the query.
+    :type db: Session
+    :param args: A dictionary of filter arguments to apply to the query.
+    :type args: dict
+    :return: The first Address object that matches the filter criteria, or None if no match
+                is found or if an exception occurs during the query.
+    :rtype: Address | None
+    """
     return db.query(Address).filter_by(**args).first()
 
 
-def get_printer_personal_addresses(db: Session, args: dict):
-    """Get a printer's personal addresses from the database."""
-    pass
+def get_image(db: Session, args: dict) -> Union[Image, None]:
+    """Get images from the database.
 
-
-def get_image(db: Session, args: dict):
-    """Get images from the database."""
+    :param db: The database session to use for the query.
+    :type db: Session
+    :param args: A dictionary of filter arguments to apply to the query.
+    :type args: dict
+    :return: The first Image object that matches the filter criteria, or None if no match
+                is found or if an exception occurs during the query.
+    :rtype: Image | None
+    """
     return db.query(Image).filter_by(**args).first()
 
 
-def get_patents(db: Session, args: dict):
-    """Get patents from the database."""
+def get_patents(db: Session, args: dict) -> list:
+    """Get patents from the database.
+
+    :param db: The database session to use for the query.
+    :type db: Session
+    :param args: A dictionary of filter arguments to apply to the query.
+    :type args: dict
+    :return: A list of Patent objects that match the filter criteria.
+    :rtype: list
+    """
     return db.query(Patent).filter_by(**args).all()

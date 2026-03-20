@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """api_meta.py
 
 constant with API metadata.
