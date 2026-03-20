@@ -6,7 +6,7 @@ FastAPI routes for the DIL API.
 """
 
 
-from typing import Union, Optional, List
+from typing import Optional, List
 
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import JSONResponse
