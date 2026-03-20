@@ -12,7 +12,7 @@ from whoosh import index
 from joblib import Parallel, delayed
 
 
-def create_store(store: index.FileStorage, path: str) -> None:
+def create_store(store, path: str) -> None:
     """Create a Whoosh index store at the specified path, clearing any existing index if necessary.
 
     :param store: The Whoosh FileStorage object representing the index storage.
@@ -29,7 +29,7 @@ def create_store(store: index.FileStorage, path: str) -> None:
     store.create()
 
 
-def create_index(store: index.FileStorage, schema: index.Schema) -> None:
+def create_index(store, schema) -> None:
     """Create a Whoosh index with the given schema in the specified store.
 
     :param store: The Whoosh FileStorage object representing the index storage.

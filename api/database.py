@@ -15,7 +15,7 @@ from api.config import BASE_DIR, settings
 
 SQLALCHEMY_DATABASE_URI = f"sqlite:///{os.path.join(BASE_DIR, settings.DB_URI)}"
 # WHOOSH_INDEX_DIR = os.path.join(BASE_DIR, settings.WHOOSH_INDEX_DIR)
-
+print(f"Using database URI: {SQLALCHEMY_DATABASE_URI}")
 engine = create_engine(
     SQLALCHEMY_DATABASE_URI,
     # needed for sqlite

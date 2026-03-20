@@ -5,6 +5,7 @@ routes.py
 FastAPI routes for the DIL API.
 """
 
+
 from typing import Union, Optional, List
 
 from fastapi import APIRouter, Depends, Query
@@ -48,7 +49,7 @@ cache = TTLCache(maxsize=2048, ttl=120)
     responses={500: {"model": Message}},
     summary="Get generic API information about data (e.g. total)",
 )
-def get_infos(db: Session = Depends(get_db)) -> Union[JSONResponse, dict]:
+def get_infos(db: Session = Depends(get_db)):
     """Retrieve generic information about the API data.
 
     :param db: Database session dependency
@@ -94,7 +95,7 @@ def get_cities_with_printers(
     exact_patent_date_start: Optional[str] = Query(None),
     search_head_info: Optional[str] = Query(None),
     search_extra_info: Optional[str] = Query(None),
-) -> Union[JSONResponse, List[dict]]:
+):
     """Retrieve cities with geolocation and linked printers based on optional filters.
 
     :param db: Database session dependency
@@ -317,9 +318,7 @@ def autocomplete_city(
     summary="",
     tags=["Images"],
 )
-def read_images(
-    id: str, db: Session = Depends(get_db)
-) -> Union[JSONResponse, PersonPatentsImages]:
+def read_images(id: str, db: Session = Depends(get_db)):
     """Retrieve all images related to a specific person (printer) by their DIL ID, including patent associations and pinned status.
 
     :param id: The DIL ID of the person (printer) to retrieve images for. e.g., "person_dil_2QO3gEnU".
@@ -417,7 +416,7 @@ def read_printers(
     patent_date_start: Optional[str] = Query(None),
     exact_patent_date_start: bool = Query(False),
     sort: Optional[str] = Query("asc"),
-) -> Union[JSONResponse, Page]:
+):
     """Retrieve all persons (printers) with optional filters for search, city, and patent date, along with pagination and sorting.
 
     :param db: Database session dependency
@@ -596,9 +595,7 @@ def read_printers(
     tags=["Persons"],
     response_model=PrinterOut,
 )
-async def read_printer(
-    id: str, html: bool = False, db: Session = Depends(get_db)
-) -> Union[JSONResponse, PrinterOut]:
+async def read_printer(id: str, html: bool = False, db: Session = Depends(get_db)):
     """
     Retrieve a specific person (printer) by DIL ID.
     - `id`: The DIL ID of the person (printer). e.g., "person_dil_2QO3gEnU".
@@ -639,7 +636,7 @@ async def read_printer(
     summary="Retrieve all patents with pagination",
     tags=["Patents"],
 )
-def read_patents(db: Session = Depends(get_db)) -> Union[JSONResponse, Page]:
+def read_patents(db: Session = Depends(get_db)):
     """Retrieve all patents with pagination.
 
     :param db: Database session dependency
@@ -672,9 +669,7 @@ def read_patents(db: Session = Depends(get_db)) -> Union[JSONResponse, Page]:
     summary="Retrieve a specific patent by ID",
     tags=["Patents"],
 )
-def read_patent(
-    id: str, db: Session = Depends(get_db), html: bool = False
-) -> Union[JSONResponse, PatentOut]:
+def read_patent(id: str, db: Session = Depends(get_db), html: bool = False):
     """
     Retrieve a specific patent by DIL ID. e.g., "patent_dil_20XQCaDr".
 
@@ -714,7 +709,7 @@ def read_patent(
     summary="Retrieve all cities with pagination",
     tags=["Referential"],
 )
-def read_cities(db: Session = Depends(get_db)) -> Union[JSONResponse, Page]:
+def read_cities(db: Session = Depends(get_db)):
     """Retrieve all cities with pagination.
 
     :param db: Database session dependency
@@ -745,9 +740,7 @@ def read_cities(db: Session = Depends(get_db)) -> Union[JSONResponse, Page]:
     summary="Retrieve a specific city by ID",
     tags=["Referential"],
 )
-def read_city(
-    db: Session = Depends(get_db), id: str = None
-) -> Union[JSONResponse, CityOut]:
+def read_city(db: Session = Depends(get_db), id: str = None):
     """Retrieve a specific city by DIL ID. e.g., "city_dil_I11CRwcK".
 
     :param db: Database session dependency
@@ -796,7 +789,7 @@ def read_city(
     summary="Retrieve all addresses with pagination",
     tags=["Referential"],
 )
-def read_addresses(db: Session = Depends(get_db)) -> Union[JSONResponse, Page]:
+def read_addresses(db: Session = Depends(get_db)):
     """Retrieve all addresses with pagination.
 
     :param db: Database session dependency
@@ -850,9 +843,7 @@ def read_addresses(db: Session = Depends(get_db)) -> Union[JSONResponse, Page]:
     summary="Retrieve a specific address by ID",
     tags=["Referential"],
 )
-def read_address(
-    db: Session = Depends(get_db), id: str = None
-) -> Union[JSONResponse, AddressMinimalOut]:
+def read_address(db: Session = Depends(get_db), id: str = None):
     """Retrieve a specific address by DIL ID. e.g., "address_dil_k5VNb151".
 
     :param db: Database session dependency
@@ -964,4 +955,4 @@ def get_graph_data(
             edge_id += 1
 
     return {"nodes": nodes, "edges": edges}
- """
+"""
