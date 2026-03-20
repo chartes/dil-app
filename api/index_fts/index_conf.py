@@ -1,5 +1,4 @@
 import os
-import sys
 from whoosh.filedb.filestore import FileStorage
 
 from api.config import (BASE_DIR,

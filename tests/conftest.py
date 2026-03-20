@@ -4,7 +4,7 @@ from fastapi.testclient import TestClient
 from fastapi_pagination import add_pagination
 from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
-from sqlalchemy.orm import sessionmaker, scoped_session, declarative_base
+from sqlalchemy.orm import sessionmaker
 
 from api.database import (get_db, BASE)
 from api.main import (app)
@@ -23,17 +23,6 @@ SQLALCHEMY_DATABASE_TEST_URL = f"sqlite:///{os.path.join(BASE_DIR, settings.DB_U
 print(SQLALCHEMY_DATABASE_TEST_URL)
 
 
-from api.models.models import (
-    Person,
-    Address,
-    City,
-    Patent,
-    Image,
-    PatentHasAddresses,
-    PatentHasImages,
-    PatentRelationType,
-    PatentHasRelations,
-)
 
 
 

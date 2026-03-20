@@ -29,7 +29,7 @@ def get_user(db: Session, args: dict):
     """Get a user from the database."""
     try:
         return db.query(User).filter_by(**args).first()
-    except:
+    except Exception:
         return None
 
 def clean_html_markup(html_markup: str):
@@ -174,7 +174,7 @@ def get_cities(db: Session, args: dict):
     """Get cities from the database."""
     try:
         return db.query(City).filter_by(**args).all()
-    except:
+    except Exception:
         return None
 
 def get_addresses(db: Session, args: dict):

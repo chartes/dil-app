@@ -9,12 +9,27 @@ import argparse
 
 from contextlib import contextmanager
 from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 import pandas as pd
 import numpy as np
 
 from scripts.dil_dtypes_spec import DTYPE_SPEC
-from api.models.models import *
+from api.models.models import (
+    BASE,
+    City,
+    Address,
+    Person,
+    Patent,
+    Image,
+    PatentHasRelations,
+    PatentHasAddresses,
+    PersonHasAddresses,
+    PatentHasImages,
+    User,
+    generate_random_uuid,
+    session
+)
 
 __prefix_model__ = "dil"
 __version__ = "1.0.0"
@@ -26,7 +41,7 @@ def get_session():
     try:
         yield session
         session.commit()
-    except Exception as e:
+    except Exception:
         session.rollback()
         raise
     finally:
@@ -56,7 +71,7 @@ def load_tsv_to_db(file_path, table_model):
 
             print(f"==> {len(records)} rows inserted in {table_model.__tablename__} table.")
 
-    except FileNotFoundError as e:
+    except FileNotFoundError:
         print(f"Erreur : Fichier introuvable : {file_path}")
 
     except Exception as e:

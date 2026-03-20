@@ -60,8 +60,8 @@ from api.crud import (get_user,
                       get_patents,
                       get_printer)
 from api.database import session
-from api.admin.views_dir.utils import *
-from api.admin.views_dir.loaders import *
+from api.admin.views_dir.utils import prefix_name
+from api.admin.views_dir.loaders import GenericAjaxModelLoader
 
 EDIT_ENDPOINTS = ["person", "city", "address", "image"]
 can_edit_roles = ['ADMIN', 'EDITOR', 'CONTRIBUTOR']

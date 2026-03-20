@@ -7,7 +7,7 @@ from wtforms import (Form,
                      BooleanField,
                      SubmitField,
                      validators)
-from wtforms.validators import DataRequired, Email, EqualTo
+from wtforms.validators import DataRequired
 
 class CustomChildForm(Form):
     person_id = IntegerField("ID Personne", [validators.DataRequired()])

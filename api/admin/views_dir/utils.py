@@ -6,7 +6,6 @@ import os
 from werkzeug.utils import secure_filename
 from sqlalchemy import func
 from unidecode import unidecode
-import unicodedata
 
 def prefix_name(_, file_data):
     parts = os.path.splitext(file_data.filename)

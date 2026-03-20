@@ -5,15 +5,29 @@ with flask-admin to manage the database.
 from flask import Flask
 
 from flask_admin import Admin
-# from flask_babel import Babel
 from flask_babelex import Babel
 from flask_login import LoginManager
 from flask_mail import Mail
 
-# from ..crud import get_user
 from api.config import BASE_DIR
 from .midelware import init_app
-from .views import *
+from .views import (
+    settings,
+    AdminView,
+    get_user,
+    session,
+    PrinterView,
+    Person,
+    CityView,
+    City,
+    AddressView,
+    Address,
+    ImageView,
+    Image,
+    UserView,
+    User,
+    AboutView,
+)
 
 # flask app #
 flask_app = Flask(__name__,

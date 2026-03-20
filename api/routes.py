@@ -3,7 +3,6 @@ routes.py
 
 FastAPI routes for the DIL API.
 """
-from bdb import effective
 from typing import Union, Optional, List
 
 from fastapi import (APIRouter,
@@ -22,7 +21,6 @@ from sqlalchemy import (or_,
                         desc,
                         distinct)
 from sqlalchemy.orm import Session
-from starlette.responses import JSONResponse
 from cachetools import TTLCache, cached
 import hashlib
 
@@ -48,7 +46,6 @@ from api.models.models import (Person,
 from api.index_fts.search_utils import search_whoosh
 from api.api_utils import (normalize_firstnames,
                            normalize_date,
-                           year_bounds,
                            period_bounds)
 
 api_router = APIRouter()

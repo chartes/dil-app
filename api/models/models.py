@@ -42,11 +42,15 @@ from api.config import settings
 # DB models constants and utilities
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".tiff"}
 
-params_default_relations = lambda bp, delete=True: {
-    'back_populates': bp,
-    'cascade': "all, delete, delete-orphan" if delete else "",
-    # 'passive_deletes': delete
-}
+
+def params_default_relations(bp: str, delete: bool = True) -> dict:
+    return {
+        'back_populates': bp,
+        'cascade': "all, delete, delete-orphan" if delete else "",
+        # 'passive_deletes': delete
+        # 'passive_deletes': delete
+    }
+
 
 def handle_index(method):
     """
@@ -179,7 +183,6 @@ class AbstractBase(BASE):
         if isinstance(target, Patent) and not session.query(Person).filter_by(id=target.person_id).first():
             raise IntegrityError("L'imprimeur est requis pour créer un brevet.", params={}, orig=None)
 
-
     @classmethod
     def set_img_name(cls, target):
         """Attribue le nom de l'image si un fichier est fourni."""
@@ -202,9 +205,9 @@ class AbstractBase(BASE):
             if target.is_pinned:  # Si la nouvelle relation est `pinned`
                 # Récupérer toutes les autres relations liées au même brevet
                 session.query(PatentHasImages).filter(
-                PatentHasImages.patent_id == target.patent_id,
-                PatentHasImages.id != target.id  # Exclure l'image actuelle
-            ).update({"is_pinned": False})  # Désactiver le flag `pinned`
+                    PatentHasImages.patent_id == target.patent_id,
+                    PatentHasImages.id != target.id  # Exclure l'image actuelle
+                ).update({"is_pinned": False})  # Désactiver le flag `pinned`
                 session.commit()
 
     @classmethod
@@ -253,7 +256,7 @@ class AbstractBase(BASE):
     @handle_index
     def delete_person_fts_index_after_delete(cls, mapper, connection, target, ix):
         """Delete a reference from the index"""
-        with sessionmaker(bind=connection)() as session:
+        with sessionmaker(bind=connection)():
             if cls.__tablename__ == "persons":
                 writer = ix.writer()
                 writer.delete_by_term('id_dil', str(target._id_dil))
@@ -275,10 +278,12 @@ def after_insert(mapper, connection, target):
     with sessionmaker(bind=connection)() as session:
         target.insert_person_fts_index_after_insert(mapper, session, target)
 
+
 @event.listens_for(AbstractBase, "after_update", propagate=True)
 def after_update(mapper, connection, target):
     with sessionmaker(bind=connection)() as session:
         target.update_person_fts_index_after_update(mapper, session, target)
+
 
 @event.listens_for(AbstractBase, "after_delete", propagate=True)
 def after_delete(mapper, connection, target):
@@ -362,7 +367,6 @@ class User(UserMixin, BASE):
         in_session.commit()
 
 
-
 class Person(AbstractVersion):
     """Imprimeurs et lithographes identifiés.
 
@@ -433,8 +437,6 @@ class Person(AbstractVersion):
 
     def __str__(self):
         return f"{self.lastname} {self.firstnames}"
-
-
 
 
 class Patent(AbstractVersion):

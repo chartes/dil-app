@@ -21,7 +21,7 @@ def extract_quoted_phrases(query: str) -> list[str]:
     return [m.strip() for m in re.findall(r'"([^"]+)"', query) if m.strip()]
 
 
-def build_phrase_only_highlight(content: str, phrases: list[str], context: int = 90) -> str | None:
+def build_phrase_only_highlight(content: str, phrases: list[str], context: int = 90) -> str:
     """Construit un extrait avec highlight exact des phrases, sans surligner les mots isolés."""
     if not content or not phrases:
         return None

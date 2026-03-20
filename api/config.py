@@ -12,7 +12,7 @@ import pathlib
 
 try:
     from pydantic_settings import BaseSettings
-except ModuleNotFoundError as e:
+except ModuleNotFoundError:
     from pydantic import BaseSettings
 
 # Set the base directory for the project

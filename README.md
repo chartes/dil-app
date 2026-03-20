@@ -1,6 +1,6 @@
 # dil-app backend service
 
-![Python versions](https://img.shields.io/badge/python-3.9-blue) [![DIL API CI](https://github.com/chartes/dil-app/actions/workflows/CI-tests.yml/badge.svg)](https://github.com/chartes/dil-app/actions/workflows/CI-tests.yml) ![Dil-Coverage](./tests/coverage.svg)
+![Python versions](https://img.shields.io/badge/python-3.9-blue) [![DIL API CI](https://github.com/chartes/dil-app/actions/workflows/CI-tests.yml/badge.svg)](https://github.com/chartes/dil-app/actions/workflows/CI-tests.yml) ![Dil-Coverage](./tests/coverage.svg) [![ruff](https://img.shields.io/badge/lint-ruff-0A0A0A?logo=ruff&logoColor=white)](https://img.shields.io/badge/lint-ruff-0A0A0A?logo=ruff&logoColor=white)
 
 [![FastAPI - API](https://img.shields.io/static/v1?label=FastAPI&message=API&color=%232E303E&style=for-the-badge&logo=fastapi&logoColor=%23009485)](https://fastapi.tiangolo.com/)
 [![SQLite - DB](https://img.shields.io/static/v1?label=SQLite&message=DB&color=%2374B8E4&style=for-the-badge&logo=sqlite&logoColor=white)](https://www.sqlite.org/index.html)
@@ -43,7 +43,7 @@ Pour une première initialisation de la base de données ou pour la recréer et 
 
 - `-db-re` : recréer la base de données avec les données initiales (attention si la base de données existe déjà, elle sera écrasée ou si des données ont été ajoutées ou modifiées, elles seront perdues);
 - `-images-back` : copier les images intiales de la base de données dans le dossier `static` pour les rendre accessibles via l'API.
-- `-create-index` : créer les index de la base de données (nécessaire pour les recherches sur les champs texte).
+- `-create-index` : créer les index de la base de données (nécessaire pour la recherche plein texte).
 
 Pour lancer l'application seule (ignorer l'argument `-db-re`, `-create-index` et `-images-back`) :
 
@@ -87,6 +87,10 @@ chmod +x tests.sh
 ./tests.sh
 # pour générer le badge de couverture de code
 coverage-badge -o coverage.svg
+
+# linter (ruff)
+# opt. : pip install ruff
+ruff check
 ```
 
 ## Historique 

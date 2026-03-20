@@ -71,7 +71,6 @@ def test_markup_correction():
         session.add(person)
         session.commit()
 
-        corrected_person = session.query(Person).filter_by(lastname="Dupont").first()
         assert person.personal_information == "<br /><p>Information correcte</p>"
         assert person.professional_information == "<br /><p>Professionnel</p>"
         assert person.comment == "<br /><p>Commentaires</p>"
@@ -91,5 +90,4 @@ def test_before_update_markup_correction():
         person.personal_information = "<p><br></p><p>Mise à jour</p>"
         session.commit()
 
-        updated_person = session.query(Person).filter_by(lastname="Test").first()
         assert person.personal_information == "<br /><p>Mise à jour</p>"

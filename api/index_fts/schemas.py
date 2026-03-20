@@ -7,8 +7,7 @@ from whoosh.fields import (SchemaClass,
                            ID,
                            TEXT,
                            NGRAM,
-                           KEYWORD,
-                           NGRAMWORDS)
+                           KEYWORD)
 
 
 class PersonIdxSchema(SchemaClass):
