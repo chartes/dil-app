@@ -1,19 +1,19 @@
-from api.models.models import (Person,
-                        Patent,
-                        City,
-                        Address,
-                        Image,
-                        PersonHasAddresses,
-                        PatentHasAddresses,
-                        PatentHasImages,
-                        PatentHasRelations,
-                        generate_random_uuid)
+from api.models.models import (
+    Person,
+    Patent,
+    City,
+    Address,
+    Image,
+    PersonHasAddresses,
+    PatentHasAddresses,
+    PatentHasImages,
+    PatentHasRelations,
+    generate_random_uuid,
+)
 from tests.conftest import local_session
 
-def check_id_dil_routine(session: object,
-                         model: object,
-                         prefix: str,
-                         add: bool=True):
+
+def check_id_dil_routine(session: object, model: object, prefix: str, add: bool = True):
     """Check the generation of a unique _id_dil for a given model."""
     if add:
         session.add(model)
@@ -25,6 +25,7 @@ def check_id_dil_routine(session: object,
         assert model is not None
         assert model.startswith(f"{prefix}_dil_")
         assert len(model.split("_")[-1]) == 8
+
 
 def test_generate_random_uuid():
     """Test the generation of a unique random UUID with the expected prefix and format."""
@@ -47,13 +48,15 @@ def test_if_each_unique_id_dil_is_created_for_tables():
         check_id_dil_routine(session, address, "address")
 
         # add patent
-        patent = Patent(person_id=person.id,
-                        city_label="Paris",
-                        city_id=city.id,
-                        date_start="1970-01-01",
-                        date_end="1970-01-01",
-                        references="<p>test</p>",
-                        comment="test .... lorem ipsum ...")
+        patent = Patent(
+            person_id=person.id,
+            city_label="Paris",
+            city_id=city.id,
+            date_start="1970-01-01",
+            date_end="1970-01-01",
+            references="<p>test</p>",
+            comment="test .... lorem ipsum ...",
+        )
         check_id_dil_routine(session, patent, "patent")
 
         # add image
@@ -65,7 +68,9 @@ def test_if_each_unique_id_dil_is_created_for_tables():
         )
         check_id_dil_routine(session, image, "img")
         # add patent_has_addresses
-        patent_has_addresses = PatentHasAddresses(patent_id=patent.id, address_id=address.id)
+        patent_has_addresses = PatentHasAddresses(
+            patent_id=patent.id, address_id=address.id
+        )
         check_id_dil_routine(session, patent_has_addresses, "patent_address")
         # add patent_has_images
         patent_has_images = PatentHasImages(patent_id=patent.id, image_id=image.id)
@@ -74,11 +79,15 @@ def test_if_each_unique_id_dil_is_created_for_tables():
         person2 = Person(lastname="Martin", firstnames="Jean", birth_date="1970-01-01")
         check_id_dil_routine(session, person2, "person")
         # add patent_has_relations
-        patent_has_relations = PatentHasRelations(patent_id=patent.id,
-                                                  person_id=person.id,
-                                                  person_related_id=person2.id,
-                                                  type="PARTNER")
+        patent_has_relations = PatentHasRelations(
+            patent_id=patent.id,
+            person_id=person.id,
+            person_related_id=person2.id,
+            type="PARTNER",
+        )
         check_id_dil_routine(session, patent_has_relations, "patent_relation")
         # add person_has_addresses
-        person_has_addresses = PersonHasAddresses(person_id=person.id, address_id=address.id)
+        person_has_addresses = PersonHasAddresses(
+            person_id=person.id, address_id=address.id
+        )
         check_id_dil_routine(session, person_has_addresses, "person_address")

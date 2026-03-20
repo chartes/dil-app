@@ -2,6 +2,7 @@
 This main module contains the admin interface generation
 with flask-admin to manage the database.
 """
+
 from flask import Flask
 
 from flask_admin import Admin
@@ -30,16 +31,18 @@ from .views import (
 )
 
 # flask app #
-flask_app = Flask(__name__,
-                  template_folder=BASE_DIR / 'api/templates',
-                  static_folder=BASE_DIR / 'api/static')
+flask_app = Flask(
+    __name__,
+    template_folder=BASE_DIR / "api/templates",
+    static_folder=BASE_DIR / "api/static",
+)
 # add middleware
 init_app(flask_app)
 # flask configuration #
-flask_app.config['SECRET_KEY'] = str(settings.FLASK_SECRET_KEY)
-flask_app.config['BABEL_DEFAULT_LOCALE'] = str(settings.FLASK_BABEL_DEFAULT_LOCALE)
-flask_app.config['BABEL_DEFAULT_TIMEZONE'] = 'Europe/Paris'
-flask_app.config['FLASK_ADMIN_BASE_TEMPLATE'] = 'admin/master.html'
+flask_app.config["SECRET_KEY"] = str(settings.FLASK_SECRET_KEY)
+flask_app.config["BABEL_DEFAULT_LOCALE"] = str(settings.FLASK_BABEL_DEFAULT_LOCALE)
+flask_app.config["BABEL_DEFAULT_TIMEZONE"] = "Europe/Paris"
+flask_app.config["FLASK_ADMIN_BASE_TEMPLATE"] = "admin/master.html"
 # flask_app.config['FLASK_ADMIN_SWATCH'] = 'cerulean'
 # flask_app.config['MAIL_SERVER'] = str(settings.FLASK_MAIL_SERVER)
 # flask_app.config['MAIL_PORT'] = int(settings.FLASK_MAIL_PORT)
@@ -50,13 +53,14 @@ flask_app.config['FLASK_ADMIN_BASE_TEMPLATE'] = 'admin/master.html'
 
 # flask extensions #
 Babel(flask_app)
-admin = Admin(flask_app,
-              name="DIL DB Administration",
-              template_mode="bootstrap3",
-              url="/dil-db/admin/",
-              endpoint="admin",
-              index_view=AdminView()
-              )
+admin = Admin(
+    flask_app,
+    name="DIL DB Administration",
+    template_mode="bootstrap3",
+    url="/dil-db/admin/",
+    endpoint="admin",
+    index_view=AdminView(),
+)
 login = LoginManager(flask_app)
 mail = Mail(flask_app)
 
@@ -64,46 +68,56 @@ mail = Mail(flask_app)
 @login.user_loader
 def load_user(user_id):
     """load the user with the given id"""
-    return get_user(session, {'id': user_id})
+    return get_user(session, {"id": user_id})
 
 
 # Register views #
 for view in [
-    PrinterView(Person,
-                session,
-                name='Imprimeurs',
-                menu_icon_type='glyph',
-                menu_icon_value='glyphicon-user',
-                endpoint='person'),
-    CityView(City,
-             session,
-             name='Villes',
-             category='Référentiels',
-             endpoint='city',
-             menu_icon_type='glyph',
-             menu_icon_value='glyphicon-globe'
-             ),
-    AddressView(Address,
-                session,
-                name='Adresses',
-                category='Référentiels',
-                endpoint='address',
-                menu_icon_type='glyph',
-                menu_icon_value='glyphicon-home'),
-    ImageView(Image,
-              session,
-              name='Gestion des images',
-              menu_icon_type='glyph',
-              menu_icon_value='glyphicon-picture'),
-    UserView(User,
-             session,
-             name='Utilisateurs',
-             menu_icon_type='glyph',
-             menu_icon_value='glyphicon-cog'),
+    PrinterView(
+        Person,
+        session,
+        name="Imprimeurs",
+        menu_icon_type="glyph",
+        menu_icon_value="glyphicon-user",
+        endpoint="person",
+    ),
+    CityView(
+        City,
+        session,
+        name="Villes",
+        category="Référentiels",
+        endpoint="city",
+        menu_icon_type="glyph",
+        menu_icon_value="glyphicon-globe",
+    ),
+    AddressView(
+        Address,
+        session,
+        name="Adresses",
+        category="Référentiels",
+        endpoint="address",
+        menu_icon_type="glyph",
+        menu_icon_value="glyphicon-home",
+    ),
+    ImageView(
+        Image,
+        session,
+        name="Gestion des images",
+        menu_icon_type="glyph",
+        menu_icon_value="glyphicon-picture",
+    ),
+    UserView(
+        User,
+        session,
+        name="Utilisateurs",
+        menu_icon_type="glyph",
+        menu_icon_value="glyphicon-cog",
+    ),
     AboutView(
-        name='En savoir plus',
-        menu_icon_type='glyph',
-        menu_icon_value='glyphicon-info-sign'),
+        name="En savoir plus",
+        menu_icon_type="glyph",
+        menu_icon_value="glyphicon-info-sign",
+    ),
 ]:
     admin.add_view(view)
 

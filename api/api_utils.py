@@ -2,12 +2,14 @@
 
 Utility functions for the API.
 """
+
 from typing import Union
 import calendar
 import re
 
-_COMMA_FIX = re.compile(r'\s*,+\s*')
-_MULTI_SPACE = re.compile(r'\s{2,}')
+_COMMA_FIX = re.compile(r"\s*,+\s*")
+_MULTI_SPACE = re.compile(r"\s{2,}")
+
 
 def normalize_firstnames(v: str) -> str:
     """Normalize firstnames by removing extra spaces and fixing commas.
@@ -30,11 +32,14 @@ def normalize_firstnames(v: str) -> str:
     if not v:
         return v
     s1 = v.strip()
-    s = _COMMA_FIX.sub(', ', s1)   # "Auguste,Titus" -> "Auguste, Titus" ; "Auguste ,  Titus" -> "Auguste, Titus"
-    s = re.sub(r',\s*$', '', s)   # remove final comma
-    s = _MULTI_SPACE.sub(' ', s)  # remove multiple spaces
-    #print(s1," > ", s, " : ", s == s1)
+    s = _COMMA_FIX.sub(
+        ", ", s1
+    )  # "Auguste,Titus" -> "Auguste, Titus" ; "Auguste ,  Titus" -> "Auguste, Titus"
+    s = re.sub(r",\s*$", "", s)  # remove final comma
+    s = _MULTI_SPACE.sub(" ", s)  # remove multiple spaces
+    # print(s1," > ", s, " : ", s == s1)
     return s
+
 
 def normalize_date(date_str: str) -> str:
     """Normalize date strings to 'YYYY-MM-DD' format.
@@ -75,9 +80,11 @@ def year_bounds(year_str: str) -> Union[tuple[str, str], None]:
     y = int(year_str[:4])  # ok with '1855' or '1855-..'
     return f"{y}-01-01", f"{y}-12-31"
 
-DATE_Y   = re.compile(r"^\d{4}$")
-DATE_YM  = re.compile(r"^\d{4}-\d{2}$")
+
+DATE_Y = re.compile(r"^\d{4}$")
+DATE_YM = re.compile(r"^\d{4}-\d{2}$")
 DATE_YMD = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
 
 def period_bounds(s: str) -> Union[tuple[str, str], tuple[None, None]]:
     """Converts a date string to (PSTART, PEND) ISO format.

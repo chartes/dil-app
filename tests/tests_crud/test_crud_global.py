@@ -1,7 +1,4 @@
-from api.models.models import (
-    Address,
-    Person,
-    PersonHasAddresses)
+from api.models.models import Address, Person, PersonHasAddresses
 from tests.conftest import local_session
 
 
@@ -30,7 +27,9 @@ def test_add_adress_person():
 
         # create a person address with bulk_save_objects for two addresses
         person_address = PersonHasAddresses(person_id=person_id, address_id=address_id)
-        person_address2 = PersonHasAddresses(person_id=person_id, address_id=address2_id)
+        person_address2 = PersonHasAddresses(
+            person_id=person_id, address_id=address2_id
+        )
 
         session.add_all([person_address, person_address2])
         session.commit()
@@ -44,4 +43,7 @@ def test_add_adress_person():
         assert session.get(Address, address2_id) is not None
 
         # est-ce que les relations sont supprimées ?
-        assert session.query(PersonHasAddresses).filter_by(person_id=person_id).count() == 0
+        assert (
+            session.query(PersonHasAddresses).filter_by(person_id=person_id).count()
+            == 0
+        )

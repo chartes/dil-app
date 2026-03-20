@@ -11,29 +11,29 @@ import time
 from functools import wraps
 from unidecode import unidecode
 
-from sqlalchemy import (Column,
-                        Integer,
-                        String,
-                        DateTime,
-                        Enum,
-                        event,
-                        ForeignKey,
-                        Boolean)
-from sqlalchemy.orm import (relationship,
-                            declared_attr,
-                            sessionmaker)
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    DateTime,
+    Enum,
+    event,
+    ForeignKey,
+    Boolean,
+)
+from sqlalchemy.orm import relationship, declared_attr, sessionmaker
 from sqlalchemy.exc import IntegrityError
 from flask_login import UserMixin
-from werkzeug.security import (generate_password_hash,
-                               check_password_hash)
+from werkzeug.security import generate_password_hash, check_password_hash
 import jwt
 
-from ..database import (BASE,
-                        session)
-from .constants import (countries_ISO_3166,
-                        departments_INSEE_code,
-                        type_patent_relations,
-                        roles_user)
+from ..database import BASE, session
+from .constants import (
+    countries_ISO_3166,
+    departments_INSEE_code,
+    type_patent_relations,
+    roles_user,
+)
 from ..index_fts.index_conf import st
 from ..index_fts.index_utils import prepare_content
 
@@ -45,8 +45,8 @@ ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".tiff"}
 
 def params_default_relations(bp: str, delete: bool = True) -> dict:
     return {
-        'back_populates': bp,
-        'cascade': "all, delete, delete-orphan" if delete else "",
+        "back_populates": bp,
+        "cascade": "all, delete, delete-orphan" if delete else "",
         # 'passive_deletes': delete
         # 'passive_deletes': delete
     }
@@ -77,13 +77,19 @@ def generate_random_uuid(prefix: str, provider: str = "") -> str:
     bytes string and decoded to a Unicode string.
     """
     uuid_bytes = uuid.uuid4().bytes
-    base64_encoded = base64.urlsafe_b64encode(uuid_bytes).decode('utf-8').rstrip('=')
+    base64_encoded = base64.urlsafe_b64encode(uuid_bytes).decode("utf-8").rstrip("=")
     # replace punctuation with random characters
     # cut uuid to 8 (but possibility to increase or decrease)
     # this represents ≈ 10,376,800,670,380,293 possible identifier combinations
-    random_chars = ''.join(
-        random.choice(string.ascii_letters) if c in string.punctuation else c for c in base64_encoded[:8])
-    return f"{prefix}_{provider}_{random_chars}" if provider else f"{prefix}_{random_chars}"
+    random_chars = "".join(
+        random.choice(string.ascii_letters) if c in string.punctuation else c
+        for c in base64_encoded[:8]
+    )
+    return (
+        f"{prefix}_{provider}_{random_chars}"
+        if provider
+        else f"{prefix}_{random_chars}"
+    )
 
 
 def correct_br_markup_quill(old_html: str):
@@ -93,6 +99,7 @@ def correct_br_markup_quill(old_html: str):
 
 ###########################################################
 # ~~~~~~~~~~~~~~~~~~~ > Enum tables < ~~~~~~~~~~~~~~~~~~~ #
+
 
 class BaseEnum(enum.Enum):
     @classmethod
@@ -110,7 +117,7 @@ class BaseEnum(enum.Enum):
         :return: Une sous-classe dynamique de BaseEnum
         """
         enum_members = {
-            key.replace(' ', '_').replace('-', '_').replace('\'', ''): value
+            key.replace(" ", "_").replace("-", "_").replace("'", ""): value
             for key, value in data.items()
         }
         return enum.Enum(name, enum_members, type=cls)
@@ -129,21 +136,30 @@ def _get_enum_values(enum_class):
 # -- Enum Base Class --
 PatentRelationType = BaseEnum.create_enum("PatentRelationType", type_patent_relations)
 CountryISOEnum = BaseEnum.create_enum("CountryISOEnum", countries_ISO_3166)
-DepartementINSEEEnum = BaseEnum.create_enum("DepartementINSEEEnum", departments_INSEE_code)
+DepartementINSEEEnum = BaseEnum.create_enum(
+    "DepartementINSEEEnum", departments_INSEE_code
+)
 RolesUserEnum = BaseEnum.create_enum("RolesUserEnum", roles_user)
 
 
 ###############################################################
 # ~~~~~~~~~~~~~~~~~~~ > Abstract tables < ~~~~~~~~~~~~~~~~~~~ #
 
+
 class AbstractBase(BASE):
     __abstract__ = True
-    id = Column(Integer, primary_key=True, autoincrement=True, nullable=False, unique=True)
+    id = Column(
+        Integer, primary_key=True, autoincrement=True, nullable=False, unique=True
+    )
 
     @declared_attr
     def _id_dil(cls):
-        return Column(String(25), nullable=False, unique=True,
-                      default=lambda: cls.generate_unique_id(session, cls, cls.__prefix__))
+        return Column(
+            String(25),
+            nullable=False,
+            unique=True,
+            default=lambda: cls.generate_unique_id(session, cls, cls.__prefix__),
+        )
 
     @staticmethod
     def generate_unique_id(session, cls, prefix):
@@ -158,12 +174,15 @@ class AbstractBase(BASE):
         """Génère le nom de fichier de l'image avec l'extension correcte."""
         mime_type, _ = mimetypes.guess_type(file_path)
         if not mime_type:
-            raise ValueError(f"Impossible de détecter le type MIME pour le fichier : {file_path}")
+            raise ValueError(
+                f"Impossible de détecter le type MIME pour le fichier : {file_path}"
+            )
 
         extension = mimetypes.guess_extension(mime_type)
         if extension not in ALLOWED_EXTENSIONS:
             raise ValueError(
-                f"L'extension {extension} n'est pas autorisée. Autorisées : {', '.join(ALLOWED_EXTENSIONS)}")
+                f"L'extension {extension} n'est pas autorisée. Autorisées : {', '.join(ALLOWED_EXTENSIONS)}"
+            )
 
         return extension
 
@@ -171,8 +190,12 @@ class AbstractBase(BASE):
     def correct_markup(cls, target):
         """Corrige les balises HTML pour les champs textuels des objets Person."""
         if isinstance(target, Person):
-            target.personal_information = correct_br_markup_quill(target.personal_information or "")
-            target.professional_information = correct_br_markup_quill(target.professional_information or "")
+            target.personal_information = correct_br_markup_quill(
+                target.personal_information or ""
+            )
+            target.professional_information = correct_br_markup_quill(
+                target.professional_information or ""
+            )
             target.comment = correct_br_markup_quill(target.comment or "")
         if isinstance(target, Patent):
             target.references = correct_br_markup_quill(target.references or "")
@@ -180,8 +203,13 @@ class AbstractBase(BASE):
     @classmethod
     def check_person_exists(cls, session, target):
         """Vérifie qu'un brevet ne peut être créé que si la personne associée existe."""
-        if isinstance(target, Patent) and not session.query(Person).filter_by(id=target.person_id).first():
-            raise IntegrityError("L'imprimeur est requis pour créer un brevet.", params={}, orig=None)
+        if (
+            isinstance(target, Patent)
+            and not session.query(Person).filter_by(id=target.person_id).first()
+        ):
+            raise IntegrityError(
+                "L'imprimeur est requis pour créer un brevet.", params={}, orig=None
+            )
 
     @classmethod
     def set_img_name(cls, target):
@@ -195,8 +223,10 @@ class AbstractBase(BASE):
                 target._id_dil = new_id_dil
                 target.img_name = f"{new_id_dil}{extension}"
                 # rename the file
-                os.rename(os.path.join(settings.IMAGE_STORE, image_name),
-                          os.path.join(settings.IMAGE_STORE, target.img_name))
+                os.rename(
+                    os.path.join(settings.IMAGE_STORE, image_name),
+                    os.path.join(settings.IMAGE_STORE, target.img_name),
+                )
 
     @classmethod
     def check_img_patent_relations_pinned(cls, target, session):
@@ -206,7 +236,7 @@ class AbstractBase(BASE):
                 # Récupérer toutes les autres relations liées au même brevet
                 session.query(PatentHasImages).filter(
                     PatentHasImages.patent_id == target.patent_id,
-                    PatentHasImages.id != target.id  # Exclure l'image actuelle
+                    PatentHasImages.id != target.id,  # Exclure l'image actuelle
                 ).update({"is_pinned": False})  # Désactiver le flag `pinned`
                 session.commit()
 
@@ -225,12 +255,12 @@ class AbstractBase(BASE):
             writer = ix.writer()
             clean_text = prepare_content(target)
             lastname = target.lastname or ""
-            lastname = unidecode(lastname or "").lower().encode('utf-8').decode('utf-8')
+            lastname = unidecode(lastname or "").lower().encode("utf-8").decode("utf-8")
             writer.update_document(
-                id_dil=str(target._id_dil).encode('utf-8').decode('utf-8'),
+                id_dil=str(target._id_dil).encode("utf-8").decode("utf-8"),
                 lastname=lastname,
                 lastname_exact=lastname,
-                content=clean_text.encode('utf-8').decode('utf-8'),
+                content=clean_text.encode("utf-8").decode("utf-8"),
             )
 
             writer.commit()
@@ -243,11 +273,11 @@ class AbstractBase(BASE):
             writer = ix.writer()
             clean_text = prepare_content(target)
             lastname = target.lastname or ""
-            lastname = unidecode(lastname or "").lower().encode('utf-8').decode('utf-8')
+            lastname = unidecode(lastname or "").lower().encode("utf-8").decode("utf-8")
             writer.add_document(
-                id_dil=str(target._id_dil).encode('utf-8').decode('utf-8'),
+                id_dil=str(target._id_dil).encode("utf-8").decode("utf-8"),
                 lastname=lastname,
-                content=clean_text.encode('utf-8').decode('utf-8'),
+                content=clean_text.encode("utf-8").decode("utf-8"),
             )
 
             writer.commit()
@@ -259,7 +289,7 @@ class AbstractBase(BASE):
         with sessionmaker(bind=connection)():
             if cls.__tablename__ == "persons":
                 writer = ix.writer()
-                writer.delete_by_term('id_dil', str(target._id_dil))
+                writer.delete_by_term("id_dil", str(target._id_dil))
                 writer.commit()
 
 
@@ -301,32 +331,42 @@ class AbstractVersion(AbstractBase):
 
     @declared_attr
     def updated_at(cls):
-        return Column(DateTime, default=datetime.datetime.now(), onupdate=datetime.datetime.now())
+        return Column(
+            DateTime, default=datetime.datetime.now(), onupdate=datetime.datetime.now()
+        )
 
     @declared_attr
     def last_editor(cls):
-        return Column(String, nullable=True, default='admin')
+        return Column(String, nullable=True, default="admin")
 
 
 ###########################################################
 # ~~~~~~~~~~~~~~~~~~~ > Main tables < ~~~~~~~~~~~~~~~~~~~ #
 class User(UserMixin, BASE):
     """User model"""
-    __tablename__ = 'users'
-    id = Column(Integer, primary_key=True, autoincrement=True, nullable=False, unique=True)
+
+    __tablename__ = "users"
+    id = Column(
+        Integer, primary_key=True, autoincrement=True, nullable=False, unique=True
+    )
     username = Column(String(64), index=True, unique=True, nullable=False)
     email = Column(String(120), index=True, unique=True, nullable=False)
-    role = Column(Enum(*_get_enum_values(RolesUserEnum)), nullable=False, default="READER")
+    role = Column(
+        Enum(*_get_enum_values(RolesUserEnum)), nullable=False, default="READER"
+    )
     password_hash = Column(String(128))
     created_at = Column(DateTime, default=datetime.datetime.now())
-    updated_at = Column(DateTime, default=datetime.datetime.now(), onupdate=datetime.datetime.now())
+    updated_at = Column(
+        DateTime, default=datetime.datetime.now(), onupdate=datetime.datetime.now()
+    )
 
     def __repr__(self):
-        return '<User {}>'.format(self.username)
+        return "<User {}>".format(self.username)
 
     @staticmethod
     def generate_password():
         from .models_utils import pwd_generator
+
         return pwd_generator()
 
     def set_password(self, password):
@@ -340,17 +380,18 @@ class User(UserMixin, BASE):
     def get_reset_password_token(self, expires_in=600):
         """Generate a token for reset password"""
         return jwt.encode(
-            {'reset_password': self.id, 'exp': time() + expires_in},
-            settings.FLASK_SECRET_KEY, algorithm='HS256'
+            {"reset_password": self.id, "exp": time() + expires_in},
+            settings.FLASK_SECRET_KEY,
+            algorithm="HS256",
         )
 
     @staticmethod
     def verify_reset_password_token(token):
         """Verify if token is valid"""
         try:
-            id_tok = jwt.decode(token,
-                                settings.FLASK_SECRET_KEY,
-                                algorithms=['HS256'])['reset_password']
+            id_tok = jwt.decode(token, settings.FLASK_SECRET_KEY, algorithms=["HS256"])[
+                "reset_password"
+            ]
         except jwt.exceptions.InvalidTokenError:
             return
         return session.query(User).get(id_tok)
@@ -391,6 +432,7 @@ class Person(AbstractVersion):
     :param comment: Commentaire/mémo éditorial sur la personne. [OPT.]
     :type comment: STRING
     """
+
     __tablename__ = "persons"
     __prefix__ = "person"
 
@@ -400,8 +442,13 @@ class Person(AbstractVersion):
     firstnames = Column(String, nullable=True, unique=False, default=None)
     birth_date = Column(String(25), nullable=True, unique=False, default=None)
     birth_city_label = Column(String, nullable=True, unique=False, default=None)
-    birth_city_id = Column(Integer, ForeignKey("cities.id", ondelete="SET NULL"), nullable=True, unique=False,
-                           default=None)
+    birth_city_id = Column(
+        Integer,
+        ForeignKey("cities.id", ondelete="SET NULL"),
+        nullable=True,
+        unique=False,
+        default=None,
+    )
     personal_information = Column(String, nullable=True, unique=False, default=None)
     professional_information = Column(String, nullable=True, unique=False, default=None)
     comment = Column(String, nullable=True, unique=False, default=None)
@@ -409,24 +456,32 @@ class Person(AbstractVersion):
     # -------------------------------------------------------
 
     # Relations
-    city = relationship("City",
-                        **params_default_relations("persons", delete=False),
-                        foreign_keys=[birth_city_id])
-    patents = relationship("Patent",
-                           order_by="Patent.date_start.asc()",
-                           **params_default_relations("person", delete=True))
-    addresses_relations = relationship("PersonHasAddresses",
-                                       **params_default_relations("person_addresses", delete=True))
-    related_patents = relationship("PatentHasRelations",
-                                   foreign_keys="PatentHasRelations.person_id",
-                                   cascade="all, delete-orphan",
-                                   # overlaps="person"
-                                   )
-    linked_patents = relationship("PatentHasRelations",
-                                  foreign_keys="PatentHasRelations.person_related_id",
-                                  cascade="all, delete-orphan",
-                                  # overlaps="person_related"
-                                  )
+    city = relationship(
+        "City",
+        **params_default_relations("persons", delete=False),
+        foreign_keys=[birth_city_id],
+    )
+    patents = relationship(
+        "Patent",
+        order_by="Patent.date_start.asc()",
+        **params_default_relations("person", delete=True),
+    )
+    addresses_relations = relationship(
+        "PersonHasAddresses",
+        **params_default_relations("person_addresses", delete=True),
+    )
+    related_patents = relationship(
+        "PatentHasRelations",
+        foreign_keys="PatentHasRelations.person_id",
+        cascade="all, delete-orphan",
+        # overlaps="person"
+    )
+    linked_patents = relationship(
+        "PatentHasRelations",
+        foreign_keys="PatentHasRelations.person_related_id",
+        cascade="all, delete-orphan",
+        # overlaps="person_related"
+    )
 
     # birth_cities = relationship("City",
     #                            foreign_keys="Person.birth_city_id",
@@ -463,6 +518,7 @@ class Patent(AbstractVersion):
     :param comment: Commentaire/mémo éditorial sur le brevet. [OPT.]
     :type comment: STRING
     """
+
     __tablename__ = "patents"
     __prefix__ = "patent"
 
@@ -472,7 +528,13 @@ class Patent(AbstractVersion):
 
     person_id = Column(Integer, ForeignKey("persons.id"), nullable=False, unique=False)
     city_label = Column(String, nullable=True, unique=False, default=None)
-    city_id = Column(Integer, ForeignKey("cities.id", ondelete="SET NULL"), nullable=True, unique=False, default=None)
+    city_id = Column(
+        Integer,
+        ForeignKey("cities.id", ondelete="SET NULL"),
+        nullable=True,
+        unique=False,
+        default=None,
+    )
     date_start = Column(String, nullable=True, unique=False, default=None)
     date_end = Column(String, nullable=True, unique=False, default=None)
     references = Column(String, nullable=True, unique=False, default=None)
@@ -481,32 +543,45 @@ class Patent(AbstractVersion):
     # -------------------------------------------------------
 
     # Relations
-    person = relationship("Person",
-                          **params_default_relations("patents", delete=False),
-                          foreign_keys=[person_id])
-    city = relationship("City",
-                        **params_default_relations("patents", delete=False),
-                        foreign_keys=[city_id])
-    patent_relations = relationship("PatentHasRelations",
-                                    **params_default_relations("patent", delete=True))
-    addresses_relations = relationship("PatentHasAddresses",
-                                       **params_default_relations("patent_addresses", delete=True), viewonly=True)
-    images_relations = relationship("PatentHasImages",
-                                    **params_default_relations("patent_images", delete=True), viewonly=True)
+    person = relationship(
+        "Person",
+        **params_default_relations("patents", delete=False),
+        foreign_keys=[person_id],
+    )
+    city = relationship(
+        "City",
+        **params_default_relations("patents", delete=False),
+        foreign_keys=[city_id],
+    )
+    patent_relations = relationship(
+        "PatentHasRelations", **params_default_relations("patent", delete=True)
+    )
+    addresses_relations = relationship(
+        "PatentHasAddresses",
+        **params_default_relations("patent_addresses", delete=True),
+        viewonly=True,
+    )
+    images_relations = relationship(
+        "PatentHasImages",
+        **params_default_relations("patent_images", delete=True),
+        viewonly=True,
+    )
 
-    addresses = relationship("Address",
-                             secondary="patent_has_addresses",
-                             backref="addresses",
-                             lazy="dynamic",
-                             overlaps="patents",
-                             )
+    addresses = relationship(
+        "Address",
+        secondary="patent_has_addresses",
+        backref="addresses",
+        lazy="dynamic",
+        overlaps="patents",
+    )
 
-    images = relationship("Image",
-                          secondary="patent_has_images",
-                          backref="patents",
-                          lazy="dynamic",
-                          overlaps="patents",
-                          )
+    images = relationship(
+        "Image",
+        secondary="patent_has_images",
+        backref="patents",
+        lazy="dynamic",
+        overlaps="patents",
+    )
 
     def __repr__(self):
         return f"<Brevet : {self.id} | {self._id_dil} ; person : {self.person_id} ; city : {self.city_id}>"
@@ -547,19 +622,30 @@ class City(AbstractVersion):
     :param siaf_id: Identifiant de la ville dans SIAF - Opt. [OPT.]
     :type siaf_id: STRING
     """
+
     __tablename__ = "cities"
     __prefix__ = "city"
 
     # -------------------------------------------------------
 
     label = Column(String, nullable=False, unique=False)
-    country_iso_code = Column(Enum(*_get_enum_values(CountryISOEnum)), nullable=False, unique=False,
-                              default=CountryISOEnum.France.value)
+    country_iso_code = Column(
+        Enum(*_get_enum_values(CountryISOEnum)),
+        nullable=False,
+        unique=False,
+        default=CountryISOEnum.France.value,
+    )
     long_lat = Column(String, nullable=True, unique=False, default=None)
     insee_fr_code = Column(String, nullable=True, unique=False, default=None)
-    insee_fr_department_code = Column(Enum(*_get_enum_values(DepartementINSEEEnum)), nullable=True, unique=False,
-                                      default="DEP_00")
-    insee_fr_department_label = Column(String, nullable=True, unique=False, default=None)
+    insee_fr_department_code = Column(
+        Enum(*_get_enum_values(DepartementINSEEEnum)),
+        nullable=True,
+        unique=False,
+        default="DEP_00",
+    )
+    insee_fr_department_label = Column(
+        String, nullable=True, unique=False, default=None
+    )
     geoname_id = Column(String, nullable=True, unique=False, default=None)
     wikidata_item_id = Column(String, nullable=True, unique=False, default=None)
     dicotopo_item_id = Column(String, nullable=True, unique=False, default=None)
@@ -570,7 +656,9 @@ class City(AbstractVersion):
     # -------------------------------------------------------
 
     # Relations
-    addresses = relationship('Address', **params_default_relations("city", delete=False))
+    addresses = relationship(
+        "Address", **params_default_relations("city", delete=False)
+    )
     patents = relationship("Patent", **params_default_relations("city", delete=False))
     persons = relationship("Person", **params_default_relations("city", delete=False))
 
@@ -595,26 +683,31 @@ class Address(AbstractVersion):
     :param city_id: Identifiant de la ville de l'adresse. [OPT.]
     :type city_id: FOREIGN_KEY(City)
     """
-    __tablename__ = 'addresses'
+
+    __tablename__ = "addresses"
     __prefix__ = "address"
 
     # -------------------------------------------------------
 
-    label = Column(String, nullable=False, unique=False, default='inconnue')
+    label = Column(String, nullable=False, unique=False, default="inconnue")
     city_label = Column(String, nullable=False, unique=False, default=None)
-    city_id = Column(Integer, ForeignKey('cities.id'), nullable=True, unique=False, default=None)
+    city_id = Column(
+        Integer, ForeignKey("cities.id"), nullable=True, unique=False, default=None
+    )
 
     # -------------------------------------------------------
 
     # Relations
-    city = relationship('City',
-                        **params_default_relations("addresses", delete=False))
+    city = relationship("City", **params_default_relations("addresses", delete=False))
 
-    persons_relations = relationship("PersonHasAddresses",
-                                     **params_default_relations("address_persons", delete=True))
-    patents_relations = relationship("PatentHasAddresses",
-                                     **params_default_relations("address_patents", delete=True),
-                                     viewonly=True)
+    persons_relations = relationship(
+        "PersonHasAddresses", **params_default_relations("address_persons", delete=True)
+    )
+    patents_relations = relationship(
+        "PatentHasAddresses",
+        **params_default_relations("address_patents", delete=True),
+        viewonly=True,
+    )
 
     # patents = relationship("PatentHasAddresses",
     #                                cascade="all, delete-orphan",
@@ -640,37 +733,43 @@ class Image(AbstractVersion):
     :type reference_url: STRING
     :param img_name: Nom de l'image. [OPT.]
     """
-    __tablename__ = 'images'
+
+    __tablename__ = "images"
     __prefix__ = "img"
 
     # -------------------------------------------------------
 
     label = Column(String, nullable=False, unique=False)
-    reference_url = Column(String, nullable=False, unique=False, default='unknown_url')
-    img_name = Column(String, nullable=True, unique=False, default='unknown.jpg')
+    reference_url = Column(String, nullable=False, unique=False, default="unknown_url")
+    img_name = Column(String, nullable=True, unique=False, default="unknown.jpg")
     iiif_url = Column(String, nullable=True, unique=False, default=None)
 
     # -------------------------------------------------------
 
     # Relations
-    patent_relations = relationship('PatentHasImages',
-                                    **params_default_relations("image_patents", delete=True), viewonly=True)
+    patent_relations = relationship(
+        "PatentHasImages",
+        **params_default_relations("image_patents", delete=True),
+        viewonly=True,
+    )
 
     @property
     def card_meta(self):
         return {
             "label": self.label,
             "on_iiif": self.iiif_url if self.iiif_url is not None else "unk",
-            "on_url_ref": self.reference_url if self.reference_url != "unknown_url" else "unk",
-            "on_filestore": "true" if self.img_name != "unknown.jpg" else "false"
+            "on_url_ref": self.reference_url
+            if self.reference_url != "unknown_url"
+            else "unk",
+            "on_filestore": "true" if self.img_name != "unknown.jpg" else "false",
         }
 
     def __repr__(self):
         url_ref = ""
         iiif = ""
-        if self.card_meta['on_url_ref'] != "unk":
+        if self.card_meta["on_url_ref"] != "unk":
             url_ref = f" | url_ref={self.card_meta['on_url_ref']}"
-        if self.card_meta['on_iiif'] != "unk":
+        if self.card_meta["on_iiif"] != "unk":
             iiif = f" | iiif={self.card_meta['on_iiif']}"
         return f"< Image : {self.id} | label={self.label}{url_ref}{iiif} >"
 
@@ -696,24 +795,40 @@ class PatentHasRelations(AbstractVersion):
     :param type: Type de relation entre les imprimeurs. [REQ.]
     :type type: ENUM(PatentRelationType)
     """
-    __tablename__ = 'patent_has_relations'
+
+    __tablename__ = "patent_has_relations"
     __prefix__ = "patent_relation"
 
     # -------------------------------------------------------
 
-    patent_id = Column(Integer, ForeignKey("patents.id", ondelete='CASCADE'), nullable=False, unique=False)
+    patent_id = Column(
+        Integer,
+        ForeignKey("patents.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=False,
+    )
     person_id = Column(Integer, ForeignKey("persons.id"), nullable=False, unique=False)
-    person_related_id = Column(Integer, ForeignKey("persons.id"), nullable=False, unique=False)
-    type = Column(Enum(*_get_enum_values(PatentRelationType)), nullable=False, unique=False)
+    person_related_id = Column(
+        Integer, ForeignKey("persons.id"), nullable=False, unique=False
+    )
+    type = Column(
+        Enum(*_get_enum_values(PatentRelationType)), nullable=False, unique=False
+    )
 
     # -------------------------------------------------------
 
     # Relations
-    patent = relationship("Patent",
-                          **params_default_relations("patent_relations", delete=False),
-                          foreign_keys=[patent_id])
-    person = relationship("Person", foreign_keys=[person_id], overlaps="related_patents")
-    person_related = relationship("Person", foreign_keys=[person_related_id], overlaps="linked_patents")
+    patent = relationship(
+        "Patent",
+        **params_default_relations("patent_relations", delete=False),
+        foreign_keys=[patent_id],
+    )
+    person = relationship(
+        "Person", foreign_keys=[person_id], overlaps="related_patents"
+    )
+    person_related = relationship(
+        "Person", foreign_keys=[person_related_id], overlaps="linked_patents"
+    )
 
 
 class PatentHasAddresses(AbstractVersion):
@@ -730,26 +845,31 @@ class PatentHasAddresses(AbstractVersion):
     :param date_occupation: Date d'occupation de l'adresse par le brevet. [OPT.]
     :type date_occupation: STRING
     """
-    __tablename__ = 'patent_has_addresses'
+
+    __tablename__ = "patent_has_addresses"
     __prefix__ = "patent_address"
 
     # -------------------------------------------------------
 
     patent_id = Column(Integer, ForeignKey("patents.id"), nullable=False, unique=False)
-    address_id = Column(Integer, ForeignKey("addresses.id"), nullable=False, unique=False)
+    address_id = Column(
+        Integer, ForeignKey("addresses.id"), nullable=False, unique=False
+    )
     date_occupation = Column(String, nullable=True, unique=False, default=None)
 
     # -------------------------------------------------------
 
     # Relations
-    patent_addresses = relationship("Patent",
-                                    **params_default_relations("addresses_relations", delete=False),
-                                    viewonly=True
-                                    )
-    address_patents = relationship("Address",
-                                   **params_default_relations("patents_relations", delete=False),
-                                   viewonly=True
-                                   )
+    patent_addresses = relationship(
+        "Patent",
+        **params_default_relations("addresses_relations", delete=False),
+        viewonly=True,
+    )
+    address_patents = relationship(
+        "Address",
+        **params_default_relations("patents_relations", delete=False),
+        viewonly=True,
+    )
     # patent_addresses = relationship("Patent",
     #                      **params_default_relations("addresses", delete=False))
     # address_patents = relationship("Address",
@@ -770,25 +890,32 @@ class PersonHasAddresses(AbstractVersion):
     :param date_occupation: Date d'occupation de l'adresse par l'imprimeur. [OPT.]
     :type date_occupation: STRING
     """
-    __tablename__ = 'person_has_addresses'
+
+    __tablename__ = "person_has_addresses"
     __prefix__ = "person_address"
 
     # -------------------------------------------------------
 
     person_id = Column(Integer, ForeignKey("persons.id"), nullable=False, unique=False)
-    address_id = Column(Integer, ForeignKey("addresses.id"), nullable=False, unique=False)
+    address_id = Column(
+        Integer, ForeignKey("addresses.id"), nullable=False, unique=False
+    )
     date_occupation = Column(String, nullable=True, unique=False, default=None)
     comment = Column(String, nullable=True, unique=False, default=None)
 
     # -------------------------------------------------------
 
     # Relations
-    person_addresses = relationship("Person",
-                                    **params_default_relations('addresses_relations', delete=False),
-                                    foreign_keys=[person_id])
-    address_persons = relationship("Address",
-                                   **params_default_relations('persons_relations', delete=False),
-                                   foreign_keys=[address_id])
+    person_addresses = relationship(
+        "Person",
+        **params_default_relations("addresses_relations", delete=False),
+        foreign_keys=[person_id],
+    )
+    address_persons = relationship(
+        "Address",
+        **params_default_relations("persons_relations", delete=False),
+        foreign_keys=[address_id],
+    )
 
 
 class PatentHasImages(AbstractVersion):
@@ -805,6 +932,7 @@ class PatentHasImages(AbstractVersion):
     :param is_pinned: Indique si l'image est épinglée pour le brevet. [OPT.]
     :type is_pinned: BOOLEAN
     """
+
     __tablename__ = "patent_has_images"
     __prefix__ = "patent_image"
 
@@ -816,7 +944,13 @@ class PatentHasImages(AbstractVersion):
     # -------------------------------------------------------
 
     # Relations
-    patent_images = relationship("Patent",
-                                 **params_default_relations("images_relations", delete=False), viewonly=True)
-    image_patents = relationship("Image",
-                                 **params_default_relations("patent_relations", delete=False), viewonly=True)
+    patent_images = relationship(
+        "Patent",
+        **params_default_relations("images_relations", delete=False),
+        viewonly=True,
+    )
+    image_patents = relationship(
+        "Image",
+        **params_default_relations("patent_relations", delete=False),
+        viewonly=True,
+    )

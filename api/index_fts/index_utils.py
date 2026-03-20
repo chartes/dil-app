@@ -2,6 +2,7 @@
 
 Whoosh index utils for creating and clearing indexes.
 """
+
 from shutil import rmtree
 import bleach
 from unidecode import unidecode
@@ -20,6 +21,7 @@ def create_store(store, path) -> None:
 
 def create_index(store, schema) -> index:
     store.create_index(schema)
+
 
 def prepare_content(obj):
     """Prepare content with:
@@ -41,11 +43,13 @@ def prepare_content(obj):
 
 def extract_data(printer):
     content = bleach.clean(
-        " ".join([
-            printer.personal_information or "",
-            printer.professional_information or ""
-        ] + [p.references or "" for p in printer.patents]),
-        tags=[], attributes=[], strip=True
+        " ".join(
+            [printer.personal_information or "", printer.professional_information or ""]
+            + [p.references or "" for p in printer.patents]
+        ),
+        tags=[],
+        attributes=[],
+        strip=True,
     )
 
     return dict(
@@ -54,21 +58,26 @@ def extract_data(printer):
         text=content,
     )
 
+
 def populate_index(session, index_, model, n_jobs=-1):
     persons = session.query(model).all()
 
-    serialized_data = [extract_data(printer) for printer in tqdm(persons, desc="Serializing data for index")]
+    serialized_data = [
+        extract_data(printer)
+        for printer in tqdm(persons, desc="Serializing data for index")
+    ]
 
     def process(doc):
         return dict(
-            id_dil=doc['id_dil'],
-            lastname=doc['lastname'],
-            lastname_exact=doc['lastname'],
-            content=doc['text'],
+            id_dil=doc["id_dil"],
+            lastname=doc["lastname"],
+            lastname_exact=doc["lastname"],
+            content=doc["text"],
         )
 
     documents = Parallel(n_jobs=n_jobs)(
-        delayed(process)(doc) for doc in tqdm(serialized_data, desc="Prepare documents for index")
+        delayed(process)(doc)
+        for doc in tqdm(serialized_data, desc="Prepare documents for index")
     )
 
     with index_.writer() as writer:

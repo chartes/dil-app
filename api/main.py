@@ -3,6 +3,7 @@ main.py
 
 Entry point for FastAPI application.
 """
+
 from fastapi import FastAPI
 from fastapi.middleware.wsgi import WSGIMiddleware
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,9 +17,9 @@ from api.api_meta import METADATA
 
 def create_app():
     """Create FastAPI application.
-        :return: FastAPI application
-        :rtype: FastAPI
-        """
+    :return: FastAPI application
+    :rtype: FastAPI
+    """
     # TODO: add to settings
     _app = FastAPI(
         title=METADATA["title"],
@@ -51,7 +52,7 @@ def create_app():
     _app.include_router(api_router, prefix="/dil-db/api")
     # Mount admin interface (flask app) into FastAPI app
     # use threaded=True to avoid blocking the event loop
-    _app.mount('/dil-db/', WSGIMiddleware(flask_app))
+    _app.mount("/dil-db/", WSGIMiddleware(flask_app))
     return _app
 
 

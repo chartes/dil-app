@@ -1,10 +1,6 @@
-from api.models.models import (City,
-                            Address,
-                            Person,
-                            Patent,
-                            PatentHasAddresses
-                            )
+from api.models.models import City, Address, Person, Patent, PatentHasAddresses
 from tests.conftest import local_session
+
 
 def test_patent_address_relationship():
     """Test that patents can be correctly linked to addresses."""
@@ -27,10 +23,14 @@ def test_patent_address_relationship():
         session.add(patent)
         session.commit()
         # Create a relationship between the patent and the address
-        patent_address_relation = PatentHasAddresses(patent_id=patent.id, address_id=address.id)
+        patent_address_relation = PatentHasAddresses(
+            patent_id=patent.id, address_id=address.id
+        )
         session.add(patent_address_relation)
         session.commit()
         # Verify that the relationship is correctly established
-        linked_address = session.query(PatentHasAddresses).filter_by(patent_id=patent.id).first()
+        linked_address = (
+            session.query(PatentHasAddresses).filter_by(patent_id=patent.id).first()
+        )
         assert linked_address is not None
         assert linked_address.address_id == address.id

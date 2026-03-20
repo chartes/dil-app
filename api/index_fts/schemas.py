@@ -3,11 +3,7 @@
 Whoosh schemas for index and full-text search.
 """
 
-from whoosh.fields import (SchemaClass,
-                           ID,
-                           TEXT,
-                           NGRAM,
-                           KEYWORD)
+from whoosh.fields import SchemaClass, ID, TEXT, NGRAM, KEYWORD
 
 
 class PersonIdxSchema(SchemaClass):

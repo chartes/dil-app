@@ -9,7 +9,7 @@ DTYPE_SPEC = {
         "dicotopo_item_id": "string",
         "databnf_ark": "string",
         "viaf_id": "string",
-        "siaf_id": "string"
+        "siaf_id": "string",
     },
     "addresses": {
         "label": "string",
@@ -20,7 +20,6 @@ DTYPE_SPEC = {
         "personal_information": "string",
         "professional_information": "string",
         "comment": "string",
-
     },
     "patents": {
         "date_start": "string",
@@ -34,5 +33,5 @@ DTYPE_SPEC = {
         "iiif_url": "string",
         "filename": "string",
         "label": "string",
-    }
+    },
 }

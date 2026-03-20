@@ -90,7 +90,12 @@ coverage-badge -o coverage.svg
 
 # linter (ruff)
 # opt. : pip install ruff
-ruff check
+ruff check 
+
+# check format (ruff)
+ruff format --check
+# then format if necessary
+ruff format
 ```
 
 ## Historique 

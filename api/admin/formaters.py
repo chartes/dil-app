@@ -1,5 +1,6 @@
 from markupsafe import Markup
 
+
 def _create_tooltip(comment, place):
     return f"""<a data-toggle="tooltip" data-placement="{place}" data-html="true" title="<i>{comment}</i>">
   <i class="fa fa-info-circle"></i>
@@ -20,6 +21,7 @@ def _format_link_add_model(description, href="#"):
      </span>
     """
 
+
 def _format_href(prefix_url, label):
     return Markup(f'<a href="{prefix_url}{label}" target="_blank">{label}</a>')
 
@@ -30,4 +32,3 @@ def format_image():
 
 def format_map():
     pass
-

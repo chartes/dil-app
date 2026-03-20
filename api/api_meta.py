@@ -63,7 +63,5 @@ METADATA = {
             "summary": "Retrieve a specific thesaurus term by its _endp_id.",
             "description": "",
         },
-
-
-    }
+    },
 }

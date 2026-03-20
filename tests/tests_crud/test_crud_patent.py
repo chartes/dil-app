@@ -1,6 +1,6 @@
-from api.models.models import (Patent,
-                            Person)
+from api.models.models import Patent, Person
 from tests.conftest import local_session
+
 
 def test_create_patent():
     """Test the creation of a patent and verify data persistence."""
@@ -16,6 +16,7 @@ def test_create_patent():
         retrieved_patent = session.query(Patent).filter_by(city_label="Lyon").first()
         assert retrieved_patent is not None
         assert retrieved_patent.date_start == "2023-01-01"
+
 
 def test_update_patent():
     """Test updating a patent's information."""

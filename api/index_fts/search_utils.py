@@ -3,6 +3,7 @@
 
 Utilities for searching the Whoosh index with normalized queries and handling results.
 """
+
 import re
 from html import escape
 from unidecode import unidecode
@@ -21,7 +22,9 @@ def extract_quoted_phrases(query: str) -> list[str]:
     return [m.strip() for m in re.findall(r'"([^"]+)"', query) if m.strip()]
 
 
-def build_phrase_only_highlight(content: str, phrases: list[str], context: int = 90) -> str:
+def build_phrase_only_highlight(
+    content: str, phrases: list[str], context: int = 90
+) -> str:
     """Construit un extrait avec highlight exact des phrases, sans surligner les mots isolés."""
     if not content or not phrases:
         return None
@@ -54,14 +57,14 @@ def build_phrase_only_highlight(content: str, phrases: list[str], context: int =
 
     for phrase in sorted(phrases, key=len, reverse=True):
         pattern = re.compile(re.escape(escape(phrase)), flags=re.IGNORECASE)
-        snippet_escaped = pattern.sub(lambda m: f"<mark>{m.group(0)}</mark>", snippet_escaped)
+        snippet_escaped = pattern.sub(
+            lambda m: f"<mark>{m.group(0)}</mark>", snippet_escaped
+        )
 
     return snippet_escaped
 
 
-def search_whoosh(query_lastname: str = "",
-                  query_content: str = "",
-                  limit: int = 5000):
+def search_whoosh(query_lastname: str = "", query_content: str = "", limit: int = 5000):
     ix = st.open_index()
     hits = {}
 
@@ -72,7 +75,11 @@ def search_whoosh(query_lastname: str = "",
             return query.strip()[1:]
         return query.strip()
 
-    query_lastname = remove_first_joker(unidecode(query_lastname.lower().strip())) if query_lastname else ""
+    query_lastname = (
+        remove_first_joker(unidecode(query_lastname.lower().strip()))
+        if query_lastname
+        else ""
+    )
     query_content = remove_first_joker(query_content.strip()) if query_content else ""
 
     quoted_phrases = extract_quoted_phrases(raw_query_content)
@@ -104,7 +111,9 @@ def search_whoosh(query_lastname: str = "",
             highlight = None
             try:
                 if quoted_phrases and "content" in r:
-                    highlight = build_phrase_only_highlight(r["content"], quoted_phrases)
+                    highlight = build_phrase_only_highlight(
+                        r["content"], quoted_phrases
+                    )
                 else:
                     highlight = r.highlights("content")
             except Exception:

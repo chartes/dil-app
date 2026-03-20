@@ -3,50 +3,37 @@ routes.py
 
 FastAPI routes for the DIL API.
 """
+
 from typing import Union, Optional, List
 
-from fastapi import (APIRouter,
-                     Depends,
-                     Query)
+from fastapi import APIRouter, Depends, Query
 from fastapi.responses import JSONResponse
-from fastapi_pagination import (Page,
-                                set_page)
-from fastapi_pagination.ext.sqlalchemy import (paginate)
+from fastapi_pagination import Page, set_page
+from fastapi_pagination.ext.sqlalchemy import paginate
 from fastapi_pagination.customization import CustomizedPage
 
-from sqlalchemy import (or_,
-                        and_,
-                        func,
-                        asc,
-                        desc,
-                        distinct)
+from sqlalchemy import or_, and_, func, asc, desc, distinct
 from sqlalchemy.orm import Session
 from cachetools import TTLCache, cached
 import hashlib
 
 from api.database import get_db
-from api.crud import (get_printer,
-                      get_patent,
-                      get_city,
-                      get_address)
-from api.schemas import (Message,
-                         PatentMinimalOut,
-                         AddressMinimalOut,
-                         PersonPatentsImages,
-                         CityOut,
-                         AddressOut,
-                         PrinterMinimalResponseOut,
-                         CityOutMinimal,
-                         PrinterOut,
-                         PatentOut)
-from api.models.models import (Person,
-                               Patent,
-                               City,
-                               Address)
+from api.crud import get_printer, get_patent, get_city, get_address
+from api.schemas import (
+    Message,
+    PatentMinimalOut,
+    AddressMinimalOut,
+    PersonPatentsImages,
+    CityOut,
+    AddressOut,
+    PrinterMinimalResponseOut,
+    CityOutMinimal,
+    PrinterOut,
+    PatentOut,
+)
+from api.models.models import Person, Patent, City, Address
 from api.index_fts.search_utils import search_whoosh
-from api.api_utils import (normalize_firstnames,
-                           normalize_date,
-                           period_bounds)
+from api.api_utils import normalize_firstnames, normalize_date, period_bounds
 
 api_router = APIRouter()
 
@@ -58,41 +45,48 @@ cache = TTLCache(maxsize=2048, ttl=120)
     "/infos",
     include_in_schema=False,
     responses={500: {"model": Message}},
-    summary='Get generic API information about data (e.g. total)',
+    summary="Get generic API information about data (e.g. total)",
 )
 def get_infos(db: Session = Depends(get_db)):
     """Retrieve generic information about the API data."""
     try:
         # filter only patents with date start between 1817–1870
-        effective_patents_subquery = db.query(Patent).filter(
-            Patent.date_start >= normalize_date("1817-01-01"),
-            Patent.date_start <= normalize_date("1870-12-31")
-        ).subquery()
+        effective_patents_subquery = (
+            db.query(Patent)
+            .filter(
+                Patent.date_start >= normalize_date("1817-01-01"),
+                Patent.date_start <= normalize_date("1870-12-31"),
+            )
+            .subquery()
+        )
         return {
             "total_persons": db.query(Person).count(),
             "total_patents": db.query(Patent).count(),
             "total_effective_patents": db.query(effective_patents_subquery).count(),
             "total_cities": db.query(City).count(),
-            "total_addresses": db.query(Address).count()
+            "total_addresses": db.query(Address).count(),
         }
     except Exception as e:
-        return JSONResponse(status_code=500, content={"message": f"It seems the server have trouble: {e}"})
+        return JSONResponse(
+            status_code=500,
+            content={"message": f"It seems the server have trouble: {e}"},
+        )
 
 
 @api_router.get(
     "/map/places",
     include_in_schema=False,
     responses={500: {"model": Message}},
-    summary='Get map data: cities with geolocation and linked printers',
-    tags=['Map']
+    summary="Get map data: cities with geolocation and linked printers",
+    tags=["Map"],
 )
 def get_cities_with_printers(
-        db: Session = Depends(get_db),
-        patent_city_query: Optional[List[str]] = Query(None),
-        patent_date_start: Optional[str] = Query(None),
-        exact_patent_date_start: Optional[str] = Query(None),
-        search_head_info: Optional[str] = Query(None),
-        search_extra_info: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+    patent_city_query: Optional[List[str]] = Query(None),
+    patent_date_start: Optional[str] = Query(None),
+    exact_patent_date_start: Optional[str] = Query(None),
+    search_head_info: Optional[str] = Query(None),
+    search_extra_info: Optional[str] = Query(None),
 ):
     try:
         selected_cities = list(set(patent_city_query or []))
@@ -100,10 +94,10 @@ def get_cities_with_printers(
 
         whoosh_ids = None
         if search_head_info or search_extra_info:
-            whoosh_hits = cached_search(
-                lastname=search_head_info,
-                content=search_extra_info
-            ) or {}
+            whoosh_hits = (
+                cached_search(lastname=search_head_info, content=search_extra_info)
+                or {}
+            )
             whoosh_ids = list(whoosh_hits.keys())
 
             if not whoosh_ids:
@@ -126,8 +120,7 @@ def get_cities_with_printers(
             if pstart and pend:
                 if exact_date:
                     query = query.filter(
-                        Patent.date_start >= pstart,
-                        Patent.date_start <= pend
+                        Patent.date_start >= pstart, Patent.date_start <= pend
                     )
                 else:
                     query = query.filter(
@@ -135,20 +128,19 @@ def get_cities_with_printers(
                             and_(
                                 Patent.date_end.is_(None),
                                 Patent.date_start >= pstart,
-                                Patent.date_start <= pend
+                                Patent.date_start <= pend,
                             ),
                             and_(
                                 Patent.date_end.is_not(None),
                                 Patent.date_start <= pend,
-                                Patent.date_end >= pstart
-                            )
+                                Patent.date_end >= pstart,
+                            ),
                         )
                     )
 
         if selected_cities:
-            query = (
-                query.group_by(Patent.person_id)
-                .having(func.count(distinct(City._id_dil)) == len(selected_cities))
+            query = query.group_by(Patent.person_id).having(
+                func.count(distinct(City._id_dil)) == len(selected_cities)
             )
 
         matching_person_ids = [row[0] for row in query.all()]
@@ -171,10 +163,7 @@ def get_cities_with_printers(
             )
             .join(Patent, City.id == Patent.city_id)
             .join(Person, Person.id == Patent.person_id)
-            .filter(
-                City.long_lat.isnot(None),
-                Person.id.in_(matching_person_ids)
-            )
+            .filter(City.long_lat.isnot(None), Person.id.in_(matching_person_ids))
         )
 
         if whoosh_ids is not None:
@@ -195,7 +184,7 @@ def get_cities_with_printers(
                     "city_long_lat": row.city_long_lat,
                     "city_dil": row.city_dil,
                     "city_dicotopo_item_id": row.dicotopo_item_id,
-                    "persons": {}
+                    "persons": {},
                 }
 
             if person_key not in city_map[city_id]["persons"]:
@@ -203,7 +192,7 @@ def get_cities_with_printers(
                     "id": person_key,
                     "firstnames": normalize_firstnames(row.firstnames),
                     "lastname": row.lastname,
-                    "city_patent": row.patent_city_label
+                    "city_patent": row.patent_city_label,
                 }
 
         return [
@@ -214,21 +203,24 @@ def get_cities_with_printers(
                 "city_long_lat": c["city_long_lat"],
                 "city_dil": c["city_dil"],
                 "city_dicotopo_item_id": c["city_dicotopo_item_id"],
-                "persons": list(c["persons"].values())
+                "persons": list(c["persons"].values()),
             }
             for c in city_map.values()
         ]
 
     except Exception as e:
-        return JSONResponse(status_code=500, content={"message": f"Erreur serveur: {e}"})
+        return JSONResponse(
+            status_code=500, content={"message": f"Erreur serveur: {e}"}
+        )
 
-@api_router.get("/places/autocomplete",
-                response_model=List[CityOutMinimal],
-                include_in_schema=False)
+
+@api_router.get(
+    "/places/autocomplete", response_model=List[CityOutMinimal], include_in_schema=False
+)
 def autocomplete_city(
-        q: Optional[str] = Query(None),
-        selected: Optional[List[str]] = Query(None),
-        db: Session = Depends(get_db)
+    q: Optional[str] = Query(None),
+    selected: Optional[List[str]] = Query(None),
+    db: Session = Depends(get_db),
 ):
     selected = list(set(selected or []))
 
@@ -236,22 +228,25 @@ def autocomplete_city(
     if selected:
         person_query = person_query.filter(City._id_dil.in_(selected))
         person_query = person_query.group_by(Patent.person_id)
-        person_query = person_query.having(func.count(distinct(City._id_dil)) == len(selected))
+        person_query = person_query.having(
+            func.count(distinct(City._id_dil)) == len(selected)
+        )
 
     matching_person_ids = [row[0] for row in person_query.all()]
     if not matching_person_ids:
         return []
 
-    city_query = db.query(
-        City._id_dil.label("id_dil"),
-        City.label,
-        City.insee_fr_department_label.label("department_label_fr"),
-        func.count(Patent.id).label("total_patents_if_selected"),
-        func.count(distinct(Patent.person_id)).label("total_persons_if_selected")
-    ).join(Patent).filter(
-        Patent.person_id.in_(matching_person_ids)
-    ).group_by(
-        City._id_dil, City.label, City.insee_fr_department_label
+    city_query = (
+        db.query(
+            City._id_dil.label("id_dil"),
+            City.label,
+            City.insee_fr_department_label.label("department_label_fr"),
+            func.count(Patent.id).label("total_patents_if_selected"),
+            func.count(distinct(Patent.person_id)).label("total_persons_if_selected"),
+        )
+        .join(Patent)
+        .filter(Patent.person_id.in_(matching_person_ids))
+        .group_by(City._id_dil, City.label, City.insee_fr_department_label)
     )
 
     if q:
@@ -264,14 +259,16 @@ def autocomplete_city(
 
     results = []
     for row in city_query.all():
-        results.append({
-            "id": row.id_dil,
-            "id_dil": row.id_dil,
-            "label": row.label,
-            "department_label_fr": row.department_label_fr,
-            "total_patents_if_selected": row.total_patents_if_selected,
-            "total_persons_if_selected": row.total_persons_if_selected
-        })
+        results.append(
+            {
+                "id": row.id_dil,
+                "id_dil": row.id_dil,
+                "label": row.label,
+                "department_label_fr": row.department_label_fr,
+                "total_patents_if_selected": row.total_patents_if_selected,
+                "total_persons_if_selected": row.total_persons_if_selected,
+            }
+        )
 
     return results
 
@@ -282,14 +279,16 @@ def autocomplete_city(
     include_in_schema=False,
     response_model=PersonPatentsImages,
     responses={404: {"model": Message}, 500: {"model": Message}},
-    summary='',
-    tags=['Images']
+    summary="",
+    tags=["Images"],
 )
 def read_images(id: str, db: Session = Depends(get_db)):
     try:
         printer = get_printer(db, {"_id_dil": id})
         if not printer:
-            return JSONResponse(status_code=404, content={"message": f"Printer with id {id} not found"})
+            return JSONResponse(
+                status_code=404, content={"message": f"Printer with id {id} not found"}
+            )
 
         patent_images = []
         images_pinned = []
@@ -299,7 +298,9 @@ def read_images(id: str, db: Session = Depends(get_db)):
                 {
                     "image_id": getattr(image_rel, "_id_dil", None),
                     "label": getattr(image_rel.image_patents, "label", None),
-                    "reference_url": getattr(image_rel.image_patents, "reference_url", None),
+                    "reference_url": getattr(
+                        image_rel.image_patents, "reference_url", None
+                    ),
                     "img_name": getattr(image_rel.image_patents, "img_name", None),
                     "iiif_url": getattr(image_rel.image_patents, "iiif_url", None),
                     "is_pinned": image_rel.is_pinned,
@@ -307,16 +308,15 @@ def read_images(id: str, db: Session = Depends(get_db)):
                 for image_rel in patent.images_relations
             ]
             images_pinned.extend(filter(lambda img: img["is_pinned"], images))
-            patent_images.append({
-                "patent_id": getattr(patent, "_id_dil", None),
-                "images": images
-            })
+            patent_images.append(
+                {"patent_id": getattr(patent, "_id_dil", None), "images": images}
+            )
         response = {
             "person_id": getattr(printer, "_id_dil", None),
             "patent_images": patent_images,
             "total_images": sum(len(p["images"]) for p in patent_images),
             "total_images_pinned": len(images_pinned),
-            "images_pinned": images_pinned
+            "images_pinned": images_pinned,
         }
         return response
     except Exception as e:
@@ -339,17 +339,17 @@ def cached_search(lastname, content):
     response_model=Page[PrinterMinimalResponseOut],
     include_in_schema=True,
     responses={400: {"model": Message}, 500: {"model": Message}},
-    summary='Retrieve all persons (printers) with optional filters',
-    tags=['Persons']
+    summary="Retrieve all persons (printers) with optional filters",
+    tags=["Persons"],
 )
 def read_printers(
-        db: Session = Depends(get_db),
-        search_head_info: Optional[str] = Query(None),
-        search_extra_info: Optional[str] = Query(None),
-        patent_city_query: Optional[List[str]] = Query(None),
-        patent_date_start: Optional[str] = Query(None),
-        exact_patent_date_start: bool = Query(False),
-        sort: Optional[str] = Query("asc"),
+    db: Session = Depends(get_db),
+    search_head_info: Optional[str] = Query(None),
+    search_extra_info: Optional[str] = Query(None),
+    patent_city_query: Optional[List[str]] = Query(None),
+    patent_date_start: Optional[str] = Query(None),
+    exact_patent_date_start: bool = Query(False),
+    sort: Optional[str] = Query("asc"),
 ) -> Union[JSONResponse, Page]:
     try:
         # -- 0) Whoosh (opt.) --
@@ -357,10 +357,10 @@ def read_printers(
         whoosh_hits = {}
 
         if search_head_info or search_extra_info:
-            whoosh_hits = cached_search(
-                lastname=search_head_info,
-                content=search_extra_info
-            ) or {}
+            whoosh_hits = (
+                cached_search(lastname=search_head_info, content=search_extra_info)
+                or {}
+            )
             whoosh_ids = list(whoosh_hits.keys())
 
             if not whoosh_ids:
@@ -370,23 +370,20 @@ def read_printers(
         patent_count_subq = (
             db.query(
                 Patent.person_id.label("pid"),
-                func.count(Patent.id).label("total_patents")
+                func.count(Patent.id).label("total_patents"),
             )
             .group_by(Patent.person_id)
             .subquery()
         )
 
         # -- 2) base request --
-        q = (
-            db.query(
-                Person._id_dil.label("id_dil"),
-                Person.lastname,
-                Person.firstnames,
-                func.coalesce(patent_count_subq.c.total_patents, 0).label("total_patents"),
-                Person.id.label("person_pk"),
-            )
-            .outerjoin(patent_count_subq, patent_count_subq.c.pid == Person.id)
-        )
+        q = db.query(
+            Person._id_dil.label("id_dil"),
+            Person.lastname,
+            Person.firstnames,
+            func.coalesce(patent_count_subq.c.total_patents, 0).label("total_patents"),
+            Person.id.label("person_pk"),
+        ).outerjoin(patent_count_subq, patent_count_subq.c.pid == Person.id)
 
         # -- 3) Whoosh filter --
         if whoosh_ids is not None:
@@ -409,14 +406,11 @@ def read_printers(
         if patent_date_start:
             pstart, pend = period_bounds(patent_date_start)
             if pstart and pend:
-                period_subq = db.query(
-                    Patent.person_id.label("pid")
-                )
+                period_subq = db.query(Patent.person_id.label("pid"))
 
                 if exact_patent_date_start:
                     period_subq = period_subq.filter(
-                        Patent.date_start >= pstart,
-                        Patent.date_start <= pend
+                        Patent.date_start >= pstart, Patent.date_start <= pend
                     )
                 else:
                     period_subq = period_subq.filter(
@@ -424,13 +418,13 @@ def read_printers(
                             and_(
                                 Patent.date_end.is_(None),
                                 Patent.date_start >= pstart,
-                                Patent.date_start <= pend
+                                Patent.date_start <= pend,
                             ),
                             and_(
                                 Patent.date_end.is_not(None),
                                 Patent.date_start <= pend,
-                                Patent.date_end >= pstart
-                            )
+                                Patent.date_end >= pstart,
+                            ),
                         )
                     )
 
@@ -460,11 +454,13 @@ def read_printers(
 
         patents_by_person = {}
         for row in patents_rows:
-            patents_by_person.setdefault(row.person_id, []).append({
-                "city_label": row.city_label,
-                "date_start": row.date_start,
-                "date_end": row.date_end,
-            })
+            patents_by_person.setdefault(row.person_id, []).append(
+                {
+                    "city_label": row.city_label,
+                    "date_start": row.date_start,
+                    "date_end": row.date_end,
+                }
+            )
 
         # -- 8) Output transformation --
         items = []
@@ -473,11 +469,13 @@ def read_printers(
             exercise_places_summary = []
 
             for patent in patents_by_person.get(p.person_pk, []):
-                exercise_places_summary.append({
-                    "city_label": patent["city_label"] or "Ville inconnue",
-                    "date_start": patent["date_start"],
-                    "date_end": patent["date_end"],
-                })
+                exercise_places_summary.append(
+                    {
+                        "city_label": patent["city_label"] or "Ville inconnue",
+                        "date_start": patent["date_start"],
+                        "date_end": patent["date_end"],
+                    }
+                )
 
             items.append(
                 PrinterMinimalResponseOut(
@@ -486,7 +484,7 @@ def read_printers(
                     firstnames=normalize_firstnames(p.firstnames),
                     total_patents=p.total_patents,
                     highlight=whoosh_hits.get(str(p.id_dil), {}).get("highlight"),
-                    exercise_places_summary=exercise_places_summary
+                    exercise_places_summary=exercise_places_summary,
                 )
             )
 
@@ -499,18 +497,20 @@ def read_printers(
         )
 
     except Exception as e:
-        return JSONResponse(status_code=500, content={"message": f"Erreur serveur: {e}"})
+        return JSONResponse(
+            status_code=500, content={"message": f"Erreur serveur: {e}"}
+        )
 
 
-@api_router.get("/persons/person/{id}",
-                include_in_schema=True,
-                responses={404: {"model": Message}, 500: {"model": Message}},
-                summary='Retrieve a specific person (printer) by ID',
-                tags=['Persons'],
-                response_model=PrinterOut)
-async def read_printer(id: str,
-                       html: bool = False,
-                       db: Session = Depends(get_db)):
+@api_router.get(
+    "/persons/person/{id}",
+    include_in_schema=True,
+    responses={404: {"model": Message}, 500: {"model": Message}},
+    summary="Retrieve a specific person (printer) by ID",
+    tags=["Persons"],
+    response_model=PrinterOut,
+)
+async def read_printer(id: str, html: bool = False, db: Session = Depends(get_db)):
     """
     Retrieve a specific person (printer) by DIL ID.
     - `id`: The DIL ID of the person (printer). e.g., "person_dil_2QO3gEnU".
@@ -518,23 +518,28 @@ async def read_printer(id: str,
     try:
         printer = get_printer(db, {"_id_dil": id, "html": html}, enhance=True)
         if printer is None:
-            return JSONResponse(status_code=404,
-                                content={"message": f"Printer with id {id} not found"})
+            return JSONResponse(
+                status_code=404, content={"message": f"Printer with id {id} not found"}
+            )
         return printer
     except Exception as e:
-        return JSONResponse(status_code=500,
-                            content={"message": "It seems the server have trouble: "
-                                                f"{e}"})
+        return JSONResponse(
+            status_code=500,
+            content={"message": f"It seems the server have trouble: {e}"},
+        )
 
 
 # -- ROUTES PATENTS -- #
 
-@api_router.get("/patents",
-                response_model=Page[PatentMinimalOut],
-                include_in_schema=True,
-                responses={404: {"model": Message}, 500: {"model": Message}},
-                summary='Retrieve all patents with pagination',
-                tags=['Patents'])
+
+@api_router.get(
+    "/patents",
+    response_model=Page[PatentMinimalOut],
+    include_in_schema=True,
+    responses={404: {"model": Message}, 500: {"model": Message}},
+    summary="Retrieve all patents with pagination",
+    tags=["Patents"],
+)
 def read_patents(db: Session = Depends(get_db)):
     """
     Retrieve all patents with pagination.
@@ -543,21 +548,26 @@ def read_patents(db: Session = Depends(get_db)):
         paginated_patents = paginate(db.query(Patent))
 
         if not paginated_patents.items:
-            return JSONResponse(status_code=404,
-                                content={"message": "No patents found"})
+            return JSONResponse(
+                status_code=404, content={"message": "No patents found"}
+            )
 
         return paginated_patents
     except Exception as e:
-        return JSONResponse(status_code=500,
-                            content={"message": f"It seems the server have trouble: {e}"})
+        return JSONResponse(
+            status_code=500,
+            content={"message": f"It seems the server have trouble: {e}"},
+        )
 
 
-@api_router.get("/patents/patent/{id}",
-                response_model=PatentOut,
-                include_in_schema=True,
-                responses={404: {"model": Message}, 500: {"model": Message}},
-                summary='Retrieve a specific patent by ID',
-                tags=['Patents'])
+@api_router.get(
+    "/patents/patent/{id}",
+    response_model=PatentOut,
+    include_in_schema=True,
+    responses={404: {"model": Message}, 500: {"model": Message}},
+    summary="Retrieve a specific patent by ID",
+    tags=["Patents"],
+)
 def read_patent(id: str, db: Session = Depends(get_db), html: bool = False):
     """
     Retrieve a specific patent by DIL ID. e.g., "patent_dil_20XQCaDr".
@@ -565,52 +575,60 @@ def read_patent(id: str, db: Session = Depends(get_db), html: bool = False):
     try:
         patent = get_patent(db, {"_id_dil": id, "html": html}, enhance=True)
         if patent is None:
-            return JSONResponse(status_code=404,
-                                content={"message": f"Patent with id {id} not found"})
+            return JSONResponse(
+                status_code=404, content={"message": f"Patent with id {id} not found"}
+            )
         return patent
     except Exception as e:
-        return JSONResponse(status_code=500,
-                            content={"message": f"It seems the server have trouble: {e}"})
+        return JSONResponse(
+            status_code=500,
+            content={"message": f"It seems the server have trouble: {e}"},
+        )
 
 
 # -- ROUTES REFERENTIAL -- #
 
-@api_router.get("/referential/cities",
-                response_model=Page[CityOut],
-                include_in_schema=True,
-                responses={404: {"model": Message}, 500: {"model": Message}},
-                summary='Retrieve all cities with pagination',
-                tags=['Referential'])
+
+@api_router.get(
+    "/referential/cities",
+    response_model=Page[CityOut],
+    include_in_schema=True,
+    responses={404: {"model": Message}, 500: {"model": Message}},
+    summary="Retrieve all cities with pagination",
+    tags=["Referential"],
+)
 def read_cities(db: Session = Depends(get_db)):
-    """Retrieve all cities with pagination.
-    """
+    """Retrieve all cities with pagination."""
     try:
         paginated_cities = paginate(db.query(City))
 
         if not paginated_cities.items:
-            return JSONResponse(status_code=404,
-                                content={"message": "No cities found"})
+            return JSONResponse(status_code=404, content={"message": "No cities found"})
 
         return paginated_cities
     except Exception as e:
-        return JSONResponse(status_code=500,
-                            content={"message": f"It seems the server have trouble: {e}"})
+        return JSONResponse(
+            status_code=500,
+            content={"message": f"It seems the server have trouble: {e}"},
+        )
 
 
-@api_router.get("/referential/cities/city/{id}",
-                response_model=CityOut,
-                include_in_schema=True,
-                responses={404: {"model": Message}, 500: {"model": Message}},
-                summary='Retrieve a specific city by ID',
-                tags=['Referential'])
+@api_router.get(
+    "/referential/cities/city/{id}",
+    response_model=CityOut,
+    include_in_schema=True,
+    responses={404: {"model": Message}, 500: {"model": Message}},
+    summary="Retrieve a specific city by ID",
+    tags=["Referential"],
+)
 def read_city(db: Session = Depends(get_db), id: str = None):
-    """Retrieve a specific city by DIL ID. e.g., "city_dil_I11CRwcK".
-    """
+    """Retrieve a specific city by DIL ID. e.g., "city_dil_I11CRwcK"."""
     try:
         city = get_city(db, {"_id_dil": id})
         if city is None:
-            return JSONResponse(status_code=404,
-                                content={"message": f"Address with id {id} not found"})
+            return JSONResponse(
+                status_code=404, content={"message": f"Address with id {id} not found"}
+            )
         transformed_address = CityOut(
             _id_dil=str(city._id_dil) if city._id_dil else None,
             label=city.label,
@@ -624,39 +642,46 @@ def read_city(db: Session = Depends(get_db), id: str = None):
             dicotopo_item_id=city.dicotopo_item_id,
             databnf_ark=city.databnf_ark,
             viaf_id=city.viaf_id,
-            siaf_id=city.siaf_id
+            siaf_id=city.siaf_id,
         )
         return transformed_address
     except Exception as e:
-        return JSONResponse(status_code=500,
-                            content={"message": f"It seems the server have trouble: {e}"})
+        return JSONResponse(
+            status_code=500,
+            content={"message": f"It seems the server have trouble: {e}"},
+        )
 
 
-@api_router.get("/referential/addresses",
-                response_model=Page[AddressMinimalOut],
-                include_in_schema=True,
-                responses={404: {"model": Message}, 500: {"model": Message}},
-                summary='Retrieve all addresses with pagination',
-                tags=['Referential'])
+@api_router.get(
+    "/referential/addresses",
+    response_model=Page[AddressMinimalOut],
+    include_in_schema=True,
+    responses={404: {"model": Message}, 500: {"model": Message}},
+    summary="Retrieve all addresses with pagination",
+    tags=["Referential"],
+)
 def read_addresses(db: Session = Depends(get_db)):
-    """Retrieve all addresses with pagination.
-    """
+    """Retrieve all addresses with pagination."""
     try:
         customPage = CustomizedPage[Page[AddressOut]]
         set_page(customPage)
         paginated_addresses = paginate(db.query(Address))
 
         if not paginated_addresses.items:
-            return JSONResponse(status_code=404,
-                                content={"message": "No addresses found"})
+            return JSONResponse(
+                status_code=404, content={"message": "No addresses found"}
+            )
 
         transformed_addresses = [
             AddressMinimalOut(
                 _id_dil=str(address.id_dil) if address.id_dil else None,
                 label=address.label,
                 city_label=address.city_label if address.city_label else None,
-                city_id=str(get_city(db, {"id": int(address.city_id)})._id_dil) if address.city_id else None
-            ) for address in paginated_addresses.items
+                city_id=str(get_city(db, {"id": int(address.city_id)})._id_dil)
+                if address.city_id
+                else None,
+            )
+            for address in paginated_addresses.items
         ]
 
         return Page(
@@ -668,39 +693,49 @@ def read_addresses(db: Session = Depends(get_db)):
         )
 
     except Exception as e:
-        return JSONResponse(status_code=500,
-                            content={"message": f"It seems the server has trouble: {e}"})
+        return JSONResponse(
+            status_code=500,
+            content={"message": f"It seems the server has trouble: {e}"},
+        )
 
 
-@api_router.get("/referential/addresses/address/{id}",
-                response_model=AddressMinimalOut,
-                include_in_schema=True,
-                responses={404: {"model": Message}, 500: {"model": Message}},
-                summary='Retrieve a specific address by ID',
-                tags=['Referential'])
+@api_router.get(
+    "/referential/addresses/address/{id}",
+    response_model=AddressMinimalOut,
+    include_in_schema=True,
+    responses={404: {"model": Message}, 500: {"model": Message}},
+    summary="Retrieve a specific address by ID",
+    tags=["Referential"],
+)
 def read_address(db: Session = Depends(get_db), id: str = None):
-    """Retrieve a specific address by DIL ID. e.g., "address_dil_k5VNb151".
-    """
+    """Retrieve a specific address by DIL ID. e.g., "address_dil_k5VNb151"."""
     try:
         address = get_address(db, {"_id_dil": id})
         if address is None:
-            return JSONResponse(status_code=404,
-                                content={"message": f"Address with id {id} not found"})
+            return JSONResponse(
+                status_code=404, content={"message": f"Address with id {id} not found"}
+            )
         transformed_address = AddressMinimalOut(
             _id_dil=str(address._id_dil) if address._id_dil else None,
             label=address.label,
             city_label=address.city_label if address.city_label else None,
-            city_id=get_city(db, {"id": int(address.city_id)})._id_dil if address.city_id else None
+            city_id=get_city(db, {"id": int(address.city_id)})._id_dil
+            if address.city_id
+            else None,
         )
         return transformed_address
     except Exception as e:
-        return JSONResponse(status_code=500,
-                            content={"message": f"It seems the server have trouble: {e}"})
+        return JSONResponse(
+            status_code=500,
+            content={"message": f"It seems the server have trouble: {e}"},
+        )
 
 
 @api_router.get("/graph", tags=["Graph"])
-def get_graph_data(year: int = Query(..., description="Filtrer les brevets dont date_start <= année"),
-                   db: Session = Depends(get_db)):
+def get_graph_data(
+    year: int = Query(..., description="Filtrer les brevets dont date_start <= année"),
+    db: Session = Depends(get_db),
+):
     patents = db.query(Patent).all()
 
     nodes = {}
@@ -716,7 +751,7 @@ def get_graph_data(year: int = Query(..., description="Filtrer les brevets dont 
         nodes[patent_id] = {
             "name": f"Brevet {patent_id[-5:]}",
             "type": "brevet",
-            "year": int(patent.date_start.split('-')[0]) if patent.date_start else None
+            "year": int(patent.date_start.split("-")[0]) if patent.date_start else None,
         }
 
         # -- Imprimeur node --
@@ -725,13 +760,13 @@ def get_graph_data(year: int = Query(..., description="Filtrer les brevets dont 
             if person_id not in nodes:
                 nodes[person_id] = {
                     "name": f"{person.lastname} {person.firstnames or ''}",
-                    "type": "imprimeur"
+                    "type": "imprimeur",
                 }
 
             edges[f"e{edge_id}"] = {
                 "source": person_id,
                 "target": patent_id,
-                "type": "a_obtenu"
+                "type": "a_obtenu",
             }
             edge_id += 1
 
@@ -739,15 +774,12 @@ def get_graph_data(year: int = Query(..., description="Filtrer les brevets dont 
         if city:
             city_id = city._id_dil
             if city_id not in nodes:
-                nodes[city_id] = {
-                    "name": city.label,
-                    "type": "ville"
-                }
+                nodes[city_id] = {"name": city.label, "type": "ville"}
 
             edges[f"e{edge_id}"] = {
                 "source": patent_id,
                 "target": city_id,
-                "type": "localise_a"
+                "type": "localise_a",
             }
             edge_id += 1
 
@@ -765,13 +797,13 @@ def get_graph_data(year: int = Query(..., description="Filtrer les brevets dont 
                 if p._id_dil not in nodes:
                     nodes[p._id_dil] = {
                         "name": f"{p.lastname} {p.firstnames or ''}",
-                        "type": "imprimeur"
+                        "type": "imprimeur",
                     }
 
             edges[f"e{edge_id}"] = {
                 "source": src_id,
                 "target": tgt_id,
-                "type": rel.type  # parrain, successeur, etc.
+                "type": rel.type,  # parrain, successeur, etc.
             }
             edge_id += 1
 

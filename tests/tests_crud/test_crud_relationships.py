@@ -1,8 +1,4 @@
-from api.models.models import (Person,
-                               Patent,
-                               PatentHasRelations,
-                               Image,
-                               PatentHasImages)
+from api.models.models import Person, Patent, PatentHasRelations, Image, PatentHasImages
 from tests.conftest import local_session
 
 
@@ -28,7 +24,7 @@ def test_patent_relation_constraints():
             person_id=person1.id,
             person_related_id=person2.id,
             patent_id=patent1.id,
-            type="SPONSOR"
+            type="SPONSOR",
         )
         session.add(relation)
         session.commit()

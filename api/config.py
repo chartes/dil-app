@@ -5,6 +5,7 @@ Settings for the application.
 By default, the application will run in debug mode.
 [prod | dev] only. go to tests/ for testing settings.
 """
+
 import dotenv
 
 import os
@@ -23,6 +24,7 @@ mode = os.environ.get("ENV", "dev")
 env_file = BASE_DIR / f".{mode}.env"
 dotenv.load_dotenv(env_file)
 
+
 class Settings(BaseSettings):
     # ~ General settings ~
     DEBUG: bool = bool(os.environ.get("DEBUG", True))
@@ -33,7 +35,9 @@ class Settings(BaseSettings):
 
     # ~ Flask settings (admin part) ~
     FLASK_SECRET_KEY: str = str(os.environ.get("FLASK_SECRET_KEY", ""))
-    FLASK_BABEL_DEFAULT_LOCALE: str = str(os.environ.get("FLASK_BABEL_DEFAULT_LOCALE", "fr"))
+    FLASK_BABEL_DEFAULT_LOCALE: str = str(
+        os.environ.get("FLASK_BABEL_DEFAULT_LOCALE", "fr")
+    )
 
     FLASK_MAIL_SERVER: str = str(os.environ.get("FLASK_MAIL_SERVER", ""))
     FLASK_MAIL_PORT: int = int(os.environ.get("FLASK_MAIL_PORT", 587))
@@ -44,7 +48,9 @@ class Settings(BaseSettings):
 
     FLASK_ADMIN_NAME: str = str(os.environ.get("FLASK_ADMIN_NAME", "admin"))
     FLASK_ADMIN_MAIL: str = str(os.environ.get("FLASK_ADMIN_MAIL", ""))
-    FLASK_ADMIN_ADMIN_PASSWORD: str = str(os.environ.get("FLASK_ADMIN_ADMIN_PASSWORD", ""))
+    FLASK_ADMIN_ADMIN_PASSWORD: str = str(
+        os.environ.get("FLASK_ADMIN_ADMIN_PASSWORD", "")
+    )
 
     # ~ PWD Generation settings ~
     PWD_LENGTH: str = str(os.environ.get("PWD_LENGTH", "8,16"))
@@ -65,5 +71,6 @@ class Settings(BaseSettings):
     class Config:
         env_file = env_file
         env_file_encoding = "utf-8"
+
 
 settings = Settings()

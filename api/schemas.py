@@ -11,22 +11,29 @@ from pydantic import BaseModel, Field
 
 class BaseMeta(BaseModel):
     """An abstract base class for meta schemas."""
+
     id_dil: str = Field(..., alias="_id_dil")
 
     class Config:
         orm_mode = True
         allow_population_by_field_name = True
 
+
 class Message(BaseModel):
     message: str = Field(alias="message")
+
 
 class CityOut(BaseMeta):
     label: Optional[str] = Field(..., alias="label")
     country_iso_code: Optional[str] = Field(..., alias="country_iso_code")
     long_lat: Optional[str] = Field(..., alias="long_lat")
     insee_fr_code: Optional[str] = Field(..., alias="insee_fr_code")
-    insee_fr_department_code: Optional[str] = Field(..., alias="insee_fr_department_code")
-    insee_fr_department_label: Optional[str] = Field(..., alias="insee_fr_department_label")
+    insee_fr_department_code: Optional[str] = Field(
+        ..., alias="insee_fr_department_code"
+    )
+    insee_fr_department_label: Optional[str] = Field(
+        ..., alias="insee_fr_department_label"
+    )
     geoname_id: Optional[str] = Field(..., alias="geoname_id")
     wikidata_item_id: Optional[str] = Field(..., alias="wikidata_item_id")
     dicotopo_item_id: Optional[str] = Field(..., alias="dicotopo_item_id")
@@ -34,24 +41,32 @@ class CityOut(BaseMeta):
     viaf_id: Optional[str] = Field(..., alias="viaf_id")
     siaf_id: Optional[str] = Field(..., alias="siaf_id")
 
+
 class CityOutMinimal(BaseModel):
     id: Optional[str] = Field(..., alias="id")
     id_dil: Optional[str] = Field(..., alias="id_dil")
     label: Optional[str] = Field(..., alias="label")
     department_label_fr: Optional[str] = Field(..., alias="department_label_fr")
-    total_persons_if_selected: Optional[int] = Field(..., alias="total_persons_if_selected")
-    total_patents_if_selected: Optional[int] = Field(..., alias="total_patents_if_selected")
+    total_persons_if_selected: Optional[int] = Field(
+        ..., alias="total_persons_if_selected"
+    )
+    total_patents_if_selected: Optional[int] = Field(
+        ..., alias="total_patents_if_selected"
+    )
+
 
 class AddressOut(BaseMeta):
     label: Optional[str] = Field(..., alias="label")
-    city_label: Optional[str]  = Field(..., alias="city_label")
-    city_id: Optional[int]  = Field(..., alias="city_id")
+    city_label: Optional[str] = Field(..., alias="city_label")
+    city_id: Optional[int] = Field(..., alias="city_id")
+
 
 class AddressMinimalOut(BaseMeta):
     label: Optional[str] = Field(..., alias="label")
-    city_label: Optional[str]  = Field(..., alias="city_label")
+    city_label: Optional[str] = Field(..., alias="city_label")
     date_occupation: Optional[str] = Field(..., alias="date_occupation")
-    city_id: Optional[str]  = Field(..., alias="city_id")
+    city_id: Optional[str] = Field(..., alias="city_id")
+
 
 class AddressPersonalOut(AddressMinimalOut):
     date_occupation: Optional[str] = Field(..., alias="date_occupation")
@@ -62,13 +77,16 @@ class PrinterRelationOut(BaseMeta):
     firstnames: Optional[str]
     type: Optional[str]
 
+
 class PatentMinimalOut(BaseMeta):
     city_label: Optional[str]
     date_start: Optional[str]
     date_end: Optional[str]
 
+
 class PatentOut(BaseMeta):
     """Schema with minimal information on a patent."""
+
     city_label: Optional[str]
     city_id: Optional[str]
     date_start: Optional[str]
@@ -76,6 +94,7 @@ class PatentOut(BaseMeta):
     references: Optional[str]
     professional_addresses: Union[List[AddressMinimalOut], None]
     patent_relations: Union[List[PrinterRelationOut], None]
+
 
 class PrinterMinimalOut(BaseMeta):
     lastname: str
@@ -87,6 +106,7 @@ class ExercisePlaceSummaryOut(BaseModel):
     date_start: Optional[str] = None
     date_end: Optional[str] = None
 
+
 class PrinterMinimalResponseOut(PrinterMinimalOut):
     person_pk: Optional[int] = None
     total_patents: Optional[int] = 0
@@ -95,15 +115,17 @@ class PrinterMinimalResponseOut(PrinterMinimalOut):
     exercise_places_summary: List[ExercisePlaceSummaryOut] = []
 
 
-
 class PrinterOut(PrinterMinimalOut):
     birth_date: Optional[str]
     birth_city_label: Optional[str]
     birth_city_id: Optional[str]
     personal_information: Optional[str]
     professional_information: Optional[str]
-    addresses_relations: Union[List[AddressPersonalOut], None] = Field(..., alias="personal_addresses")
+    addresses_relations: Union[List[AddressPersonalOut], None] = Field(
+        ..., alias="personal_addresses"
+    )
     patents: Union[List[PatentOut], None]
+
 
 class ImageOut(BaseModel):
     image_id: Optional[str]
@@ -113,9 +135,11 @@ class ImageOut(BaseModel):
     iiif_url: Optional[str]
     is_pinned: Optional[bool]
 
+
 class PatentImages(BaseModel):
     patent_id: Optional[str]
     images: List[ImageOut]
+
 
 class PersonPatentsImages(BaseModel):
     person_id: Optional[str]

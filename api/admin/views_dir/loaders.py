@@ -2,16 +2,22 @@
 
 Loaders for the admin views.
 """
-from typing import (Tuple,
-                    Union,
-                    Type)
+
+from typing import Tuple, Union, Type
 from flask_admin.model.ajax import DEFAULT_PAGE_SIZE
 from flask_admin.contrib.sqla.ajax import QueryAjaxModelLoader
 from sqlalchemy.orm import Session
 
 
 class GenericAjaxModelLoader(QueryAjaxModelLoader):
-    def __init__(self, name: object, session: Session, model: Type, search_field: str = "label", **kwargs: object) -> None:
+    def __init__(
+        self,
+        name: object,
+        session: Session,
+        model: Type,
+        search_field: str = "label",
+        **kwargs: object,
+    ) -> None:
         """
         Generic loader Ajax with custom search field.
 
@@ -41,9 +47,7 @@ class GenericAjaxModelLoader(QueryAjaxModelLoader):
         """Retrieve a model by its primary key."""
         return self.session.query(self.model).get(pk)
 
-    def get_list(self, query: str,
-                 offset: int = 0,
-                 limit: int = DEFAULT_PAGE_SIZE):
+    def get_list(self, query: str, offset: int = 0, limit: int = DEFAULT_PAGE_SIZE):
         """Efficiently retrieve a list of models based on a query."""
         search_term = query.strip().lower()
         return (

@@ -1,6 +1,6 @@
-from api.models.models import (City,
-                            Address)
+from api.models.models import City, Address
 from tests.conftest import local_session
+
 
 def test_create_city():
     """Test the creation of a city and verify data persistence."""
@@ -13,6 +13,7 @@ def test_create_city():
         assert retrieved_city is not None
         assert retrieved_city.label == "Paris"
 
+
 def test_city_address_relationship():
     """Verify that a city can have multiple addresses associated with it."""
     with local_session as session:
@@ -24,6 +25,7 @@ def test_city_address_relationship():
         session.commit()
 
         assert len(city.addresses) == 2
+
 
 def test_insee_code_uniqueness():
     """Verify the uniqueness constraint on the INSEE code of cities."""
