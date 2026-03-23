@@ -20,7 +20,10 @@ METADATA = {
         {"name": "default"},
         {"name": "Persons", "description": "Retrieve persons and their information."},
         {"name": "Patents", "description": "Retrieve patents and their information."},
-        {"name": "Referential", "description": "Retrieve terms from the referential used to describe persons and patents."},
+        {
+            "name": "Referential",
+            "description": "Retrieve terms from the referential used to describe persons and patents.",
+        },
     ],
     "description": """
 ## API Documentation for Dictionnaire des imprimeurs-lithographes du XIXe siècle
