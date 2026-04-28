@@ -264,11 +264,9 @@ table th {
     width:100% !important;
     padding: 2%;
     background-color: white !important;
-    position: fixed !important;  /* Positionne l'élément de manière fixe sur la page */
-    top: 0 !important;           /* Distance depuis le haut de la fenêtre d'affichage */
-    /*left: 50px !important;          Distance depuis le côté gauche de la fenêtre d'affichage */
-    /*right: 50px !important;          Distance depuis le côté gauche de la fenêtre d'affichage */
-    z-index: 1000 !important;    /* S'assure que la navigation reste au-dessus des autres éléments */
+    position: fixed !important;
+    top: 0 !important;
+    z-index: 1000 !important;
 }
 
 .pagination-menu-bar {

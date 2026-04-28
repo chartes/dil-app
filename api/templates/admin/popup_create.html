@@ -1,0 +1,31 @@
+{% extends 'admin/model/edit.html' %}
+
+{% block head_css %}
+    {{ super() }}
+    <link href="{{ url_for('static', filename='css/popup-create.css') }}" rel="stylesheet">
+{% endblock %}
+
+{% block page_body %}
+    <div class="popup-form-shell">
+        <div class="popup-form-card">
+            {% set popup_title = request.args.get('modal_title', 'Ajouter un élément au référentiel') %}
+
+            <h1 class="popup-form-title">{{ popup_title }}</h1>
+            <p class="popup-form-subtitle">
+                Remplissez le formulaire puis cliquez sur « Enregistrer ».
+            </p>
+
+            {{ lib.render_form(form, return_url, extra(), form_opts) }}
+        </div>
+    </div>
+{% endblock %}
+
+{% block brand %}{% endblock %}
+{% block main_menu %}{% endblock %}
+{% block menu_links %}{% endblock %}
+
+{% block tail %}
+    {{ super() }}
+    <script type="text/javascript" src="{{ url_for('static', filename='js/image.form.loadImage.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('static', filename='js/popup-create.js') }}"></script>
+{% endblock %}

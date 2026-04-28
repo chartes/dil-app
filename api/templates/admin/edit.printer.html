@@ -4,25 +4,34 @@
 {% block head_css %}
     {{ super() }}
     <link href="{{ url_for('static', filename='css/edit.css') }}" rel="stylesheet">
-    <link href="{{ url_for('static', filename='deps/quill/quill.snow.css') }}" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/slick-carousel/slick/slick.css" />
-<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/slick-carousel/slick/slick-theme.css" />
-    <script src="https://unpkg.com/dropzone@5/dist/min/dropzone.min.js"></script>
-<link rel="stylesheet" href="https://unpkg.com/dropzone@5/dist/min/dropzone.min.css" type="text/css" />
-
+    <link href="{{ url_for('static', filename='vendor/quill@2.0.3/quill.snow.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='vendor/select2@3.5.4/select2.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='vendor/slick@1.8.1/slick/slick.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='vendor/slick@1.8.1/slick/slick-theme.css') }}" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/edit.printer.css') }}" type="text/css" >
 {% endblock %}
-
-
-
-
 
 {% block body %}
     {{ super() }}
+
+    <div id="adminModalFeedback" style="position:fixed; top:20px; right:20px; z-index:10001;"></div>
+
     <div id="iframeContainer" style="display: none;">
         <p id="imagePreviewLabel"></p>
         <button id="closePreview"><span class="glyphicon glyphicon-remove"></span> Fermer l'aperçu</button>
         <iframe id="imagePreview"></iframe>
+    </div>
+
+    <div id="adminModalOverlay" class="admin-modal-overlay" style="display:none;">
+        <div class="admin-modal-dialog">
+            <div class="admin-modal-header">
+                <h4 id="adminModalTitle">Ajouter un élément</h4>
+                <button type="button" id="adminModalClose" class="btn btn-default btn-sm">Fermer</button>
+            </div>
+            <div class="admin-modal-body">
+                <iframe id="adminModalFrame" src=""></iframe>
+            </div>
+        </div>
     </div>
 {% endblock %}
 
@@ -30,23 +39,17 @@
 
 {% block tail_js %}
     {{ super() }}
-<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/slick-carousel/slick/slick.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-    <script type="text/javascript" src="{{ url_for('static', filename='deps/quill/quill.min.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('static', filename='vendor/slick@1.8.1/slick/slick.min.js') }}"></script
+    <script type="text/javascript" src="{{ url_for('static', filename='vendor/select2@3.5.4/select2.min.js') }}"></script>
+    <script type="text/javascript" src="{{ url_for('static', filename='vendor/quill@2.0.3/quill.min.js') }}"></script>
     <script type="text/javascript" src="{{ url_for('static', filename='js/printer.form.quill_config.js') }}"></script>
     <script type="text/javascript" src="{{ url_for('static', filename='js/printer.form.fields.js') }}"></script>
-    <script type="text/javascript" src="{{ url_for('static', filename='js/printer.form.fields.dynamicRows.js') }}"></script>
-    <script type="text/javascript" src="{{ url_for('static', filename='js/printer.form.patents.inlineFields.js') }}"></script>
+    <script type="text/javascript"
+            src="{{ url_for('static', filename='js/printer.form.patents.inlineFields.js') }}"></script>
     <script type="text/javascript" src="{{ url_for('static', filename='js/image.form.loadImage.js') }}"></script>
-    <script type="text/javascript">
-        // enable bootstrap tooltips
-        $(function () {
-            $('[data-toggle="tooltip"]').tooltip()
-        });
+    <script type="text/javascript" src="{{ url_for('static', filename='js/printer.form.js') }}"></script>
+    <script type="text/javascript"
+            src="{{ url_for('static', filename='js/printer.form.fields.dynamicRows.js') }}"></script>
 
-    </script>
-    <!--<script>
-        CKEDITOR.replaceAll('ckeditor');
-    </script>-->
 {% endblock %}
 

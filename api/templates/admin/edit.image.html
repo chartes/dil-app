@@ -1,19 +1,21 @@
 {% extends 'admin/model/edit.html' %}
 
-
 {% block head_css %}
     {{ super() }}
-
+    <link href="{{ url_for('static', filename='css/edit.image.css') }}" rel="stylesheet">
 {% endblock %}
 
-
 {% block body %}
+    <div class="alert alert-info" role="alert">
+        <strong>Règle de saisie :</strong>
+        une image Gallica utilise une URL Gallica sans fichier local ; une image locale doit avoir un fichier, et peut aussi avoir une URL de référence.
+    </div>
+
     {{ super() }}
 {% endblock %}
 
 {% block tail_js %}
     {{ super() }}
     <script type="text/javascript" src="{{ url_for('static', filename='js/image.form.loadImage.js') }}"></script>
-
+    <script type="text/javascript" src="{{ url_for('static', filename='js/image.form.loadImage.removeSelectors.js') }}"></script>
 {% endblock %}
-

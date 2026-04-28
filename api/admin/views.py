@@ -7,14 +7,35 @@ Model views for the admin interface.
 
 from unidecode import unidecode
 
-from flask import url_for, jsonify, request, redirect, flash
+from flask import (
+    url_for,
+    jsonify,
+    request,
+    redirect,
+    flash
+)
 from flask_admin.contrib.sqla import ModelView
-from flask_admin import expose, AdminIndexView, BaseView
+from flask_admin import (
+    expose,
+    AdminIndexView,
+    BaseView
+)
 from flask_admin.form import ImageUploadField
-from flask_login import current_user, logout_user, login_user
+from flask_login import (
+    current_user,
+    logout_user,
+    login_user
+)
 
-from wtforms.fields import StringField, PasswordField
-from wtforms import BooleanField
+from wtforms.fields import (
+    StringField,
+    PasswordField,
+    SelectField
+)
+from wtforms import (
+    BooleanField,
+    ValidationError
+)
 from wtforms.widgets import TextArea
 
 from markupsafe import Markup
@@ -53,9 +74,21 @@ from .formaters import (
 from .model_handler import PrinterModelChangeHandler
 
 from api.config import settings
-from api.crud import get_user, get_address, get_patents, get_printer
+from api.crud import (
+    get_user,
+    get_address,
+    get_patents,
+    get_printer
+)
 from api.database import session
-from api.admin.views_dir.utils import prefix_name
+from api.admin.views_dir.utils import (
+    prefix_name,
+    render_popup_response
+)
+from api.admin.views_dir.utils_gallica import (
+    is_gallica_url,
+    gallica_url_to_iiif
+)
 from api.admin.views_dir.loaders import GenericAjaxModelLoader
 
 EDIT_ENDPOINTS = ["person", "city", "address", "image"]
@@ -70,6 +103,35 @@ version_metadata = {
     "updated_at": "Date de modification",
     "last_editor": "Dernier éditeur",
 }
+
+
+class PopupCreateMixin:
+    """Mixin to handle popup creation of related models in the admin interface."""
+
+    @expose("/new/", methods=("GET", "POST"))
+    def create_view(self):
+        original_template = self.create_template
+
+        if request.args.get("popup") == "1":
+            self.create_template = "admin/popup_create.html"
+
+        if request.method == "POST":
+            form = self.create_form()
+            if self.validate_form(form):
+                model = self.create_model(form)
+                if model:
+                    if request.args.get("popup") == "1":
+                        field_id = request.args.get("field_id", "")
+                        self.create_template = original_template
+                        return render_popup_response(field_id, model.id, getattr(model, "label", repr(model)))
+
+                    flash("Enregistrement réussi.", "success")
+                    self.create_template = original_template
+                    return redirect(self.get_url(".index_view"))
+
+        response = super().create_view()
+        self.create_template = original_template
+        return response
 
 
 class AdminView(AdminIndexView):
@@ -112,17 +174,45 @@ class GlobalModelView(ModelView):
     action_disallowed_list = ["delete"]
     list_template = "admin/list.html"
 
-    # list_template = 'admin/list.html'
+    # Optional flags to force permissions for edit, delete,
+    # create and view details actions.
+    force_can_edit = None
+    force_can_delete = None
+    force_can_create = None
+    force_can_view_details = None
+
     def is_accessible(self):
         """Check if the user has access to the view."""
         if current_user.is_authenticated:
-            self.can_edit = current_user.role in can_edit_roles
-            self.can_delete = current_user.role in can_delete_roles
-            self.can_create = current_user.role in can_create_roles
+            default_can_edit = current_user.role in can_edit_roles
+            default_can_delete = current_user.role in can_delete_roles
+            default_can_create = current_user.role in can_create_roles
         else:
-            self.can_edit = False
-            self.can_delete = False
-            self.can_create = False
+            default_can_edit = False
+            default_can_delete = False
+            default_can_create = False
+
+        self.can_edit = (
+            self.force_can_edit
+            if self.force_can_edit is not None
+            else default_can_edit
+        )
+        self.can_delete = (
+            self.force_can_delete
+            if self.force_can_delete is not None
+            else default_can_delete
+        )
+        self.can_create = (
+            self.force_can_create
+            if self.force_can_create is not None
+            else default_can_create
+        )
+        self.can_view_details = (
+            self.force_can_view_details
+            if self.force_can_view_details is not None
+            else True
+        )
+
         self.can_export = True
         return True
 
@@ -221,17 +311,17 @@ class PrinterView(GlobalModelView):
     column_auto_select_related = True
 
     column_list = [
-        "id",
-        "_id_dil",
-        "lastname",
-        "firstnames",
-        "birth_date",
-        "birth_city_label",
-        "birth_city_id",
-        # "personal_information",
-        # "professional_information",
-        "comment",
-    ] + list(version_metadata.keys())
+                      "id",
+                      "_id_dil",
+                      "lastname",
+                      "firstnames",
+                      "birth_date",
+                      "birth_city_label",
+                      "birth_city_id",
+                      # "personal_information",
+                      # "professional_information",
+                      "comment",
+                  ] + list(version_metadata.keys())
 
     column_details_list = [
         "lastname",
@@ -315,7 +405,9 @@ class PrinterView(GlobalModelView):
                         ),
                         "description": _format_link_add_model(
                             description="une nouvelle adresse",
-                            href=f"{BASE_PREFIX_ADD_MODEL}address/new/?url={BASE_PREFIX_ADD_MODEL}address/",
+                            href=f"{BASE_PREFIX_ADD_MODEL}address/new/",
+                            target_field="address_persons",
+                            modal_title="Ajouter une nouvelle adresse au référentiel",
                         ),
                     },
                     "date_occupation": {
@@ -323,13 +415,13 @@ class PrinterView(GlobalModelView):
                         "label": _format_label_form_with_tooltip(
                             label="Date d'occupation",
                             comment="Première date d'occupation de l'adresse. "
-                            "Au format <b>AAAA-MM-JJ</b>, "
-                            "<b>AAAA-MM</b> ou <b>AAAA</b>. "
-                            "Ajouter le signe <b>~</b> devant pour "
-                            "indiquer une date approximative.",
+                                    "Au format <b>AAAA-MM-JJ</b>, "
+                                    "<b>AAAA-MM</b> ou <b>AAAA</b>. "
+                                    "Ajouter le signe <b>~</b> devant pour "
+                                    "indiquer une date approximative.",
                         ),
                         "description": "Format requis : <b>AAAA-MM-JJ</b>, <b>AAAA-MM</b> ou <b>AAAA</b>. "
-                        "Ajouter le signe <b>~</b> devant pour indiquer une date approximative.",
+                                       "Ajouter le signe <b>~</b> devant pour indiquer une date approximative.",
                     },
                 },
                 "form_ajax_refs": {
@@ -428,35 +520,35 @@ class PrinterView(GlobalModelView):
                         "label": _format_label_form_with_tooltip(
                             label="Début du brevet",
                             comment="Début du brevet. "
-                            "Au format <b>AAAA-MM-JJ</b>, "
-                            "<b>AAAA-MM</b> ou <b>AAAA</b>. "
-                            "Ajouter le signe <b>~</b> devant pour "
-                            "indiquer une date approximative.",
+                                    "Au format <b>AAAA-MM-JJ</b>, "
+                                    "<b>AAAA-MM</b> ou <b>AAAA</b>. "
+                                    "Ajouter le signe <b>~</b> devant pour "
+                                    "indiquer une date approximative.",
                         ),
                         "description": "Format requis : <b>AAAA-MM-JJ</b>, <b>AAAA-MM</b> ou <b>AAAA</b>. "
-                        "Ajouter le signe <b>~</b> devant pour indiquer une date approximative.",
+                                       "Ajouter le signe <b>~</b> devant pour indiquer une date approximative.",
                     },
                     "date_end": {
                         "validators": [is_valid_date],
                         "label": _format_label_form_with_tooltip(
                             label="Fin du brevet",
                             comment="Fin du brevet. "
-                            "Au format <b>AAAA-MM-JJ</b>, "
-                            "<b>AAAA-MM</b> ou <b>AAAA</b>. "
-                            "Ajouter le signe <b>~</b> devant pour "
-                            "indiquer une date approximative.",
+                                    "Au format <b>AAAA-MM-JJ</b>, "
+                                    "<b>AAAA-MM</b> ou <b>AAAA</b>. "
+                                    "Ajouter le signe <b>~</b> devant pour "
+                                    "indiquer une date approximative.",
                         ),
                         "description": "Format requis : <b>AAAA-MM-JJ</b>, <b>AAAA-MM</b> ou <b>AAAA</b>. "
-                        "Ajouter le signe <b>~</b> devant pour indiquer une date approximative.",
+                                       "Ajouter le signe <b>~</b> devant pour indiquer une date approximative.",
                     },
                     "city_label": {
                         "label": _format_label_form_with_tooltip(
                             label="Ville",
                             comment="Libellé de la ville du brevet. "
-                            "Peut correspondre au toponyme ancien.",
+                                    "Peut correspondre au toponyme ancien.",
                         ),
                         "description": "Exemples : Verdun-sur-le-Doubs (Saône-et-Loire) ; "
-                        "Clermont-Ferrand (Puy-de-Dôme) ; Paris etc.",
+                                       "Clermont-Ferrand (Puy-de-Dôme) ; Paris etc.",
                     },
                     "city": {
                         "label": _format_label_form_with_tooltip(
@@ -464,8 +556,15 @@ class PrinterView(GlobalModelView):
                             comment="Ville du brevet dans le référentiel.",
                         ),
                         "description": _format_link_add_model(
+
                             description="une nouvelle ville",
-                            href=f"{BASE_PREFIX_ADD_MODEL}city/new/?url={BASE_PREFIX_ADD_MODEL}city/",
+
+                            href=f"{BASE_PREFIX_ADD_MODEL}city/new/",
+
+                            target_field="city",
+
+                            modal_title="Ajouter une nouvelle ville au référentiel",
+
                         ),
                     },
                     "images": {
@@ -474,7 +573,9 @@ class PrinterView(GlobalModelView):
                         ),
                         "description": _format_link_add_model(
                             description="une nouvelle image",
-                            href=f"{BASE_PREFIX_ADD_MODEL}image/new/?url={BASE_PREFIX_ADD_MODEL}image/",
+                            href=f"{BASE_PREFIX_ADD_MODEL}image/new/",
+                            target_field="images",
+                            modal_title="Ajouter une nouvelle image au référentiel",
                         ),
                     },
                 },
@@ -525,18 +626,21 @@ class PrinterView(GlobalModelView):
             "label": _format_label_form_with_tooltip(
                 label="Ville de naissance (référentiel)",
                 comment="Ville de naissance de l'imprimeur. "
-                "Peut correspondre au toponyme ancien.",
+                        "Peut correspondre au toponyme ancien.",
             ),
             "description": _format_link_add_model(
                 description="une nouvelle ville",
-                href=f"{BASE_PREFIX_ADD_MODEL}city/new/?url={BASE_PREFIX_ADD_MODEL}city/",
+                href=f"{BASE_PREFIX_ADD_MODEL}city/new/",
+                target_field="city",
+                modal_title="Ajouter une nouvelle ville au référentiel",
             ),
+
         },
         "firstnames": {
             "label": _format_label_form_with_tooltip(
                 label="Prénom(s)",
                 comment="Prénom(s) de l'imprimeur. "
-                "Appuyer sur '<b>,</b>' ou '<b>tab</b>' pour ajouter un prénom.",
+                        "Appuyer sur '<b>,</b>' ou '<b>tab</b>' pour ajouter un prénom.",
             ),
             "description": "Appuyer sur '<b>,</b>' ou '<b>tab</b>' pour ajouter un prénom.",
         },
@@ -545,19 +649,19 @@ class PrinterView(GlobalModelView):
             "label": _format_label_form_with_tooltip(
                 label="Date de naissance",
                 comment="Date de naissance de l'imprimeur. "
-                "Au format <b>AAAA-MM-JJ</b>, "
-                "<b>AAAA-MM</b> ou <b>AAAA</b>. "
-                "Ajouter le signe <b>~</b> devant pour "
-                "indiquer une date approximative.",
+                        "Au format <b>AAAA-MM-JJ</b>, "
+                        "<b>AAAA-MM</b> ou <b>AAAA</b>. "
+                        "Ajouter le signe <b>~</b> devant pour "
+                        "indiquer une date approximative.",
             ),
             "description": "Format requis : <b>AAAA-MM-JJ</b>, <b>AAAA-MM</b> ou <b>AAAA</b>. "
-            "Ajouter le signe <b>~</b> devant pour indiquer une date approximative.",
+                           "Ajouter le signe <b>~</b> devant pour indiquer une date approximative.",
         },
         "birth_city_label": {
             "label": _format_label_form_with_tooltip(
                 label="Ville de naissance",
                 comment="Libellé de la ville de naissance. "
-                "Peut correspondre au toponyme ancien.",
+                        "Peut correspondre au toponyme ancien.",
             ),
             "description": "Exemples : Verdun-sur-le-Doubs (Saône-et-Loire) ; Clermont-Ferrand (Puy-de-Dôme) ; Paris etc.",
         },
@@ -599,8 +703,8 @@ class PrinterView(GlobalModelView):
             # Secure the sorting of addresses by date of occupation, handling missing or malformed dates gracefully
             for patent in patents:
                 if (
-                    hasattr(patent, "addresses_relations")
-                    and patent.addresses_relations
+                        hasattr(patent, "addresses_relations")
+                        and patent.addresses_relations
                 ):
                     patent.addresses_relations = sorted(
                         patent.addresses_relations,
@@ -659,19 +763,16 @@ class PrinterView(GlobalModelView):
 
         return count, filtered_rows
 
-    # Expose custom routes for printer view
-    # for Ajax requests
-
     @expose("/get_image_details/", methods=["GET", "POST"])
     def get_image_details(self):
         """Retrieves details of an image from the database"""
         if request.method in ["GET", "POST"]:
             image_id = request.args.get(
                 "id"
-            )  # Récupère l'ID de l'image depuis les paramètres GET
+            )  # Retrieve the image ID from the GET parameters
             patent_id = request.args.get(
                 "patent_id"
-            )  # Récupère l'ID du brevet depuis les paramètres GET
+            )  # Retrieve the patent ID from the GET parameters
             if not image_id:
                 return jsonify({"error": "This patent has no image."}), 200
             image = session.query(Image).filter_by(id=image_id).first()
@@ -727,10 +828,10 @@ class PrinterView(GlobalModelView):
     @expose("/get_addresses", methods=["GET"])
     def ajax_addresses(self):
         """Retrieves a list of addresses for Select2."""
-        search = request.args.get("q", "")  # Récupère le terme de recherche
+        search = request.args.get("q", "")  # Retrieve the search term from parameters
         query = (
             session.query(Address).filter(Address.label.ilike(f"%{search.lower()}%"))
-        ).limit(20)  # Limiter les résultats
+        ).limit(20)  # limit to n results to avoid performance issues
 
         results = [{"id": address.id, "text": repr(address)} for address in query]
         return jsonify(results)
@@ -796,26 +897,31 @@ class PrinterView(GlobalModelView):
         return jsonify(grouped_addresses)
 
 
-class ImageView(GlobalModelView):
-    """View for the image model."""
+class ImageView(PopupCreateMixin, GlobalModelView):
+    force_can_edit = False
+    force_can_delete = True
+    force_can_create = True
+    force_can_view_details = True
 
     edit_template = "admin/edit.image.html"
     create_template = "admin/edit.image.html"
+
     column_list = [
-        "id",
-        "_id_dil",
-        "label",
-        "img_name",
-        "reference_url",
-        "iiif_url",
-    ] + list(version_metadata.keys())
+                      "id",
+                      "_id_dil",
+                      "label",
+                      "img_name",
+                      "reference_url",
+                      "iiif_url",
+                  ] + list(version_metadata.keys())
+
     column_labels = {
         "id": "ID",
         "_id_dil": "ID DIL",
         "label": "Libellé",
         "img_name": "Image",
-        "reference_url": "URL de référence (opt.)",
-        "iiif_url": "URL IIIF (opt.)",
+        "reference_url": "URL de référence",
+        "iiif_url": "URL IIIF",
         **version_metadata,
     }
 
@@ -826,15 +932,15 @@ class ImageView(GlobalModelView):
             f'<img src="{url_for("static", filename=f"images_store/{m.img_name}")}" '
             'style="max-width: 200px; max-height: 200px;">'
             if m.img_name != "unknown.jpg"
-            else f'<img src="{m.iiif_url}" style="max-width: 200px; max-height: 200px;">'
+            else (
+                f'<img src="{m.iiif_url}" style="max-width: 200px; max-height: 200px;">'
+                if m.iiif_url
+                else f'<img src="{url_for("static", filename="icons/preview-na.png")}" style="max-width: 200px; max-height: 200px;">'
+            )
         ),
-        # 'reference_url': lambda v, c, m, p: Markup(
-        #    f'<a href="{m.reference_url}" target="_blank">{m.reference_url}</a>'
-        #    if m.reference_url else '<p>Pas d\'URL de référence</p>'
-        # ),
         "reference_url": lambda v, c, m, p: (
             _format_href(prefix_url="", label=m.reference_url)
-            if m.reference_url != "unknown_url"
+            if m.reference_url and m.reference_url != "unknown_url"
             else "Inconnue"
         ),
         "iiif_url": lambda v, c, m, p: (
@@ -844,9 +950,14 @@ class ImageView(GlobalModelView):
 
     form_columns = [
         "label",
-        "img_name",
+        "is_gallica_source",
         "reference_url",
-        "iiif_url",
+        "img_name",
+        "iiif_preview",
+        # Don't use iiif_url directly in the form,
+        # it's generated automatically from the
+        # reference_url if the source is Gallica.
+        # Cf. utils_gallica.py
     ]
 
     form_excluded_columns = (
@@ -858,59 +969,176 @@ class ImageView(GlobalModelView):
         "patent_relations",
     )
 
-    form_args = {
-        "label": {
-            "label": "Libellé",
-            "description": "Libellé de l'image. "
-            "Exemple : <b>Vue de la ville de Paris</b> ; <b>Plan de la ville de Paris (1846)</b> ; etc.",
-        },
-        "reference_url": {
-            "validators": [is_valid_url],
-            "label": "URL de référence",
-            "description": "URL de référence de l'image (point d'accès à la ressource). Sinon laisser la valeur <b>'unknown_url'</b> par défaut. "
-            "Exemple : <b>http://gallica.bnf.fr/ark:/12148/btv1b9005061j</b> ou <b>	http://gallica.bnf.fr/ark:/12148/btv1b90055989/f1.item</b> ; etc.",
-        },
-        "iiif_url": {
-            "validators": [is_valid_url],
-            "label": "URL IIIF",
-            "description": "URL IIIF de l'image. "
-            "Exemple : <b>https://gallica.bnf.fr/iiif/ark:/12148/btv1b90055989/f1/full/1000,/0/native.jpg	</b> ; etc.",
-        },
-    }
-
     form_extra_fields = {
+        "is_gallica_source": SelectField(
+            "Image disponible sur Gallica-BnF (IIIF) ?",
+            choices=[("no", "Non"), ("yes", "Oui")],
+            default="yes",
+            render_kw={"id": "is_gallica_source"},
+        ),
         "img_name": ImageUploadField(
-            "Charger une image",
+            "Charger une image locale",
             base_path=settings.IMAGE_STORE,
             thumbnail_size=False,
             endpoint="static",
             url_relative_path="/images_store/",
             allowed_extensions=["jpg", "jpeg", "png"],
             namegen=prefix_name,
-        )
+        ),
+        "iiif_preview": StringField(
+            "URL IIIF générée automatiquement",
+            render_kw={"readonly": True, "id": "iiif_preview"},
+        ),
     }
 
-    def on_model_change(self, form: object, model: object, is_created: bool) -> None:
-        """Handle model changes for the image view."""
-        data = form.data
-        if data["img_name"] is None:
+    form_args = {
+        "label": {
+            "label": "Libellé",
+            "description": (
+                "Champ obligatoire. "
+                "Exemple : <b>Vue de la ville de Paris</b> ; "
+                "<b>Plan de la ville de Paris (1846)</b>."
+            ),
+        },
+        "is_gallica_source": {
+            "label": "Image disponible sur Gallica-BnF ?",
+            "description": (
+                "Cocher si l'image provient de Gallica. "
+                "Dans ce cas, renseigner l'URL Gallica et ne pas charger de fichier local."
+            ),
+        },
+        "reference_url": {
+            "validators": [is_valid_url],
+            "label": "URL de référence",
+            "description": (
+                "URL de référence de l'image. "
+                "Il peut s'agir : d'une URL Gallica ou de toute autre URL associé à l'image déposée. "
+                "Exemples : "
+                "<b>https://gallica.bnf.fr/ark:/12148/btv1b55002798b</b> "
+                "ou "
+                "<b>https://archives.creuse.fr/...</b>"
+            ),
+        },
+        "img_name": {
+            "label": "Image locale",
+            "description": (
+                "Obligatoire si l'image n'est pas disponible sur Gallica."
+            ),
+        },
+    }
+
+    def on_form_prefill(self, form, id):
+
+        """Pré-remplissage du booléen métier à partir des données existantes."""
+
+        model = self.get_one(id)
+
+        form.is_gallica_source.data = "yes" if (model and model.iiif_url) else "no"
+
+        if model and model.iiif_url:
+
+            form.iiif_preview.data = model.iiif_url
+
+        else:
+
+            form.iiif_preview.data = ""
+
+    def create_form(self, obj=None):
+
+        form = super().create_form(obj)
+
+        if hasattr(form, "is_gallica_source"):
+            form.is_gallica_source.data = "no"
+
+        if hasattr(form, "iiif_preview"):
+            form.iiif_preview.data = ""
+
+        return form
+
+    def edit_form(self, obj=None):
+        """Pre-forms the edit form with existing data, including
+        custom handling for Gallica source and IIIF preview."""
+        form = super().edit_form(obj)
+        if obj:
+            if hasattr(form, "is_gallica_source"):
+                form.is_gallica_source.data = "yes" if obj.iiif_url else "no"
+
+            if hasattr(form, "iiif_preview"):
+                form.iiif_preview.data = obj.iiif_url or ""
+
+        return form
+
+    def on_model_change(self, form, model, is_created):
+        """Business logic to handle the
+        image source (Gallica or local) and associated
+        validations when creating or editing an image
+        with no model change.
+        """
+        label = (form.label.data or "").strip()
+        reference_url = (form.reference_url.data or "").strip()
+        uploaded_file = form.img_name.data
+        checkbox_gallica = getattr(form, "is_gallica_source", None) and form.is_gallica_source.data == "yes"
+        has_reference_url = bool(reference_url and reference_url != "unknown_url")
+        reference_is_gallica = is_gallica_url(reference_url) if has_reference_url else False
+        is_gallica = checkbox_gallica or reference_is_gallica
+
+        if not label:
+            raise ValidationError("Le libellé est obligatoire.")
+
+        if is_gallica:
+            if not reference_url:
+                raise ValidationError(
+                    "L'URL Gallica est obligatoire si l'image provient de Gallica-BnF."
+                )
+
+            if not is_gallica_url(reference_url):
+                raise ValidationError(
+                    "L'URL de référence doit être une URL Gallica valide."
+                )
+
+            try:
+                iiif_url = gallica_url_to_iiif(reference_url)
+            except ValueError as e:
+                raise ValidationError(str(e))
+
+            if uploaded_file:
+                raise ValidationError(
+                    "Ne chargez pas de fichier local si l'image provient de Gallica."
+                )
+
+            model.reference_url = reference_url
+            model.iiif_url = iiif_url
             model.img_name = "unknown.jpg"
 
+        else:
+            # Image local mode
+            if not uploaded_file and (is_created or model.img_name in [None, "", "unknown.jpg"]):
+                raise ValidationError(
+                    "Vous devez charger une image locale si l'image ne provient pas de Gallica."
+                )
+
+            # Keep the existing reference_url if it exists,
+            # otherwise set to "unknown_url"
+            model.reference_url = reference_url if has_reference_url else "unknown_url"
+            model.iiif_url = None
+
+            if uploaded_file is None and not model.img_name:
+                model.img_name = "unknown.jpg"
+
         model.last_editor = current_user.username
-        session.commit()
 
 
 class PatentHasRelationsView(GlobalModelView):
     """View for the patent relations model."""
 
     column_list = [
-        "id",
-        "_id_dil",
-        "person_id",
-        "person_related_id",
-        "patent_id",
-        "type",
-    ] + list(version_metadata.keys())
+                      "id",
+                      "_id_dil",
+                      "person_id",
+                      "person_related_id",
+                      "patent_id",
+                      "type",
+                  ] + list(version_metadata.keys())
     column_labels = {
         "id": "ID",
         "_id_dil": "ID DIL",
@@ -952,16 +1180,16 @@ class PatentHasRelationsView(GlobalModelView):
     }
 
 
-class AddressView(GlobalModelView):
+class AddressView(PopupCreateMixin, GlobalModelView):
     """View for the address model."""
 
     column_list = [
-        "id",
-        "_id_dil",
-        "label",
-        "city_label",
-        "city_id",
-    ] + list(version_metadata.keys())
+                      "id",
+                      "_id_dil",
+                      "label",
+                      "city_label",
+                      "city_id",
+                  ] + list(version_metadata.keys())
     column_labels = {
         "id": "ID",
         "_id_dil": "ID DIL",
@@ -990,13 +1218,13 @@ class AddressView(GlobalModelView):
             "validators": [validate_address],
             "label": "Libellé de l'adresse",
             "description": "Libellé de l'adresse. "
-            "Exemple : <b>1, rue de la Paix</b> ; <b>2, rue du Faubourg Saint-Honoré</b> ; <b>12 quinquies, rue Victor Hugo</b> ; <b>3 ter, avenue des Champs-Élysées</b> ; <b>rue de la Paix</b> ; <b>inconnue</b> ; <b>200 West 45th Street</b> (adresse hors france) etc."
-            "; etc. Laisser <b>'inconnue'</b> si l'adresse est inconnue.",
+                           "Exemple : <b>1, rue de la Paix</b> ; <b>2, rue du Faubourg Saint-Honoré</b> ; <b>12 quinquies, rue Victor Hugo</b> ; <b>3 ter, avenue des Champs-Élysées</b> ; <b>rue de la Paix</b> ; <b>inconnue</b> ; <b>200 West 45th Street</b> (adresse hors france) etc."
+                           "; etc. Laisser <b>'inconnue'</b> si l'adresse est inconnue.",
         },
         "city_label": {
             "label": "Ville",
             "description": "Libellé de la ville de l'adresse. Il peut correspondre au toponyme ancien. "
-            "Exemple : <b>Paris</b> ; <b>Lyon</b> ; <b>Abergement-Clémenciat (L')</b> etc.",
+                           "Exemple : <b>Paris</b> ; <b>Lyon</b> ; <b>Abergement-Clémenciat (L')</b> etc.",
         },
         "city": {
             "label": "Ville (référentiel)",
@@ -1020,7 +1248,8 @@ class AddressView(GlobalModelView):
         )
     }
 
-    # add checkbox to select the type of address (french by default)
+    # add checkbox to select the type of address
+    # (french by default)
     form_extra_fields = {
         "not_french_address": BooleanField(
             label="Adresse hors France ?", render_kw={"id": "not_french_address"}
@@ -1032,26 +1261,26 @@ class AddressView(GlobalModelView):
         session.commit()
 
 
-class CityView(GlobalModelView):
+class CityView(PopupCreateMixin, GlobalModelView):
     """View for the city model."""
 
     list_template = "admin/list.city.html"
     column_list = [
-        "id",
-        "_id_dil",
-        "label",
-        "country_iso_code",
-        "long_lat",
-        "insee_fr_code",
-        "insee_fr_department_code",
-        "insee_fr_department_label",
-        "geoname_id",
-        "wikidata_item_id",
-        "dicotopo_item_id",
-        "databnf_ark",
-        "viaf_id",
-        "siaf_id",
-    ] + list(version_metadata.keys())
+                      "id",
+                      "_id_dil",
+                      "label",
+                      "country_iso_code",
+                      "long_lat",
+                      "insee_fr_code",
+                      "insee_fr_department_code",
+                      "insee_fr_department_label",
+                      "geoname_id",
+                      "wikidata_item_id",
+                      "dicotopo_item_id",
+                      "databnf_ark",
+                      "viaf_id",
+                      "siaf_id",
+                  ] + list(version_metadata.keys())
 
     column_labels = {
         "id": "ID",
@@ -1149,12 +1378,12 @@ class CityView(GlobalModelView):
         "label": {
             "label": "Libellé de la ville",
             "description": "Libellé de la ville. "
-            "Exemple : <b>Paris</b> ; <b>Lyon</b> ; <b>Abergement-Clémenciat (L')</b> etc.",
+                           "Exemple : <b>Paris</b> ; <b>Lyon</b> ; <b>Abergement-Clémenciat (L')</b> etc.",
         },
         "country_iso_code": {
             "label": "Code ISO du pays",
             "description": "Code ISO 3166 du pays de la ville. "
-            "Exemple : <b>FR</b> pour la France ; <b>BE</b> pour la Belgique ; etc.",
+                           "Exemple : <b>FR</b> pour la France ; <b>BE</b> pour la Belgique ; etc.",
         },
         "long_lat": {
             "validators": [validate_coordinates],
@@ -1165,52 +1394,52 @@ class CityView(GlobalModelView):
             "validators": [is_only_digits],
             "label": "Code de la ville (INSEE)",
             "description": "Code géographique officiel de l'INSEE pour la ville. "
-            "Exemple : <b><a href='https://www.insee.fr/fr/metadonnees/geographie/commune/01001-labergement-clemenciat' target='_blank'>01001</a></b> pour Abergement-Clémenciat (L').",
+                           "Exemple : <b><a href='https://www.insee.fr/fr/metadonnees/geographie/commune/01001-labergement-clemenciat' target='_blank'>01001</a></b> pour Abergement-Clémenciat (L').",
         },
         "insee_fr_department_code": {
             "label": "Code du département (INSEE)",
             "description": "Code géographique officiel de l'INSEE pour le département de la ville. "
-            "Exemple : <b>DEP_75</b> pour Paris ; <b>DEP_69</b> pour Lyon ; etc.",
+                           "Exemple : <b>DEP_75</b> pour Paris ; <b>DEP_69</b> pour Lyon ; etc.",
         },
         "insee_fr_department_label": {
             "label": "Libellé du département (INSEE)",
             "description": "Libellé du département INSEE. "
-            "Exemple : <b>Paris</b> pour Paris ; <b>Rhône</b> pour Lyon ; etc.",
+                           "Exemple : <b>Paris</b> pour Paris ; <b>Rhône</b> pour Lyon ; etc.",
         },
         "geoname_id": {
             "validators": [is_only_digits],
             "label": "Identifiant Geonames",
             "description": "ID Geonames de la ville. "
-            "Exemple : <a href='https://www.geonames.org/2988507/paris.html' target='_blank'><b>2988507</b></a> pour Paris.",
+                           "Exemple : <a href='https://www.geonames.org/2988507/paris.html' target='_blank'><b>2988507</b></a> pour Paris.",
         },
         "wikidata_item_id": {
             "validators": [is_wikidata_qid],
             "label": "Identifiant Wikidata",
             "description": "QID Wikidata de la ville. "
-            "Exemple : <a href='https://www.wikidata.org/wiki/Q456' target='_blank'><b>Q456</b></a> pour Lyon.",
+                           "Exemple : <a href='https://www.wikidata.org/wiki/Q456' target='_blank'><b>Q456</b></a> pour Lyon.",
         },
         "dicotopo_item_id": {
             "label": "Identifiant Dicotopo (ENC)",
             "description": "ID Dicotopo de la ville. "
-            "Exemple : <a href='https://dicotopo.cths.fr/places/P17270150' target='_blank'><b>P17270150</b></a> pour Courcelles.",
+                           "Exemple : <a href='https://dicotopo.cths.fr/places/P17270150' target='_blank'><b>P17270150</b></a> pour Courcelles.",
         },
         "databnf_ark": {
             "validators": [is_ark_id],
             "label": "ARK BNF",
             "description": "ARK BNF (catalogue général) de la ville. "
-            "Exemple : <a href='https://catalogue.bnf.fr/ark:/12148/cb15272211b' target='_blank'><b>ark:/12148/cb15272211b</b></a> pour Lyon.",
+                           "Exemple : <a href='https://catalogue.bnf.fr/ark:/12148/cb15272211b' target='_blank'><b>ark:/12148/cb15272211b</b></a> pour Lyon.",
         },
         "viaf_id": {
             "validators": [is_only_digits],
             "label": "Identifiant VIAF",
             "description": "ID VIAF de la ville. "
-            "Exemple : <a href='https://viaf.org/fr/viaf/312739984' target='_blank'><b>131453</b></a> pour Rennes.",
+                           "Exemple : <a href='https://viaf.org/fr/viaf/312739984' target='_blank'><b>131453</b></a> pour Rennes.",
         },
         "siaf_id": {
             "validators": [is_only_digits],
             "label": "Identifiant SIAF",
             "description": "ID SIAF de la ville. "
-            "Exemple : <a href='https://francearchives.gouv.fr/fr/location/217180640'><b>217180640</b></a> pour Port-Sainte-Marie (Lot-et-Garonne, France).",
+                           "Exemple : <a href='https://francearchives.gouv.fr/fr/location/217180640'><b>217180640</b></a> pour Port-Sainte-Marie (Lot-et-Garonne, France).",
         },
     }
 
@@ -1220,13 +1449,13 @@ class CityView(GlobalModelView):
         session.commit()
 
     def get_list(
-        self,
-        page: int,
-        sort_field: str,
-        sort_desc: bool,
-        search: str,
-        filters: list,
-        page_size: int = None,
+            self,
+            page: int,
+            sort_field: str,
+            sort_desc: bool,
+            search: str,
+            filters: list,
+            page_size: int = None,
     ) -> tuple[int, list]:
         """Return a list of cities with optional search, sorting and pagination.
 

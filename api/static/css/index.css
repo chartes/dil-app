@@ -9,19 +9,19 @@
   height: auto !important;
 }
 
-@media (max-width: 767px) { /* Pour les petits écrans, par exemple les téléphones en portrait */
+@media (max-width: 767px) {
   .img-partner {
     max-width: 75% !important;
   }
 }
 
-@media (min-width: 768px) and (max-width: 991px) { /* Pour les écrans moyens, par exemple les tablettes */
+@media (min-width: 768px) and (max-width: 991px) {
   .img-partner {
     max-width: 85% !important;
   }
 }
 
-@media (min-width: 992px) { /* Pour les grands écrans, par exemple les ordinateurs de bureau */
+@media (min-width: 992px) {
   .img-partner {
     max-width: 90% !important;
   }

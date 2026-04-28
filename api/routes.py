@@ -34,6 +34,7 @@ from api.schemas import (
 )
 from api.models.models import Person, Patent, City, Address
 from api.index_fts.search_utils import search_whoosh
+from api.api_meta import METADATA
 from api.api_utils import normalize_firstnames, normalize_date, period_bounds
 
 api_router = APIRouter()
@@ -404,8 +405,10 @@ def cached_search(lastname: str, content: str) -> dict:
     response_model=Page[PrinterMinimalResponseOut],
     include_in_schema=True,
     responses={400: {"model": Message}, 500: {"model": Message}},
-    summary="Retrieve all persons (printers) with optional filters",
+    summary=METADATA["routes"]["read_printers"]["summary"],
     tags=["Persons"],
+    description=METADATA["routes"]["read_printers"]["description"],
+
 )
 def read_printers(
     db: Session = Depends(get_db),
@@ -590,15 +593,13 @@ def read_printers(
     "/persons/person/{id}",
     include_in_schema=True,
     responses={404: {"model": Message}, 500: {"model": Message}},
-    summary="Retrieve a specific person (printer) by ID",
+    summary=METADATA["routes"]["read_printer"]["summary"],
+    description=METADATA["routes"]["read_printer"]["description"],
     tags=["Persons"],
     response_model=PrinterOut,
 )
 async def read_printer(id: str, html: bool = False, db: Session = Depends(get_db)):
-    """
-    Retrieve a specific person (printer) by DIL ID.
-    - `id`: The DIL ID of the person (printer). e.g., "person_dil_2QO3gEnU".
-    - `html`: Optional boolean query parameter to indicate if the response should include HTML content. Defaults to False.
+    """Retrieve a specific person (printer) by DIL ID, with optional HTML content enrichment.
 
     :param id: The DIL ID of the person (printer) to retrieve.
     :type id: str
@@ -632,7 +633,8 @@ async def read_printer(id: str, html: bool = False, db: Session = Depends(get_db
     response_model=Page[PatentMinimalOut],
     include_in_schema=True,
     responses={404: {"model": Message}, 500: {"model": Message}},
-    summary="Retrieve all patents with pagination",
+    summary=METADATA["routes"]["read_patents"]["summary"],
+    description=METADATA["routes"]["read_patents"]["description"],
     tags=["Patents"],
 )
 def read_patents(db: Session = Depends(get_db)):
@@ -665,7 +667,8 @@ def read_patents(db: Session = Depends(get_db)):
     response_model=PatentOut,
     include_in_schema=True,
     responses={404: {"model": Message}, 500: {"model": Message}},
-    summary="Retrieve a specific patent by ID",
+    summary=METADATA["routes"]["read_patent"]["summary"],
+    description=METADATA["routes"]["read_patent"]["description"],
     tags=["Patents"],
 )
 def read_patent(id: str, db: Session = Depends(get_db), html: bool = False):
@@ -705,7 +708,8 @@ def read_patent(id: str, db: Session = Depends(get_db), html: bool = False):
     response_model=Page[CityOut],
     include_in_schema=True,
     responses={404: {"model": Message}, 500: {"model": Message}},
-    summary="Retrieve all cities with pagination",
+    summary=METADATA["routes"]["read_cities"]["summary"],
+    description=METADATA["routes"]["read_cities"]["description"],
     tags=["Referential"],
 )
 def read_cities(db: Session = Depends(get_db)):
@@ -736,7 +740,8 @@ def read_cities(db: Session = Depends(get_db)):
     response_model=CityOut,
     include_in_schema=True,
     responses={404: {"model": Message}, 500: {"model": Message}},
-    summary="Retrieve a specific city by ID",
+    summary=METADATA["routes"]["read_city"]["summary"],
+    description=METADATA["routes"]["read_city"]["description"],
     tags=["Referential"],
 )
 def read_city(db: Session = Depends(get_db), id: str = None):
@@ -785,7 +790,8 @@ def read_city(db: Session = Depends(get_db), id: str = None):
     response_model=Page[AddressMinimalOut],
     include_in_schema=True,
     responses={404: {"model": Message}, 500: {"model": Message}},
-    summary="Retrieve all addresses with pagination",
+    summary=METADATA["routes"]["read_addresses"]["summary"],
+    description=METADATA["routes"]["read_addresses"]["description"],
     tags=["Referential"],
 )
 def read_addresses(db: Session = Depends(get_db)):
@@ -839,7 +845,8 @@ def read_addresses(db: Session = Depends(get_db)):
     response_model=AddressMinimalOut,
     include_in_schema=True,
     responses={404: {"model": Message}, 500: {"model": Message}},
-    summary="Retrieve a specific address by ID",
+    summary=METADATA["routes"]["read_address"]["summary"],
+    description=METADATA["routes"]["read_address"]["description"],
     tags=["Referential"],
 )
 def read_address(db: Session = Depends(get_db), id: str = None):

@@ -1,0 +1,10 @@
+.gallica-select-group,
+.gallica-select-group .controls,
+.gallica-select-group label {
+    text-align: left !important;
+}
+
+.gallica-select-group select {
+    max-width: 220px;
+    display: inline-block;
+}

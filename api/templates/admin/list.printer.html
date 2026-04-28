@@ -1,8 +1,6 @@
 {% extends 'admin/list.html' %}
 {% import 'admin/lib.html' as lib with context %}
 
-
-
 {% macro custom_page_size_form(generator, btn_class='dropdown-toggle') %}
     <a class="{{ btn_class }}" data-toggle="dropdown" href="javascript:void(0)">
         Afficher {{ page_size }} {{ _gettext('résultats') }} par page<b class="caret"></b>
