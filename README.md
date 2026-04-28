@@ -117,4 +117,4 @@ La base de données constituée grâce aux crédits du Labex CAP est hébergée 
    - données migrées et début de la reprise par E.P.
    - ajustements CSS + reprise des contenus éditoriaux avec E.P.
 
-**?** : déploiement en production
+**avril 2026** : déploiement en production
