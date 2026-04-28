@@ -43,7 +43,6 @@ The response includes the total number of persons, patents, effective patents, c
 Effective patents are counted only when their start date falls within the historical coverage period used by the project.
 """,
         },
-
         "get_cities_with_printers": {
             "summary": "Get geolocated cities linked to printers",
             "description": """
@@ -60,7 +59,6 @@ The result can be filtered by:
 - full-text search on patent-related content.
 """,
         },
-
         "autocomplete_city": {
             "summary": "Autocomplete cities used in patents",
             "description": """
@@ -71,7 +69,6 @@ The endpoint searches cities by prefix and can take already selected cities into
 Each result includes the city identifier, label, department label, and contextual counts for matching patents and persons.
 """,
         },
-
         "read_images": {
             "summary": "Get images associated with a printer",
             "description": """
@@ -82,7 +79,6 @@ The response groups images by patent and indicates whether each image is pinned.
 Use this endpoint to retrieve visual material linked to a printer record.
 """,
         },
-
         "read_printers": {
             "summary": "Search and list printers",
             "description": """
@@ -101,7 +97,6 @@ Available filters include:
 Each result includes basic printer information, the total number of patents, optional search highlights, and a summary of places of practice.
 """,
         },
-
         "read_printer": {
             "summary": "Get a printer by ID",
             "description": """
@@ -112,7 +107,6 @@ The response includes the structured information available for the printer, such
 Use the `html` query parameter to include HTML-enriched fields when available.
 """,
         },
-
         "read_patents": {
             "summary": "List patents",
             "description": """
@@ -121,7 +115,6 @@ Return a paginated list of patents.
 Each patent entry includes its DIL identifier and core descriptive information, such as label, start date, end date, and associated city when available.
 """,
         },
-
         "read_patent": {
             "summary": "Get a patent by ID",
             "description": """
@@ -132,7 +125,6 @@ The response includes structured information about the patent, including dates, 
 Use the `html` query parameter to include HTML-enriched fields when available.
 """,
         },
-
         "read_cities": {
             "summary": "List cities",
             "description": """
@@ -141,7 +133,6 @@ Return a paginated list of cities from the referential.
 Each city record may include its DIL identifier, label, country code, geographic coordinates, French administrative identifiers, and external authority identifiers when available.
 """,
         },
-
         "read_city": {
             "summary": "Get a city by ID",
             "description": """
@@ -150,7 +141,6 @@ Return the detailed record of a city identified by its DIL identifier.
 The response includes geographic, administrative, and external authority information when available.
 """,
         },
-
         "read_addresses": {
             "summary": "List addresses",
             "description": """
@@ -159,7 +149,6 @@ Return a paginated list of addresses from the referential.
 Each address entry includes its DIL identifier, label, associated city label, and associated city identifier when available.
 """,
         },
-
         "read_address": {
             "summary": "Get an address by ID",
             "description": """
@@ -168,7 +157,6 @@ Return the detailed record of an address identified by its DIL identifier.
 The response includes the address label and its associated city information when available.
 """,
         },
-
         "get_graph_data": {
             "summary": "Get graph data for patents, printers, and cities",
             "description": """
@@ -179,7 +167,6 @@ This experimental endpoint is intended for network visualization. It builds node
 The graph can be filtered by year when enabled.
 """,
         },
-
         "get_meta_person": {
             "summary": "Get developer metadata for person records",
             "description": """
@@ -188,7 +175,6 @@ Return technical metadata about person records.
 This endpoint is intended for developers and administrators who need information about the structure, availability, or internal handling of person-related data.
 """,
         },
-
         "read_root": {
             "summary": "Check API availability",
             "description": """
@@ -197,7 +183,6 @@ Return a simple response indicating whether the API service is available.
 This endpoint can be used as a lightweight health check.
 """,
         },
-
         "search": {
             "summary": "Run a full-text search over printers",
             "description": """
@@ -206,7 +191,6 @@ Run a full-text search over printer records and related indexed content.
 This endpoint is intended to retrieve matching persons from the search index and may return highlights or matched identifiers depending on the implementation.
 """,
         },
-
         "read_person_events": {
             "summary": "List events related to a person",
             "description": """
@@ -215,7 +199,6 @@ Return all known events associated with a specific person.
 Events may include biographical, professional, administrative, or patent-related information depending on the available data.
 """,
         },
-
         "read_person_family_relationships": {
             "summary": "List family relationships related to a person",
             "description": """
@@ -224,7 +207,6 @@ Return all known family relationships associated with a specific person.
 The response may include relationship types and linked person records when available.
 """,
         },
-
         "read_person_thesauri_terms": {
             "summary": "List thesaurus terms related to persons",
             "description": """
@@ -233,7 +215,6 @@ Return thesaurus terms used to describe person records.
 These terms belong to the project referential and may be used for classification, filtering, or semantic description of persons.
 """,
         },
-
         "read_person_thesaurus_term": {
             "summary": "Get a person thesaurus term by ID",
             "description": """
@@ -242,5 +223,5 @@ Return a specific thesaurus term used to describe person records.
 The term is identified by its DIL identifier and may include labels, definitions, or related referential information depending on the data model.
 """,
         },
-    }
+    },
 }

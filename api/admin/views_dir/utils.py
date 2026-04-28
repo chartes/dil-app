@@ -10,14 +10,10 @@ from unidecode import unidecode
 
 from werkzeug.utils import secure_filename
 from sqlalchemy import func
-from flask import (
-    render_template_string
-)
+from flask import render_template_string
 
 
-def render_popup_response(field_id: str,
-                          obj_id: int,
-                          obj_text: str) -> str:
+def render_popup_response(field_id: str, obj_id: int, obj_text: str) -> str:
     """Render a response for a popup form submission, sending a message back to the parent window.
 
     :param field_id: The ID of the form field that was updated.

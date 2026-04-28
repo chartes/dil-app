@@ -27,7 +27,7 @@ def _create_tooltip(comment: str, place: str) -> str:
 
 
 def _format_label_form_with_tooltip(
-        label: str, comment: str, place: str = "bottom"
+    label: str, comment: str, place: str = "bottom"
 ) -> Markup:
     """Format a form label with an attached tooltip.
 
@@ -46,29 +46,29 @@ def _format_label_form_with_tooltip(
 
 def _format_link_add_model(
     description: str,
-    href: str ="#",
+    href: str = "#",
     target_field: str = None,
     modal_title: str = None,
     element_id: str = None,
 ):
     """Format an HTML link for adding a model to a repository, with optional parameters for description, href, target field, modal title, and element ID.
 
-    :param description: The text to describe the model being added.
-    :type description: str
-    :param href: The URL to link to when the user clicks the add model link.
-    :type href: str
-    :param target_field: The ID of the form field that should be updated with the new
-    model's information after it is added. Optional.
-    :type target_field: str, optional
-    :param modal_title: The title to display in the modal dialog when adding the model.
-    If not provided, a default title will be generated using the description.
-    :type modal_title: str, optional
-    :param element_id: An optional unique identifier for the link element. If not provided,
-a random UUID-based ID will be generated to ensure uniqueness.
-    :type element_id: str, optional
-    :return: An HTML string for the add model link, including data attributes for the modal
-    functionality.
-    :rtype: Markup
+        :param description: The text to describe the model being added.
+        :type description: str
+        :param href: The URL to link to when the user clicks the add model link.
+        :type href: str
+        :param target_field: The ID of the form field that should be updated with the new
+        model's information after it is added. Optional.
+        :type target_field: str, optional
+        :param modal_title: The title to display in the modal dialog when adding the model.
+        If not provided, a default title will be generated using the description.
+        :type modal_title: str, optional
+        :param element_id: An optional unique identifier for the link element. If not provided,
+    a random UUID-based ID will be generated to ensure uniqueness.
+        :type element_id: str, optional
+        :return: An HTML string for the add model link, including data attributes for the modal
+        functionality.
+        :rtype: Markup
     """
     if element_id is None:
         element_id = hashlib.sha1(uuid.uuid4().hex.encode("utf-8")).hexdigest()
@@ -88,6 +88,7 @@ a random UUID-based ID will be generated to ensure uniqueness.
         </a>
     </span>
     """)
+
 
 def _format_href(prefix_url: str, label: str) -> Markup:
     """Format an HTML link with a given prefix URL and label.

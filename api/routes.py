@@ -408,7 +408,6 @@ def cached_search(lastname: str, content: str) -> dict:
     summary=METADATA["routes"]["read_printers"]["summary"],
     tags=["Persons"],
     description=METADATA["routes"]["read_printers"]["description"],
-
 )
 def read_printers(
     db: Session = Depends(get_db),
