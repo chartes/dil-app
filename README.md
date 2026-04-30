@@ -75,7 +75,7 @@ avec un compte ayant les droits d'administration.
 
 ## Ajouter les tutoriels (vidéos)
 
-1) Télécharger l'archive `videos.zip` dans la release GitHub : ...
+1) Télécharger l'archive `videos.zip` dans les [artefacts](https://github.com/chartes/dil-app/releases/download/1.0.1/videos.zip)
 2) Décompresser l'archive et copier le dossier `videos/` dans le dossier `api/static/` du projet.
 3) La page "Tutoriels" est accessible sur la route `dil-db/admin/aboutview/tutorials`
 
