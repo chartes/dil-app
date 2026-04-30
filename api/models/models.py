@@ -345,7 +345,9 @@ class AbstractBase(BASE):
         """
         if isinstance(target, Image):
             if target.img_name and target.img_name != "unknown.jpg":
-                os.remove(os.path.join(settings.IMAGE_STORE, target.img_name))
+                image_path = os.path.join(settings.IMAGE_STORE, target.img_name)
+                if os.path.exists(image_path):
+                    os.remove(image_path)
 
     @classmethod
     @handle_index
@@ -618,7 +620,6 @@ class Person(AbstractVersion):
     __prefix__ = "person"
 
     # -------------------------------------------------------
-
     lastname = Column(String, nullable=False, unique=False)
     firstnames = Column(String, nullable=True, unique=False, default=None)
     birth_date = Column(String(25), nullable=True, unique=False, default=None)

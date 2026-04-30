@@ -7,7 +7,7 @@ Model views for the admin interface.
 
 from unidecode import unidecode
 
-from flask import url_for, jsonify, request, redirect, flash
+from flask import url_for, jsonify, request, redirect, flash, abort
 from flask_admin.contrib.sqla import ModelView
 from flask_admin import expose, AdminIndexView, BaseView
 from flask_admin.form import ImageUploadField
@@ -18,7 +18,8 @@ from wtforms import BooleanField, ValidationError
 from wtforms.widgets import TextArea
 
 from markupsafe import Markup
-from sqlalchemy import or_
+from sqlalchemy import or_, exists
+from sqlalchemy.exc import SQLAlchemyError
 
 from .validators import (
     is_valid_date,
@@ -53,10 +54,22 @@ from .formaters import (
 from .model_handler import PrinterModelChangeHandler
 
 from api.config import settings
-from api.crud import get_user, get_address, get_patents, get_printer
+from api.crud import (
+    get_user,
+    get_address,
+    get_patents,
+    get_printer
+)
 from api.database import session
-from api.admin.views_dir.utils import prefix_name, render_popup_response
-from api.admin.views_dir.utils_gallica import is_gallica_url, gallica_url_to_iiif
+from api.admin.views_dir.utils import (
+    prefix_name,
+    render_popup_response,
+    tutorials_are_available
+)
+from api.admin.views_dir.utils_gallica import (
+    is_gallica_url,
+    gallica_url_to_iiif
+)
 from api.admin.views_dir.loaders import GenericAjaxModelLoader
 
 EDIT_ENDPOINTS = ["person", "city", "address", "image"]
@@ -1476,8 +1489,273 @@ class CityView(PopupCreateMixin, GlobalModelView):
         return count, filtered_rows
 
 
+class MaintenanceView(BaseView):
+    """View for maintenance actions, such as identifying and deleting orphan referential records."""
+
+    @staticmethod
+    def get_orphan_addresses_query(db_session):
+        """Return addresses that are not linked to any person or patent."""
+        return (
+            db_session.query(Address)
+            .filter(
+                ~exists().where(PersonHasAddresses.address_id == Address.id),
+                ~exists().where(PatentHasAddresses.address_id == Address.id),
+            )
+        )
+
+    @staticmethod
+    def get_orphan_images_query(db_session):
+        """Return images that are not linked to any patent."""
+        return (
+            db_session.query(Image)
+            .filter(
+                ~exists().where(PatentHasImages.image_id == Image.id)
+            )
+        )
+
+    @staticmethod
+    def get_orphan_referential_counts(db_session) -> dict:
+        """Return counts of orphan referential records."""
+        orphan_addresses_count = MaintenanceView.get_orphan_addresses_query(db_session).count()
+        orphan_images_count = MaintenanceView.get_orphan_images_query(db_session).count()
+
+        return {
+            "addresses": orphan_addresses_count,
+            "images": orphan_images_count,
+            "total": orphan_addresses_count + orphan_images_count,
+        }
+
+    @staticmethod
+    def get_orphan_referential_preview(db_session) -> dict:
+        """Return all orphan addresses and images."""
+        orphan_addresses = (
+            MaintenanceView.get_orphan_addresses_query(db_session)
+            .order_by(Address.label.asc())
+            .all()
+        )
+
+        orphan_images = (
+            MaintenanceView.get_orphan_images_query(db_session)
+            .order_by(Image.label.asc())
+            .all()
+        )
+
+        return {
+            "addresses": orphan_addresses,
+            "images": orphan_images,
+        }
+
+    @staticmethod
+    def delete_orphan_referentials(
+        db_session,
+        delete_addresses: bool = True,
+        delete_images: bool = True,
+    ) -> dict:
+        """
+        Delete orphan addresses and images.
+
+        Important:
+        Objects are deleted one by one with session.delete().
+        This is intentional because bulk delete would not trigger SQLAlchemy ORM events,
+        especially the Image after_delete event that removes local image files.
+        """
+        deleted_addresses = 0
+        deleted_images = 0
+
+        if delete_addresses:
+            orphan_addresses = MaintenanceView.get_orphan_addresses_query(db_session).all()
+
+            for address in orphan_addresses:
+                db_session.delete(address)
+                deleted_addresses += 1
+
+        if delete_images:
+            orphan_images = MaintenanceView.get_orphan_images_query(db_session).all()
+
+            for image in orphan_images:
+                db_session.delete(image)
+                deleted_images += 1
+
+        db_session.commit()
+
+        return {
+            "addresses": deleted_addresses,
+            "images": deleted_images,
+            "total": deleted_addresses + deleted_images,
+        }
+
+    @staticmethod
+    def is_admin_user() -> bool:
+        """Return True if current user can access maintenance tools."""
+        return current_user.is_authenticated and current_user.role == "ADMIN"
+
+    def is_accessible(self):
+        """Restrict maintenance actions to administrators only."""
+        return self.is_admin_user()
+
+    @expose("/")
+    def index(self):
+        counts = self.get_orphan_referential_counts(session)
+        preview = self.get_orphan_referential_preview(session)
+
+        return self.render(
+            "admin/maintenance/orphans.html",
+            counts=counts,
+            preview=preview,
+            cleanup_url=self.get_url(".cleanup_orphans"),
+        )
+
+    @expose("/delete-orphan-address/<int:address_id>/", methods=["POST"])
+    def delete_orphan_address(self, address_id):
+        """Delete one orphan address after checking it is still orphan."""
+        if not self.is_admin_user():
+            abort(403)
+
+        address = session.query(Address).filter(Address.id == address_id).first()
+
+        if not address:
+            flash("Adresse introuvable.", "warning")
+            return redirect(self.get_url(".index"))
+
+        is_orphan = (
+            self.get_orphan_addresses_query(session)
+            .filter(Address.id == address_id)
+            .first()
+            is not None
+        )
+
+        if not is_orphan:
+            flash(
+                "Suppression annulée : cette adresse est désormais liée à un enregistrement.",
+                "warning",
+            )
+            return redirect(self.get_url(".index"))
+
+        try:
+            label = address.label
+            session.delete(address)
+            session.commit()
+
+            flash(f"Adresse orpheline supprimée : {label}", "success")
+
+        except SQLAlchemyError as exc:
+            session.rollback()
+            flash(f"Erreur pendant la suppression de l’adresse : {exc}", "danger")
+
+        return redirect(self.get_url(".index"))
+
+    @expose("/delete-orphan-image/<int:image_id>/", methods=["POST"])
+    def delete_orphan_image(self, image_id):
+        """Delete one orphan image after checking it is still orphan."""
+        if not self.is_admin_user():
+            abort(403)
+
+        image = session.query(Image).filter(Image.id == image_id).first()
+
+        if not image:
+            flash("Image introuvable.", "warning")
+            return redirect(self.get_url(".index"))
+
+        is_orphan = (
+            self.get_orphan_images_query(session)
+            .filter(Image.id == image_id)
+            .first()
+            is not None
+        )
+
+        if not is_orphan:
+            flash(
+                "Suppression annulée : cette image est désormais liée à un brevet.",
+                "warning",
+            )
+            return redirect(self.get_url(".index"))
+
+        try:
+            label = image.label
+            session.delete(image)
+            session.commit()
+
+            flash(f"Image orpheline supprimée : {label}", "success")
+
+        except SQLAlchemyError as exc:
+            session.rollback()
+            flash(f"Erreur pendant la suppression de l’image : {exc}", "danger")
+
+        except OSError as exc:
+            session.rollback()
+            flash(f"Erreur pendant la suppression du fichier image : {exc}", "danger")
+
+        return redirect(self.get_url(".index"))
+
+    @expose("/cleanup-orphans/", methods=["POST"])
+    def cleanup_orphans(self):
+        """Delete orphan referential records after explicit confirmation."""
+        if not self.is_admin_user():
+            abort(403)
+
+        confirmation = request.form.get("confirmation", "").strip()
+        delete_addresses = request.form.get("delete_addresses") == "on"
+        delete_images = request.form.get("delete_images") == "on"
+
+        if confirmation != "SUPPRIMER":
+            flash(
+                "Suppression annulée : vous devez saisir SUPPRIMER pour confirmer l’action.",
+                "warning",
+            )
+            return redirect(self.get_url(".index"))
+
+        if not delete_addresses and not delete_images:
+            flash(
+                "Aucune suppression effectuée : aucun type de référentiel n’a été sélectionné.",
+                "warning",
+            )
+            return redirect(self.get_url(".index"))
+
+        counts_before = self.get_orphan_referential_counts(session)
+
+        if counts_before["total"] == 0:
+            flash("Aucun référentiel orphelin à supprimer.", "info")
+            return redirect(self.get_url(".index"))
+
+        try:
+            result = self.delete_orphan_referentials(
+                session,
+                delete_addresses=delete_addresses,
+                delete_images=delete_images,
+            )
+
+            flash(
+                (
+                    f"Nettoyage terminé : "
+                    f"{result['addresses']} adresse(s) orpheline(s) supprimée(s), "
+                    f"{result['images']} image(s) orpheline(s) supprimée(s)."
+                ),
+                "success",
+            )
+
+        except SQLAlchemyError as exc:
+            session.rollback()
+            flash(
+                f"Erreur pendant le nettoyage des référentiels orphelins : {exc}",
+                "danger",
+            )
+
+        except OSError as exc:
+            session.rollback()
+            flash(
+                f"Erreur pendant la suppression d’un fichier image : {exc}",
+                "danger",
+            )
+
+        return redirect(self.get_url(".index"))
+
 class AboutView(BaseView):
     """Custom view for database documentation."""
+
+    def render(self, template, **kwargs):
+        """Inject shared variables in about templates."""
+        kwargs.setdefault("tutorials_available", tutorials_are_available())
+        return super().render(template, **kwargs)
 
     @expose("/")
     def index(self):
@@ -1488,6 +1766,13 @@ class AboutView(BaseView):
     def database_documentation(self):
         """Renders automatic documentation of database in html view."""
         return self.render("admin/about/documentation_db.html")
+
+    @expose("/tutorials")
+    def tutorials(self):
+        """Renders tutorials in html view."""
+        if not tutorials_are_available():
+            abort(404)
+        return self.render("admin/about/tutorials.html")
 
     @expose("/contacts")
     def contacts(self):

@@ -30,6 +30,7 @@ from .views import (
     UserView,
     User,
     AboutView,
+    MaintenanceView,
 )
 
 # flask app #
@@ -108,18 +109,26 @@ for view in [
         menu_icon_type="glyph",
         menu_icon_value="glyphicon-picture",
     ),
-    UserView(
-        User,
-        session,
-        name="Utilisateurs",
-        menu_icon_type="glyph",
-        menu_icon_value="glyphicon-cog",
-    ),
     AboutView(
         name="En savoir plus",
         menu_icon_type="glyph",
         menu_icon_value="glyphicon-info-sign",
     ),
+    UserView(
+        User,
+        session,
+        name="Utilisateurs",
+        category="Maintenance",
+        menu_icon_type="glyph",
+        menu_icon_value="glyphicon-cog",
+    ),
+    MaintenanceView(
+        name="Nettoyage référentiels",
+        endpoint="maintenance",
+        menu_icon_type="glyph",
+        menu_icon_value="glyphicon-wrench",
+        category="Maintenance",
+    )
 ]:
     admin.add_view(view)
 

@@ -3,6 +3,7 @@ data/prepared/
 project_dump.txt
 dump_project.py
 # app/api/templates/tests/
+api/static/videos/
 images_store/
 data/assets/
 app_old/

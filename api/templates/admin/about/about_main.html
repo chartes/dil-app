@@ -10,6 +10,11 @@
                         <li class="nav-item">
                             <a class="nav-link {{ 'active' if request.endpoint == 'aboutview.database_documentation' else '' }}" href="{{ url_for('aboutview.database_documentation') }}">DOCUMENTATION DE LA BASE DE DONNÉES</a>
                         </li>
+                        {% if tutorials_available %}
+                        <li class="nav-item">
+                            <a class="nav-link {{ 'active' if request.endpoint == 'aboutview.tutorials' else '' }}" href="{{ url_for('aboutview.tutorials') }}">TUTORIELS</a>
+                        </li>
+                        {% endif %}
                         <li class="nav-item">
                             <a class="nav-link {{ 'active' if request.endpoint == 'aboutview.contacts' else '' }}" href="{{ url_for('aboutview.contacts') }}">CONTACT</a>
                         </li>

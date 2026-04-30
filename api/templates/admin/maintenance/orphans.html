@@ -1,0 +1,250 @@
+{% extends 'admin/master.html' %}
+
+{% block head_css %}
+    {{ super() }}
+    <link href="{{ url_for('static', filename='css/maintenance.orphans.css') }}" rel="stylesheet">
+{% endblock head_css %}
+
+{% block body %}
+<div class="maintenance-page">
+    <div>
+        <h2>Maintenance des référentiels</h2>
+        <p>
+            Cette page permet de visualiser puis de supprimer les objets de référentiels orphelins, c'est-à-dire
+            qui ne sont plus liées à aucun enregistrement métier.
+        </p>
+    </div>
+
+    <div class="maintenance-grid">
+        <div class="maintenance-card">
+            <p class="maintenance-card-title">Adresses orphelines</p>
+            <div class="maintenance-card-count">{{ counts.addresses }}</div>
+        </div>
+
+        <div class="maintenance-card">
+            <p class="maintenance-card-title">Images orphelines</p>
+            <div class="maintenance-card-count">{{ counts.images }}</div>
+        </div>
+
+        <div class="maintenance-card">
+            <p class="maintenance-card-title">Total</p>
+            <div class="maintenance-card-count">{{ counts.total }}</div>
+        </div>
+    </div>
+
+    {% if counts.total > 0 %}
+        <div class="maintenance-warning">
+            <strong>Attention :</strong>
+            chaque suppression est définitive. Pour les images locales, le fichier associé sera également supprimé du stockage.
+        </div>
+
+        <form
+            method="post"
+            action="{{ cleanup_url }}"
+            class="maintenance-form"
+            onsubmit="return confirm('Confirmez-vous la suppression multiple des référentiels orphelins sélectionnés ?');"
+        >
+            <div class="maintenance-checkboxes">
+                <label>
+                    <input
+                        type="checkbox"
+                        name="delete_addresses"
+                        {% if counts.addresses > 0 %}checked{% else %}disabled{% endif %}
+                    >
+                    Supprimer les {{ counts.addresses }} adresse(s) orpheline(s)
+                </label>
+
+                <label>
+                    <input
+                        type="checkbox"
+                        name="delete_images"
+                        {% if counts.images > 0 %}checked{% else %}disabled{% endif %}
+                    >
+                    Supprimer les {{ counts.images }} image(s) orpheline(s)
+                </label>
+            </div>
+
+            <label for="confirmation">
+                Pour confirmer la suppression multiple, saisissez <code>SUPPRIMER</code>
+            </label>
+
+            <input
+                id="confirmation"
+                name="confirmation"
+                class="maintenance-input"
+                type="text"
+                autocomplete="off"
+                placeholder="SUPPRIMER"
+                required
+            >
+
+            <div class="maintenance-actions">
+                <button type="submit" class="btn-danger-clean">
+                    Nettoyer les référentiels orphelins
+                </button>
+
+                <span class="orphan-muted">
+                    Vous pouvez aussi supprimer les éléments un par un dans les tableaux ci-dessous.
+                </span>
+            </div>
+        </form>
+    {% endif %}
+
+    <div class="maintenance-tables-grid">
+        <section class="maintenance-section">
+            <h3>Adresses orphelines</h3>
+
+            {% if preview.addresses %}
+                <div class="maintenance-table-wrapper">
+                    <table class="maintenance-table">
+                        <thead>
+                            <tr>
+                                <th>Action</th>
+                                <th>ID</th>
+                                <th>ID DIL</th>
+                                <th>Adresse</th>
+                                <th>Ville</th>
+                                <th>Ville référentiel</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for address in preview.addresses %}
+                                <tr>
+                                    <td>
+                                        <form
+                                            method="post"
+                                            action="{{ url_for('maintenance.delete_orphan_address', address_id=address.id) }}"
+                                            class="inline-delete-form"
+                                            onsubmit="return confirm('Supprimer définitivement cette adresse orpheline ?');"
+                                        >
+                                            <button type="submit" class="btn-delete-row">
+                                                Supprimer
+                                            </button>
+                                        </form>
+                                    </td>
+                                    <td>
+                                        <a href="{{ url_for('address.details_view', id=address.id) }}" class="orphan-link">
+                                            {{ address.id }}
+                                        </a>
+                                    </td>
+                                    <td><code>{{ address._id_dil }}</code></td>
+                                    <td>{{ address.label }}</td>
+                                    <td>{{ address.city_label }}</td>
+                                    <td>
+                                        {% if address.city %}
+                                            {{ address.city.label }}
+                                        {% else %}
+                                            <span class="orphan-muted">Aucune ville liée</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="orphan-muted">Aucune adresse orpheline détectée.</p>
+            {% endif %}
+        </section>
+
+        <section class="maintenance-section">
+            <h3>Images orphelines</h3>
+
+            {% if preview.images %}
+                <div class="maintenance-table-wrapper">
+                    <table class="maintenance-table">
+                        <thead>
+                            <tr>
+                                <th>Action</th>
+                                <th>Aperçu</th>
+                                <th>ID</th>
+                                <th>ID DIL</th>
+                                <th>Libellé</th>
+                                <th>Fichier</th>
+                                <th>URL de référence</th>
+                                <th>IIIF</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for image in preview.images %}
+                                <tr>
+                                    <td>
+                                        <form
+                                            method="post"
+                                            action="{{ url_for('maintenance.delete_orphan_image', image_id=image.id) }}"
+                                            class="inline-delete-form"
+                                            onsubmit="return confirm('Supprimer définitivement cette image orpheline ? Le fichier local associé sera aussi supprimé si présent.');"
+                                        >
+                                            <button type="submit" class="btn-delete-row">
+                                                Supprimer
+                                            </button>
+                                        </form>
+                                    </td>
+
+                                    <td>
+                                        {% if image.iiif_url %}
+                                            <img
+                                                src="{{ image.iiif_url }}"
+                                                alt="{{ image.label }}"
+                                                class="orphan-image-preview"
+                                            >
+                                        {% elif image.img_name and image.img_name != "unknown.jpg" %}
+                                            <img
+                                                src="{{ url_for('static', filename='images_store/' ~ image.img_name) }}"
+                                                alt="{{ image.label }}"
+                                                class="orphan-image-preview"
+                                            >
+                                        {% else %}
+                                            <img
+                                                src="{{ url_for('static', filename='icons/preview-na.png') }}"
+                                                alt="Aucun aperçu"
+                                                class="orphan-image-preview"
+                                            >
+                                        {% endif %}
+                                    </td>
+
+                                    <td>
+                                        <a href="{{ url_for('image.details_view', id=image.id) }}" class="orphan-link">
+                                            {{ image.id }}
+                                        </a>
+                                    </td>
+                                    <td><code>{{ image._id_dil }}</code></td>
+                                    <td>{{ image.label }}</td>
+                                    <td>
+                                        {% if image.img_name %}
+                                            {{ image.img_name }}
+                                        {% else %}
+                                            <span class="orphan-muted">Aucun fichier</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if image.reference_url and image.reference_url != "unknown_url" %}
+                                            <a href="{{ image.reference_url }}" target="_blank" rel="noopener" class="orphan-link">
+                                                Ouvrir
+                                            </a>
+                                        {% else %}
+                                            <span class="orphan-muted">Inconnue</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if image.iiif_url %}
+                                            <a href="{{ image.iiif_url }}" target="_blank" rel="noopener" class="orphan-link">
+                                                Ouvrir
+                                            </a>
+                                        {% else %}
+                                            <span class="orphan-muted">Aucune</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="orphan-muted">Aucune image orpheline détectée.</p>
+            {% endif %}
+        </section>
+    </div>
+</div>
+
+{% endblock body %}

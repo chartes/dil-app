@@ -6,12 +6,24 @@ utilities for the admin views
 """
 
 import os
+from pathlib import Path
 from unidecode import unidecode
 
 from werkzeug.utils import secure_filename
 from sqlalchemy import func
-from flask import render_template_string
+from flask import render_template_string, current_app
 
+def tutorials_are_available() -> bool:
+    """Return True if static/videos exists and contains at least one video file.
+    """
+    videos_dir = Path(current_app.static_folder) / "videos"
+    if not videos_dir.is_dir():
+        return False
+    allowed_extensions = {".mp4", ".webm", ".ogg", ".mov"}
+    return any(
+        file.is_file() and file.suffix.lower() in allowed_extensions
+        for file in videos_dir.iterdir()
+    )
 
 def render_popup_response(field_id: str, obj_id: int, obj_text: str) -> str:
     """Render a response for a popup form submission, sending a message back to the parent window.

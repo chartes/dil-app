@@ -89,86 +89,37 @@ def get_infos(db: Session = Depends(get_db)):
     tags=["Map"],
 )
 def get_cities_with_printers(
-    db: Session = Depends(get_db),
-    patent_city_query: Optional[List[str]] = Query(None),
-    patent_date_start: Optional[str] = Query(None),
-    exact_patent_date_start: Optional[str] = Query(None),
-    search_head_info: Optional[str] = Query(None),
-    search_extra_info: Optional[str] = Query(None),
+        db: Session = Depends(get_db),
+        patent_city_query: Optional[List[str]] = Query(None),
+        patent_date_start: Optional[str] = Query(None),
+        exact_patent_date_start: Optional[str] = Query(None),
+        search_head_info: Optional[str] = Query(None),
+        search_extra_info: Optional[str] = Query(None),
 ):
-    """Retrieve cities with geolocation and linked printers based on optional filters.
-
-    :param db: Database session dependency
-    :type db: Session
-    :param patent_city_query: Optional list of city DIL IDs to filter patents by their exercise places.
-    :type patent_city_query: Optional[List[str]]
-    :param patent_date_start: Optional date string to filter patents by their start date (e.g., '1855' or '1855-..').
-    :type patent_date_start: Optional[str]
-    :param exact_patent_date_start: Optional boolean string to indicate if the patent date filter should be exact (True) or inclusive (False).
-    :type exact_patent_date_start: Optional[str]
-    :param search_head_info: Optional string to search in the person's lastname.
-    :type search_head_info: Optional[str]
-    :param search_extra_info: Optional string to search in the person's patents content.
-    :type search_extra_info: Optional[str]
-    :return: A list of cities with their geolocation and linked printers that match the provided filters, or a JSONResponse with an error message in case of failure.
-    :rtype: Union[JSONResponse, List[dict]]
-    """
     try:
         selected_cities = list(set(patent_city_query or []))
         exact_date = str(exact_patent_date_start).lower() == "true"
 
         whoosh_ids = None
+
         if search_head_info or search_extra_info:
             whoosh_hits = (
-                cached_search(lastname=search_head_info, content=search_extra_info)
-                or {}
+                    cached_search(lastname=search_head_info, content=search_extra_info)
+                    or {}
             )
             whoosh_ids = list(whoosh_hits.keys())
 
             if not whoosh_ids:
                 return []
 
-        query = (
-            db.query(Patent.person_id)
-            .join(City, City.id == Patent.city_id)
-            .join(Person, Person.id == Patent.person_id)
+        matching_person_ids = get_matching_person_ids(
+            db=db,
+            selected_cities=selected_cities,
+            patent_date_start=patent_date_start,
+            exact_patent_date_start=exact_date,
+            whoosh_ids=whoosh_ids,
         )
 
-        if whoosh_ids is not None:
-            query = query.filter(Person._id_dil.in_(whoosh_ids))
-
-        if selected_cities:
-            query = query.filter(City._id_dil.in_(selected_cities))
-
-        if patent_date_start:
-            pstart, pend = period_bounds(patent_date_start)
-            if pstart and pend:
-                if exact_date:
-                    query = query.filter(
-                        Patent.date_start >= pstart, Patent.date_start <= pend
-                    )
-                else:
-                    query = query.filter(
-                        or_(
-                            and_(
-                                Patent.date_end.is_(None),
-                                Patent.date_start >= pstart,
-                                Patent.date_start <= pend,
-                            ),
-                            and_(
-                                Patent.date_end.is_not(None),
-                                Patent.date_start <= pend,
-                                Patent.date_end >= pstart,
-                            ),
-                        )
-                    )
-
-        if selected_cities:
-            query = query.group_by(Patent.person_id).having(
-                func.count(distinct(City._id_dil)) == len(selected_cities)
-            )
-
-        matching_person_ids = [row[0] for row in query.all()]
         if not matching_person_ids:
             return []
 
@@ -188,15 +139,16 @@ def get_cities_with_printers(
             )
             .join(Patent, City.id == Patent.city_id)
             .join(Person, Person.id == Patent.person_id)
-            .filter(City.long_lat.isnot(None), Person.id.in_(matching_person_ids))
+            .filter(
+                City.long_lat.isnot(None),
+                Person.id.in_(matching_person_ids),
+            )
         )
-
-        if whoosh_ids is not None:
-            query2 = query2.filter(Person._id_dil.in_(whoosh_ids))
 
         results = query2.all()
 
         city_map = {}
+
         for row in results:
             city_id = row.city_id
             person_key = row.person_dil
@@ -235,40 +187,47 @@ def get_cities_with_printers(
 
     except Exception as e:
         return JSONResponse(
-            status_code=500, content={"message": f"Erreur serveur: {e}"}
+            status_code=500,
+            content={"message": f"Erreur serveur: {e}"},
         )
 
 
 @api_router.get(
-    "/places/autocomplete", response_model=List[CityOutMinimal], include_in_schema=False
+    "/places/autocomplete",
+    response_model=List[CityOutMinimal],
+    include_in_schema=False,
 )
 def autocomplete_city(
-    q: Optional[str] = Query(None),
-    selected: Optional[List[str]] = Query(None),
-    db: Session = Depends(get_db),
+        q: Optional[str] = Query(None),
+        selected: Optional[List[str]] = Query(None),
+        patent_date_start: Optional[str] = Query(None),
+        exact_patent_date_start: bool = Query(False),
+        search_head_info: Optional[str] = Query(None),
+        search_extra_info: Optional[str] = Query(None),
+        db: Session = Depends(get_db),
 ) -> List[dict]:
-    """Autocomplete cities based on a query string and optional selected city filters.
-
-    :param q: Optional query string to filter city labels for autocomplete suggestions.
-    :type q: Optional[str]
-    :param selected: Optional list of city DIL IDs to filter patents by their exercise places.
-    :type selected: Optional[List[str]]
-    :param db: Database session dependency
-    :type db: Session
-    :return: A list of cities matching the autocomplete query and filters, each containing its DIL ID, label, department label, and counts of linked patents and persons if selected.
-    :rtype: List[dict]
-    """
     selected = list(set(selected or []))
 
-    person_query = db.query(Patent.person_id).join(City)
-    if selected:
-        person_query = person_query.filter(City._id_dil.in_(selected))
-        person_query = person_query.group_by(Patent.person_id)
-        person_query = person_query.having(
-            func.count(distinct(City._id_dil)) == len(selected)
-        )
+    whoosh_ids = None
 
-    matching_person_ids = [row[0] for row in person_query.all()]
+    if search_head_info or search_extra_info:
+        whoosh_hits = (
+                cached_search(lastname=search_head_info, content=search_extra_info)
+                or {}
+        )
+        whoosh_ids = list(whoosh_hits.keys())
+
+        if not whoosh_ids:
+            return []
+
+    matching_person_ids = get_matching_person_ids(
+        db=db,
+        selected_cities=selected,
+        patent_date_start=patent_date_start,
+        exact_patent_date_start=exact_patent_date_start,
+        whoosh_ids=whoosh_ids,
+    )
+
     if not matching_person_ids:
         return []
 
@@ -280,7 +239,7 @@ def autocomplete_city(
             func.count(Patent.id).label("total_patents_if_selected"),
             func.count(distinct(Patent.person_id)).label("total_persons_if_selected"),
         )
-        .join(Patent)
+        .join(Patent, Patent.city_id == City.id)
         .filter(Patent.person_id.in_(matching_person_ids))
         .group_by(City._id_dil, City.label, City.insee_fr_department_label)
     )
@@ -291,22 +250,19 @@ def autocomplete_city(
     if selected:
         city_query = city_query.filter(City._id_dil.notin_(selected))
 
-    city_query = city_query.order_by(desc("total_patents_if_selected")).limit(20)
+    city_query = city_query.order_by(desc("total_persons_if_selected")).limit(20)
 
-    results = []
-    for row in city_query.all():
-        results.append(
-            {
-                "id": row.id_dil,
-                "id_dil": row.id_dil,
-                "label": row.label,
-                "department_label_fr": row.department_label_fr,
-                "total_patents_if_selected": row.total_patents_if_selected,
-                "total_persons_if_selected": row.total_persons_if_selected,
-            }
-        )
-
-    return results
+    return [
+        {
+            "id": row.id_dil,
+            "id_dil": row.id_dil,
+            "label": row.label,
+            "department_label_fr": row.department_label_fr,
+            "total_patents_if_selected": row.total_patents_if_selected,
+            "total_persons_if_selected": row.total_persons_if_selected,
+        }
+        for row in city_query.all()
+    ]
 
 
 # -- IMAGE ROUTES -- #
@@ -385,6 +341,111 @@ def make_cache_key(lastname: str, content: str) -> str:
     return hashlib.sha256(raw.encode()).hexdigest()
 
 
+def build_matching_person_query(
+        db: Session,
+        selected_cities: Optional[List[str]] = None,
+        patent_date_start: Optional[str] = None,
+        exact_patent_date_start: bool = False,
+        whoosh_ids: Optional[List[str]] = None,
+):
+    """
+    Build a query returning Person.id values matching the global filters.
+
+    Important:
+    Filters are applied at person level, not at single Patent row level.
+
+    Example:
+    - selected city = Toulouse
+    - active year = 1828
+
+    A person matches if:
+    - they have at least one patent/activity in Toulouse
+    - and they have at least one patent/activity active in 1828
+
+    These can be different patents for the same person.
+    """
+
+    q = db.query(Person.id.label("pid"))
+
+    if whoosh_ids is not None:
+        q = q.filter(Person._id_dil.in_(whoosh_ids))
+
+    selected_cities = list(set(selected_cities or []))
+
+    if selected_cities:
+        city_match_subq = (
+            db.query(Patent.person_id.label("pid"))
+            .join(City, City.id == Patent.city_id)
+            .filter(City._id_dil.in_(selected_cities))
+            .group_by(Patent.person_id)
+            .having(func.count(distinct(City._id_dil)) == len(selected_cities))
+            .subquery()
+        )
+
+        q = q.join(
+            city_match_subq,
+            city_match_subq.c.pid == Person.id,
+        )
+
+    if patent_date_start:
+        pstart, pend = period_bounds(patent_date_start)
+
+        if pstart and pend:
+            period_subq = db.query(Patent.person_id.label("pid"))
+
+            if exact_patent_date_start:
+                period_subq = period_subq.filter(
+                    Patent.date_start >= pstart,
+                    Patent.date_start <= pend,
+                )
+            else:
+                period_subq = period_subq.filter(
+                    or_(
+                        and_(
+                            Patent.date_end.is_(None),
+                            Patent.date_start >= pstart,
+                            Patent.date_start <= pend,
+                        ),
+                        and_(
+                            Patent.date_end.is_not(None),
+                            Patent.date_start <= pend,
+                            Patent.date_end >= pstart,
+                        ),
+                    )
+                )
+
+            period_subq = period_subq.group_by(Patent.person_id).subquery()
+
+            q = q.join(
+                period_subq,
+                period_subq.c.pid == Person.id,
+            )
+
+    return q
+
+
+def get_matching_person_ids(
+        db: Session,
+        selected_cities: Optional[List[str]] = None,
+        patent_date_start: Optional[str] = None,
+        exact_patent_date_start: bool = False,
+        whoosh_ids: Optional[List[str]] = None,
+) -> List[int]:
+    """
+    Execute the common person-level filter query and return Person.id values.
+    """
+
+    q = build_matching_person_query(
+        db=db,
+        selected_cities=selected_cities,
+        patent_date_start=patent_date_start,
+        exact_patent_date_start=exact_patent_date_start,
+        whoosh_ids=whoosh_ids,
+    )
+
+    return [row.pid for row in q.all()]
+
+
 @cached(cache=cache, key=lambda lastname, content: make_cache_key(lastname, content))
 def cached_search(lastname: str, content: str) -> dict:
     """Perform a Whoosh search for printers based on the provided lastname and content parameters, with caching to optimize performance.
@@ -410,13 +471,13 @@ def cached_search(lastname: str, content: str) -> dict:
     description=METADATA["routes"]["read_printers"]["description"],
 )
 def read_printers(
-    db: Session = Depends(get_db),
-    search_head_info: Optional[str] = Query(None),
-    search_extra_info: Optional[str] = Query(None),
-    patent_city_query: Optional[List[str]] = Query(None),
-    patent_date_start: Optional[str] = Query(None),
-    exact_patent_date_start: bool = Query(False),
-    sort: Optional[str] = Query("asc"),
+        db: Session = Depends(get_db),
+        search_head_info: Optional[str] = Query(None),
+        search_extra_info: Optional[str] = Query(None),
+        patent_city_query: Optional[List[str]] = Query(None),
+        patent_date_start: Optional[str] = Query(None),
+        exact_patent_date_start: bool = Query(False),
+        sort: Optional[str] = Query("asc"),
 ):
     """Retrieve all persons (printers) with optional filters for search, city, and patent date, along with pagination and sorting.
 
@@ -444,8 +505,8 @@ def read_printers(
 
         if search_head_info or search_extra_info:
             whoosh_hits = (
-                cached_search(lastname=search_head_info, content=search_extra_info)
-                or {}
+                    cached_search(lastname=search_head_info, content=search_extra_info)
+                    or {}
             )
             whoosh_ids = list(whoosh_hits.keys())
 
@@ -471,57 +532,27 @@ def read_printers(
             Person.id.label("person_pk"),
         ).outerjoin(patent_count_subq, patent_count_subq.c.pid == Person.id)
 
-        # -- 3) Whoosh filter --
-        if whoosh_ids is not None:
+        # -- 3) Whoosh / city / date filters, all aligned at person level --
+        if whoosh_ids is not None and not (patent_city_query or patent_date_start):
             q = q.filter(Person._id_dil.in_(whoosh_ids))
 
-        # -- 4) City filter --
-        if patent_city_query:
-            selected = list(set(patent_city_query))
-            city_match_subq = (
-                db.query(Patent.person_id.label("pid"))
-                .join(City, City.id == Patent.city_id)
-                .filter(City._id_dil.in_(selected))
-                .group_by(Patent.person_id)
-                .having(func.count(distinct(City._id_dil)) == len(selected))
-                .subquery()
+        if patent_city_query or patent_date_start:
+            matching_person_ids = get_matching_person_ids(
+                db=db,
+                selected_cities=patent_city_query,
+                patent_date_start=patent_date_start,
+                exact_patent_date_start=exact_patent_date_start,
+                whoosh_ids=whoosh_ids,
             )
-            q = q.join(city_match_subq, city_match_subq.c.pid == Person.id)
+            if not matching_person_ids:
+                return Page(page=1, total=0, items=[], size=20, pages=0)
+            q = q.filter(Person.id.in_(matching_person_ids))
 
-        # -- 5) Period filter --
-        if patent_date_start:
-            pstart, pend = period_bounds(patent_date_start)
-            if pstart and pend:
-                period_subq = db.query(Patent.person_id.label("pid"))
-
-                if exact_patent_date_start:
-                    period_subq = period_subq.filter(
-                        Patent.date_start >= pstart, Patent.date_start <= pend
-                    )
-                else:
-                    period_subq = period_subq.filter(
-                        or_(
-                            and_(
-                                Patent.date_end.is_(None),
-                                Patent.date_start >= pstart,
-                                Patent.date_start <= pend,
-                            ),
-                            and_(
-                                Patent.date_end.is_not(None),
-                                Patent.date_start <= pend,
-                                Patent.date_end >= pstart,
-                            ),
-                        )
-                    )
-
-                period_subq = period_subq.group_by(Patent.person_id).subquery()
-                q = q.join(period_subq, period_subq.c.pid == Person.id)
-
-        # -- 6) Sorting --
+        # -- 4) Sorting --
         order_expr = func.replace(func.replace(Person.lastname, "É", "E"), "È", "E")
         q = q.order_by(desc(order_expr) if sort == "desc" else asc(order_expr))
 
-        # -- 7) Pagination --
+        # -- 5) Pagination --
         paginated = paginate(db, q)
 
         person_pks = [p.person_pk for p in paginated.items]
@@ -548,7 +579,7 @@ def read_printers(
                 }
             )
 
-        # -- 8) Output transformation --
+        # -- 6) Output transformation --
         items = []
 
         for p in paginated.items:

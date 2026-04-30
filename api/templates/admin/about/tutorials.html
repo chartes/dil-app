@@ -1,0 +1,152 @@
+{% extends 'admin/about/about_main.html' %}
+
+{% block head_css %}
+    {{ super() }}
+    <link href="{{ url_for('static', filename='css/tutorials.css') }}" rel="stylesheet">
+{% endblock head_css %}
+
+{% block about_content %}
+    <div class="tutorial-page" id="top">
+        <div>
+            <h2>Tutoriels</h2>
+            <p>Retrouvez ici les vidéos d’aide pour utiliser l’interface d’administration.</p>
+        </div>
+
+        <nav class="tutorial-summary" aria-label="Sommaire des tutoriels">
+            <h3>Sommaire</h3>
+            <ol>
+                <li><a href="#tutoriel-1">Ajouter un lien dans une notice</a></li>
+                <li><a href="#tutoriel-2">Modifier un lien dans une notice</a></li>
+                <li><a href="#tutoriel-3">Supprimer un lien dans une notice</a></li>
+                <li><a href="#tutoriel-4">Ajouter une nouvelle image (BnF-Gallica)</a></li>
+                <li><a href="#tutoriel-5">Ajouter une nouvelle image (locale)</a></li>
+                <li><a href="#tutoriel-6">Ajouter une nouvelle adresse dans une notice</a></li>
+                <li><a href="#tutoriel-7">Supprimer une adresse dans une notice</a></li>
+            </ol>
+        </nav>
+
+        <section class="tutorial-card" id="tutoriel-1">
+            <h3 class="tutorial-title">Ajouter un lien dans une notice</h3>
+
+            <div class="video-wrapper">
+                <video controls preload="metadata">
+                    <source src="{{ url_for('static', filename='videos/1_Ajouter_un_lien.mp4') }}" type="video/mp4">
+                    Votre navigateur ne prend pas en charge la lecture des vidéos.
+                </video>
+            </div>
+
+            <div class="tutorial-help">
+                Astuce : vous pouvez agrandir la vidéo en plein écran avec le bouton situé dans la barre de lecture.
+            </div>
+
+            <a href="#top" class="back-to-summary">↑ Retour au sommaire</a>
+        </section>
+
+        <section class="tutorial-card" id="tutoriel-2">
+            <h3 class="tutorial-title">Modifier un lien dans une notice</h3>
+
+            <div class="video-wrapper">
+                <video controls preload="metadata">
+                    <source src="{{ url_for('static', filename='videos/2_Modifier_un_lien.mp4') }}" type="video/mp4">
+                    Votre navigateur ne prend pas en charge la lecture des vidéos.
+                </video>
+            </div>
+
+            <div class="tutorial-help">
+                Astuce : vous pouvez agrandir la vidéo en plein écran avec le bouton situé dans la barre de lecture.
+            </div>
+
+            <a href="#top" class="back-to-summary">↑ Retour au sommaire</a>
+        </section>
+
+        <section class="tutorial-card" id="tutoriel-3">
+            <h3 class="tutorial-title">Supprimer un lien dans une notice</h3>
+
+            <div class="video-wrapper">
+                <video controls preload="metadata">
+                    <source src="{{ url_for('static', filename='videos/3_Supprimer_un_lien.mp4') }}" type="video/mp4">
+                    Votre navigateur ne prend pas en charge la lecture des vidéos.
+                </video>
+            </div>
+
+            <div class="tutorial-help">
+                Astuce : vous pouvez agrandir la vidéo en plein écran avec le bouton situé dans la barre de lecture.
+            </div>
+
+            <a href="#top" class="back-to-summary">↑ Retour au sommaire</a>
+        </section>
+
+        <section class="tutorial-card" id="tutoriel-4">
+            <h3 class="tutorial-title">Ajouter une nouvelle image (BnF-Gallica)</h3>
+
+            <div class="video-wrapper">
+                <video controls preload="metadata">
+                    <source src="{{ url_for('static', filename='videos/4_Ajouter_une_nouvelle_image_Gallica.mp4') }}"
+                            type="video/mp4">
+                    Votre navigateur ne prend pas en charge la lecture des vidéos.
+                </video>
+            </div>
+
+            <div class="tutorial-help">
+                Astuce : vous pouvez agrandir la vidéo en plein écran avec le bouton situé dans la barre de lecture.
+            </div>
+
+            <a href="#top" class="back-to-summary">↑ Retour au sommaire</a>
+        </section>
+
+        <section class="tutorial-card" id="tutoriel-5">
+            <h3 class="tutorial-title">Ajouter une nouvelle image (locale)</h3>
+
+            <div class="video-wrapper">
+                <video controls preload="metadata">
+                    <source src="{{ url_for('static', filename='videos/5_Ajouter_une_nouvelle_image_local.mp4') }}"
+                            type="video/mp4">
+                    Votre navigateur ne prend pas en charge la lecture des vidéos.
+                </video>
+            </div>
+
+            <div class="tutorial-help">
+                Astuce : vous pouvez agrandir la vidéo en plein écran avec le bouton situé dans la barre de lecture.
+            </div>
+
+            <a href="#top" class="back-to-summary">↑ Retour au sommaire</a>
+        </section>
+
+        <section class="tutorial-card" id="tutoriel-6">
+            <h3 class="tutorial-title">Ajouter une nouvelle adresse dans une notice</h3>
+
+            <div class="video-wrapper">
+                <video controls preload="metadata">
+                    <source src="{{ url_for('static', filename='videos/6_Ajouter_une_nouvelle_adresse.mp4') }}"
+                            type="video/mp4">
+                    Votre navigateur ne prend pas en charge la lecture des vidéos.
+                </video>
+            </div>
+
+            <div class="tutorial-help">
+                Astuce : vous pouvez agrandir la vidéo en plein écran avec le bouton situé dans la barre de lecture.
+            </div>
+
+            <a href="#top" class="back-to-summary">↑ Retour au sommaire</a>
+        </section>
+
+        <section class="tutorial-card" id="tutoriel-7">
+            <h3 class="tutorial-title">Supprimer une adresse dans une notice</h3>
+
+            <div class="video-wrapper">
+                <video controls preload="metadata">
+                    <source src="{{ url_for('static', filename='videos/7_Supprimer_une_adresse.mp4') }}"
+                            type="video/mp4">
+                    Votre navigateur ne prend pas en charge la lecture des vidéos.
+                </video>
+            </div>
+
+            <div class="tutorial-help">
+                Astuce : vous pouvez agrandir la vidéo en plein écran avec le bouton situé dans la barre de lecture.
+            </div>
+
+            <a href="#top" class="back-to-summary">↑ Retour au sommaire</a>
+        </section>
+    </div>
+
+{% endblock about_content %}
