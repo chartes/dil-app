@@ -128,7 +128,7 @@ for view in [
         menu_icon_type="glyph",
         menu_icon_value="glyphicon-wrench",
         category="Maintenance",
-    )
+    ),
 ]:
     admin.add_view(view)
 

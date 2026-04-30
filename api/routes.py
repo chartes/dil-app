@@ -89,12 +89,12 @@ def get_infos(db: Session = Depends(get_db)):
     tags=["Map"],
 )
 def get_cities_with_printers(
-        db: Session = Depends(get_db),
-        patent_city_query: Optional[List[str]] = Query(None),
-        patent_date_start: Optional[str] = Query(None),
-        exact_patent_date_start: Optional[str] = Query(None),
-        search_head_info: Optional[str] = Query(None),
-        search_extra_info: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+    patent_city_query: Optional[List[str]] = Query(None),
+    patent_date_start: Optional[str] = Query(None),
+    exact_patent_date_start: Optional[str] = Query(None),
+    search_head_info: Optional[str] = Query(None),
+    search_extra_info: Optional[str] = Query(None),
 ):
     try:
         selected_cities = list(set(patent_city_query or []))
@@ -104,8 +104,8 @@ def get_cities_with_printers(
 
         if search_head_info or search_extra_info:
             whoosh_hits = (
-                    cached_search(lastname=search_head_info, content=search_extra_info)
-                    or {}
+                cached_search(lastname=search_head_info, content=search_extra_info)
+                or {}
             )
             whoosh_ids = list(whoosh_hits.keys())
 
@@ -198,13 +198,13 @@ def get_cities_with_printers(
     include_in_schema=False,
 )
 def autocomplete_city(
-        q: Optional[str] = Query(None),
-        selected: Optional[List[str]] = Query(None),
-        patent_date_start: Optional[str] = Query(None),
-        exact_patent_date_start: bool = Query(False),
-        search_head_info: Optional[str] = Query(None),
-        search_extra_info: Optional[str] = Query(None),
-        db: Session = Depends(get_db),
+    q: Optional[str] = Query(None),
+    selected: Optional[List[str]] = Query(None),
+    patent_date_start: Optional[str] = Query(None),
+    exact_patent_date_start: bool = Query(False),
+    search_head_info: Optional[str] = Query(None),
+    search_extra_info: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
 ) -> List[dict]:
     selected = list(set(selected or []))
 
@@ -212,8 +212,7 @@ def autocomplete_city(
 
     if search_head_info or search_extra_info:
         whoosh_hits = (
-                cached_search(lastname=search_head_info, content=search_extra_info)
-                or {}
+            cached_search(lastname=search_head_info, content=search_extra_info) or {}
         )
         whoosh_ids = list(whoosh_hits.keys())
 
@@ -342,11 +341,11 @@ def make_cache_key(lastname: str, content: str) -> str:
 
 
 def build_matching_person_query(
-        db: Session,
-        selected_cities: Optional[List[str]] = None,
-        patent_date_start: Optional[str] = None,
-        exact_patent_date_start: bool = False,
-        whoosh_ids: Optional[List[str]] = None,
+    db: Session,
+    selected_cities: Optional[List[str]] = None,
+    patent_date_start: Optional[str] = None,
+    exact_patent_date_start: bool = False,
+    whoosh_ids: Optional[List[str]] = None,
 ):
     """
     Build a query returning Person.id values matching the global filters.
@@ -425,11 +424,11 @@ def build_matching_person_query(
 
 
 def get_matching_person_ids(
-        db: Session,
-        selected_cities: Optional[List[str]] = None,
-        patent_date_start: Optional[str] = None,
-        exact_patent_date_start: bool = False,
-        whoosh_ids: Optional[List[str]] = None,
+    db: Session,
+    selected_cities: Optional[List[str]] = None,
+    patent_date_start: Optional[str] = None,
+    exact_patent_date_start: bool = False,
+    whoosh_ids: Optional[List[str]] = None,
 ) -> List[int]:
     """
     Execute the common person-level filter query and return Person.id values.
@@ -471,13 +470,13 @@ def cached_search(lastname: str, content: str) -> dict:
     description=METADATA["routes"]["read_printers"]["description"],
 )
 def read_printers(
-        db: Session = Depends(get_db),
-        search_head_info: Optional[str] = Query(None),
-        search_extra_info: Optional[str] = Query(None),
-        patent_city_query: Optional[List[str]] = Query(None),
-        patent_date_start: Optional[str] = Query(None),
-        exact_patent_date_start: bool = Query(False),
-        sort: Optional[str] = Query("asc"),
+    db: Session = Depends(get_db),
+    search_head_info: Optional[str] = Query(None),
+    search_extra_info: Optional[str] = Query(None),
+    patent_city_query: Optional[List[str]] = Query(None),
+    patent_date_start: Optional[str] = Query(None),
+    exact_patent_date_start: bool = Query(False),
+    sort: Optional[str] = Query("asc"),
 ):
     """Retrieve all persons (printers) with optional filters for search, city, and patent date, along with pagination and sorting.
 
@@ -505,8 +504,8 @@ def read_printers(
 
         if search_head_info or search_extra_info:
             whoosh_hits = (
-                    cached_search(lastname=search_head_info, content=search_extra_info)
-                    or {}
+                cached_search(lastname=search_head_info, content=search_extra_info)
+                or {}
             )
             whoosh_ids = list(whoosh_hits.keys())
 

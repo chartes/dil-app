@@ -54,22 +54,14 @@ from .formaters import (
 from .model_handler import PrinterModelChangeHandler
 
 from api.config import settings
-from api.crud import (
-    get_user,
-    get_address,
-    get_patents,
-    get_printer
-)
+from api.crud import get_user, get_address, get_patents, get_printer
 from api.database import session
 from api.admin.views_dir.utils import (
     prefix_name,
     render_popup_response,
-    tutorials_are_available
+    tutorials_are_available,
 )
-from api.admin.views_dir.utils_gallica import (
-    is_gallica_url,
-    gallica_url_to_iiif
-)
+from api.admin.views_dir.utils_gallica import is_gallica_url, gallica_url_to_iiif
 from api.admin.views_dir.loaders import GenericAjaxModelLoader
 
 EDIT_ENDPOINTS = ["person", "city", "address", "image"]
@@ -1495,29 +1487,27 @@ class MaintenanceView(BaseView):
     @staticmethod
     def get_orphan_addresses_query(db_session):
         """Return addresses that are not linked to any person or patent."""
-        return (
-            db_session.query(Address)
-            .filter(
-                ~exists().where(PersonHasAddresses.address_id == Address.id),
-                ~exists().where(PatentHasAddresses.address_id == Address.id),
-            )
+        return db_session.query(Address).filter(
+            ~exists().where(PersonHasAddresses.address_id == Address.id),
+            ~exists().where(PatentHasAddresses.address_id == Address.id),
         )
 
     @staticmethod
     def get_orphan_images_query(db_session):
         """Return images that are not linked to any patent."""
-        return (
-            db_session.query(Image)
-            .filter(
-                ~exists().where(PatentHasImages.image_id == Image.id)
-            )
+        return db_session.query(Image).filter(
+            ~exists().where(PatentHasImages.image_id == Image.id)
         )
 
     @staticmethod
     def get_orphan_referential_counts(db_session) -> dict:
         """Return counts of orphan referential records."""
-        orphan_addresses_count = MaintenanceView.get_orphan_addresses_query(db_session).count()
-        orphan_images_count = MaintenanceView.get_orphan_images_query(db_session).count()
+        orphan_addresses_count = MaintenanceView.get_orphan_addresses_query(
+            db_session
+        ).count()
+        orphan_images_count = MaintenanceView.get_orphan_images_query(
+            db_session
+        ).count()
 
         return {
             "addresses": orphan_addresses_count,
@@ -1563,7 +1553,9 @@ class MaintenanceView(BaseView):
         deleted_images = 0
 
         if delete_addresses:
-            orphan_addresses = MaintenanceView.get_orphan_addresses_query(db_session).all()
+            orphan_addresses = MaintenanceView.get_orphan_addresses_query(
+                db_session
+            ).all()
 
             for address in orphan_addresses:
                 db_session.delete(address)
@@ -1657,9 +1649,7 @@ class MaintenanceView(BaseView):
             return redirect(self.get_url(".index"))
 
         is_orphan = (
-            self.get_orphan_images_query(session)
-            .filter(Image.id == image_id)
-            .first()
+            self.get_orphan_images_query(session).filter(Image.id == image_id).first()
             is not None
         )
 
@@ -1748,6 +1738,7 @@ class MaintenanceView(BaseView):
             )
 
         return redirect(self.get_url(".index"))
+
 
 class AboutView(BaseView):
     """Custom view for database documentation."""
