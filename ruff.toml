@@ -1,0 +1,10 @@
+# Configuration ruff (lint + format), utilisée en local et par la CI.
+# Les règles par défaut de ruff ont changé à partir de la v0.16 : on fixe
+# explicitement les anciennes règles par défaut pour que le résultat ne dépende
+# pas de la version de ruff installée.
+# target-version : l'application tourne en Python 3.9, ruff ne doit pas
+# proposer de syntaxe plus récente (ex. `str | None`).
+target-version = "py39"
+
+[lint]
+select = ["E4", "E7", "E9", "F"]
