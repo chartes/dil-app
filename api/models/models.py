@@ -478,13 +478,13 @@ class AbstractVersion(AbstractBase):
     @declared_attr
     def created_at(cls):
         """Creation timestamp column with a default value of the current datetime when a new record is created."""
-        return Column(DateTime, default=datetime.datetime.now())
+        return Column(DateTime, default=datetime.datetime.now)
 
     @declared_attr
     def updated_at(cls):
         """Update timestamp column with a default value of the current datetime when a new record is created, and automatically updated to the current datetime whenever the record is updated."""
         return Column(
-            DateTime, default=datetime.datetime.now(), onupdate=datetime.datetime.now()
+            DateTime, default=datetime.datetime.now, onupdate=datetime.datetime.now
         )
 
     @declared_attr
@@ -508,9 +508,9 @@ class User(UserMixin, BASE):
         Enum(*_get_enum_values(RolesUserEnum)), nullable=False, default="READER"
     )
     password_hash = Column(String(128))
-    created_at = Column(DateTime, default=datetime.datetime.now())
+    created_at = Column(DateTime, default=datetime.datetime.now)
     updated_at = Column(
-        DateTime, default=datetime.datetime.now(), onupdate=datetime.datetime.now()
+        DateTime, default=datetime.datetime.now, onupdate=datetime.datetime.now
     )
 
     def __repr__(self):

@@ -664,6 +664,19 @@ class PrinterView(GlobalModelView):
     def render(self, template, **kwargs):
         """Render a template with the given context."""
         if template == "admin/details.printer.html":
+            # previous/next printers navigation (same order as default list view)
+            kwargs["prev_printer"] = (
+                session.query(Person)
+                .filter(Person.id < kwargs["model"].id)
+                .order_by(Person.id.desc())
+                .first()
+            )
+            kwargs["next_printer"] = (
+                session.query(Person)
+                .filter(Person.id > kwargs["model"].id)
+                .order_by(Person.id.asc())
+                .first()
+            )
             printer = get_printer(session, {"id": kwargs["model"].id})
             patents = get_patents(session, {"person_id": kwargs["model"].id})
 

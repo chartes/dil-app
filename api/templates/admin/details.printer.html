@@ -8,6 +8,30 @@
     {% endif %}
 {% endmacro %}
 
+{% block navlinks %}
+    {{ super() }}
+    <ul class="pager">
+        {% if prev_printer %}
+            <li class="previous">
+                <a href="{{ get_url('.details_view', id=prev_printer.id, url=return_url) }}" title="{{ prev_printer }}">
+                    &larr; Imprimeur précédent
+                </a>
+            </li>
+        {% else %}
+            <li class="previous disabled"><a href="javascript:void(0)">&larr; Imprimeur précédent</a></li>
+        {% endif %}
+        {% if next_printer %}
+            <li class="next">
+                <a href="{{ get_url('.details_view', id=next_printer.id, url=return_url) }}" title="{{ next_printer }}">
+                    Imprimeur suivant &rarr;
+                </a>
+            </li>
+        {% else %}
+            <li class="next disabled"><a href="javascript:void(0)">Imprimeur suivant &rarr;</a></li>
+        {% endif %}
+    </ul>
+{% endblock %}
+
 {% block details_table %}
     {{ super() }}
     <h3><b>{{ printer.addresses_relations | length }}</b> Adresse(s) personnelle(s) associée(s)</h3>
